@@ -4,9 +4,11 @@ use 5.12.0;
 
 use Time::HiRes qw(usleep);
 use OpenGL qw(:all);
+
 use aliased qw/Iston::SampleTriangle/;
 use aliased qw/Iston::Thetraeder/;
 use aliased qw/Iston::Object/;
+use aliased qw/Iston::ObjLoader/;
 
 
 glutInit;
@@ -14,38 +16,51 @@ glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
 glEnable(GL_DEPTH_TEST);
 glEnableClientState(GL_COLOR_ARRAY);
 glEnableClientState(GL_VERTEX_ARRAY);
-glutCreateWindow("Sample PLG Renderer");
+my ($width, $height) = (800, 600);
+glutInitWindowSize($width, $height);
+glutCreateWindow("Iston");
 glutDisplayFunc(\&drawGLScene);
 glutIdleFunc(\&drawGLScene);
 glutKeyboardFunc(\&keyPressed);
 glClearColor(0.0, 0.0, 0.0, 0.0);
-initGL(640, 480);
+initGL($width, $height);
 
 my $object_rotation = [0, 0, 0];
 
 my @objects = (
     SampleTriangle->new,
 #    Thetraeder->new,
+    # Object->new(
+    #     vertices => [
+    #         0, 0, 1,
+    #         0, 0.942809, -0.33333,
+    #         -0.816497, -0.471405, -0.33333,
+    #         0.816497,  -0.471405, -0.33333
+    #     ],
+    #     colors   => [
+    #         1, 0, 0,
+    #         0, 1, 0,
+    #         0, 0, 1,
+    #         0, 0, 0,
+    #     ],
+    #     indices   => [
+    #         0,1,2,
+    #         0,1,3,
+    #         0,2,3,
+    #         1,2,3,
+    #     ]
+    # ),
+    #ObjLoader->new(file => 'share/models/cube.obj')->load->mesh,
+    #ObjLoader->new(file => 'share/models/cube.obj')->load,
+    #ObjLoader->new(file => 'share/models/monkey.obj')->load->mesh,
     Object->new(
         vertices => [
-            0, 0, 1,
-            0, 0.942809, -0.33333,
-            -0.816497, -0.471405, -0.33333,
-            0.816497,  -0.471405, -0.33333
-        ],
-        colors   => [
-            1, 0, 0,
-            0, 1, 0,
-            0, 0, 1,
             0, 0, 0,
+            0, 1, 0,
+            1, 0, 0,
         ],
-        indices   => [
-            0,1,2,
-            0,1,3,
-            0,2,3,
-            1,2,3,
-        ]
-    ),
+        indices => [ 0, 1, 2 ],
+    )->mesh,
 );
 
 glutMainLoop;
