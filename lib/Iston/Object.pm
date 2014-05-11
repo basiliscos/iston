@@ -8,32 +8,55 @@ use Function::Parameters qw(:strict);
 use OpenGL qw(:all);
 
 has vertices => (is => 'ro', required => 1);
-#has colors   => (is => 'ro', required => 1);
 has indices  => (is => 'ro', required => 1);
-has mode     => (is => 'rw', default => sub { GL_TRIANGLES });
+has normals  => (is => 'ro', required => 1);
+has mode     => (is => 'rw', default => sub { 'normal' }, trigger => 1);
+has contexts => (is => 'rw', default => sub { {} });
 
 has vertices_oga => (is => 'lazy');
+has normals_oga  => (is => 'lazy');
 has colors_oga   => (is => 'lazy');
 
 method BUILD {
-    # my ($v_size, $c_size) = map { scalar(@{ $self->$_ }) }
-    #     qw/vertices colors/;
-    # croak "Count of vertices must match count of colors"
-    #     unless $v_size == $c_size;
+    my ($v_size, $n_size) = map { scalar(@{ $self->$_ }) }
+        qw/vertices normals/;
+    croak "Count of vertices must match count of normals"
+        unless $v_size == $n_size;
 }
 
-method _build_vertices_oga {
+my $_as_oga = sub {
+    my $source = shift;
     return OpenGL::Array->new_list(
         GL_FLOAT,
-        @{$self->vertices}
+        @$source
     );
 };
 
+method _build_vertices_oga {
+    return $_as_oga->($self->vertices);
+};
+
 method _build_colors_oga {
-    return OpenGL::Array->new_list(
-        GL_FLOAT,
-        @{$self->colors}
-    );
+    return $_as_oga->($self->colors);
+};
+
+method _build_normals_oga {
+    return $_as_oga->($self->normals);
+};
+
+method _trigger_mode {
+    my $mode = $self->mode;
+    if ($mode eq 'mesh') {
+       $self->contexts->{normal} = {
+           indices => $self->indices,
+       };
+       $self->indices = $self->_triangle_2_lines_indices;
+   }else {
+       $self->contexts->{mesh} = {
+           indices => $self->indices,
+       };
+       $self->indices = $self->contexts->{normal}->{indices};
+   }
 };
 
 method _triangle_2_lines_indices {
@@ -49,29 +72,22 @@ method _triangle_2_lines_indices {
     return \@result;
 }
 
-method mesh {
-    my $meshed_obj = Iston::Object->new(
-        vertices => $self->vertices,
-        indices  => $self->_triangle_2_lines_indices,
-        mode     => GL_LINES,
-    );
-    return $meshed_obj;
-}
-
 method draw {
-    glEnableClientState(GL_VERTEX_ARRAY);
-    #glEnableClientState(GL_COLOR_ARRAY);
-    glColor3f (1.0, 1.0, 1.0);
+    #glEnable(GL_NORMALIZE);
 
     my $vertices = $self->vertices_oga;
     my $components = 3; # number of coordinates
+    glEnableClientState(GL_NORMAL_ARRAY);
+    glNormalPointer_p($self->normals_oga);
+    glEnableClientState(GL_VERTEX_ARRAY);
     glVertexPointer_p($components, $vertices);
-    #glColorPointer_p($triangles, $self->colors_oga);
 
     my $indices = $self->indices;
     my $indices_size = scalar(@$indices);
     my $mode = $self->mode;
-    glDrawElements_s($mode, $indices_size, GL_UNSIGNED_INT,
+    my $draw_mode = $mode eq 'normal'
+        ? GL_TRIANGLES : GL_LINES;
+    glDrawElements_s($draw_mode, $indices_size, GL_UNSIGNED_INT,
                      pack("L${indices_size}", @$indices));
 }
 
