@@ -42,6 +42,10 @@ subtest "Object transtation" => sub {
             1, 0, 0,
         ],
     );
+    my ($mins, $maxs) = $t->boudaries;
+    vector_eq($mins, [0,0,0]);
+    vector_eq($maxs, [1,2,3]);
+
     my $center = $t->center;
     my $to_center = [ map { $_ * -1 } @$center ];
     $t->translate($to_center);

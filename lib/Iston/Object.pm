@@ -20,7 +20,10 @@ method BUILD {
         qw/vertices normals/;
     croak "Count of vertices must match count of normals"
         unless $v_size == $n_size;
-    $self->_calculate_center;
+
+    my($mins, $maxs) = $self->boudaries;
+    my @avgs = map { ($mins->[$_] + $maxs->[$_]) /2  } (0 .. 2);
+    $self->center(\@avgs);
 }
 
 my $_as_oga = sub {
@@ -31,7 +34,7 @@ my $_as_oga = sub {
     );
 };
 
-method _calculate_center {
+method boudaries {
     my $first_vertex = [ @{ $self->vertices }[0..2] ];
     my ($mins, $maxs) = ([@$first_vertex ], [@$first_vertex]);
     my $vertices_count = scalar(@{$self->vertices})/3;
@@ -43,8 +46,7 @@ method _calculate_center {
             $maxs->[$c] = $coords[$c] if($maxs->[$c] < $coords[$c]);
         }
     }
-    my @avgs = map { ($mins->[$_] + $maxs->[$_]) /2  } (0 .. 2);
-    $self->center(\@avgs);
+    return ($mins, $maxs);
 }
 
 method translate($vector) {

@@ -5,6 +5,9 @@ use 5.12.0;
 use Time::HiRes qw(usleep);
 use OpenGL qw(:all);
 
+use List::Util qw/max/;
+use Iston::Utils qw/vector_length/;
+
 use aliased qw/Iston::SampleTriangle/;
 use aliased qw/Iston::Thetraeder/;
 use aliased qw/Iston::Object/;
@@ -26,41 +29,27 @@ glClearColor(0.0, 0.0, 0.0, 0.0);
 initGL($width, $height);
 
 my $object_rotation = [0, 0, 0];
-my $object_scale = 1.0;
+my $object = ObjLoader->new(file => $ARGV[0])->load;
+my ($max_distance) =
+    reverse sort {$a ->{length} <=> $b->{length} }
+    map {
+        { length => vector_length($_), vector => $_ }
+    } $object->boudaries;
 
-my @objects = (
-#    SampleTriangle->new,
-    #Thetraeder->new,
-    #ObjLoader->new(file => 'share/models/cube.obj')->load,
-    ObjLoader->new(file => $ARGV[0])->load,
-    # Object->new(
-    #     vertices => [
-    #         0, 0, 0,
-    #         0, 1, 0,
-    #         1, 0, 0,
-    #         0.5, 2, -1,
-    #     ],
-    #     indices => [ 0, 1, 2, 1, 2, 3 ],
-    #     normals => [
-    #         0, 0, -1,
-    #         0.485071, 0.485071, 0.727607,
-    #         0.485071, 0.485071, 0.727607,
-    #         0.657192, 0.657192, -0.369048,
-    #     ],
-    # ),
-);
+my $max_boundary = 3.8;
+my $object_scale = 1/($max_distance->{length}/$max_boundary);
 
 glutMainLoop;
 
 sub init_light {
     # Initialize material property, light source, lighting model, 
     # and depth buffer.
-    my @mat_specular = ( 1.0, 1.0, 0.0, 1.0 );
-    my @mat_diffuse  = ( 1.0, 1.0, 1.0, 1.0 );
-    my @light_position = ( 1.0, 1.0, 1.0, 0.0 );
+    my @mat_specular = ( 0.0, 0.0, 0.01, 1.0 );
+    my @mat_diffuse  = ( 0.8, 0.8, 0.8, 1.0 );
+    my @light_position = ( 5.0, 5.0, 5.0, 0.0 );
 
     glMaterialfv_s(GL_FRONT, GL_DIFFUSE, pack("f4",@mat_diffuse));
-    #glMaterialfv_s(GL_FRONT, GL_SPECULAR, pack("f4",@mat_specular));
+    glMaterialfv_s(GL_FRONT, GL_SPECULAR, pack("f4",@mat_specular));
     glMaterialfv_s(GL_FRONT, GL_SHININESS, pack("f1",10));
     glLightfv_s(GL_LIGHT0, GL_POSITION, pack("f4",@light_position));
 
@@ -103,12 +92,10 @@ sub drawGLScene {
     glRotatef($object_rotation->[1], 0, 1, 0);
     glRotatef($object_rotation->[2], 0, 0, 1);
     glScalef($object_scale, $object_scale, $object_scale);
-    for(@objects) {
-        glPushMatrix;
-#        init_light;
-        $_->draw;
-        glPopMatrix
-    }
+
+    glPushMatrix;
+    $object->draw;
+    glPopMatrix
 
     glPopMatrix;
     glFlush;
@@ -139,14 +126,14 @@ sub keyPressed {
         $object_scale /= 1.1;
     }
     elsif ( $key == ord('[') ) {
-        my $center = $objects[0]->center;
+        my $center = $object->center;
         my $vector = [$center->[0]-0.01, $center->[1], $center->[2]];
-        $objects[0]->translate($vector);
+        $object->translate($vector);
     }
     elsif ( $key == ord('m') ) {
-        my $new_mode = $objects[0]->mode eq 'normal'
+        my $new_mode = $object->mode eq 'normal'
             ? 'mesh'
             : 'normal';
-        $objects[0]->mode($new_mode);
+        $object->mode($new_mode);
     }
 }

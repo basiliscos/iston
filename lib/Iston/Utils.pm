@@ -7,22 +7,25 @@ use List::Util qw/reduce/;
 
 use parent qw/Exporter/;
 
-our @EXPORT_OK = qw/normalize/;
+our @EXPORT_OK = qw/normalize vector_length/;
+
+fun vector_length($vector){
+    return sqrt(
+        reduce  { $a + $b }
+            map { $_ * $_ }
+            map {$vector->[$_] }
+            (0 .. 2)
+    );
+}
 
 fun normalize($vector){
-    my($x,$y,$z) = (0,1,2);
-    my $length =
-        reduce { $a + $b }
-        map { $_ * $_ }
-        map {$vector->[$_] }
-        ($x, $y, $z);
-    $length = sqrt($length);
+    my $length = vector_length($vector);
     return $vector if($length == 0);
     my @r =
         map { sprintf ('%f', $_) }
         map { $_ / $length  }
         map {$vector->[$_] }
-        ($x, $y, $z);
+        (0 .. 2);
     return \@r;
 }
 
