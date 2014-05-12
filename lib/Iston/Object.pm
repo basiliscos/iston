@@ -7,6 +7,9 @@ use Moo;
 use Function::Parameters qw(:strict);
 use OpenGL qw(:all);
 
+
+has ($_ => (is => 'rw', required => 0) )
+    for(qw/x y z/);
 has vertices => (is => 'ro', required => 1);
 has indices  => (is => 'ro', required => 1);
 has normals  => (is => 'ro', required => 1);
@@ -22,6 +25,7 @@ method BUILD {
         qw/vertices normals/;
     croak "Count of vertices must match count of normals"
         unless $v_size == $n_size;
+    $self->_calculate_center;
 }
 
 my $_as_oga = sub {
@@ -31,6 +35,24 @@ my $_as_oga = sub {
         @$source
     );
 };
+
+method _calculate_center {
+    my $first_vertex = [ @{ $self->vertices }[0..2] ];
+    my ($mins, $maxs) = ([@$first_vertex ], [@$first_vertex]);
+    my $vertices_count = scalar(@{$self->vertices})/3;
+    for my $vertex_index (0 .. $vertices_count-1) {
+        my @coords = @{ $self->vertices }
+            [ $vertex_index*3 .. $vertex_index*3+2 ];
+        for my $c(0 .. 2) {
+            $mins->[$c] = $coords[$c] if($mins->[$c] > $coords[$c]);
+            $maxs->[$c] = $coords[$c] if($maxs->[$c] < $coords[$c]);
+        }
+    }
+    my @avgs = map { ($mins->[$_] + $maxs->[$_]) /2  } (0 .. 2);
+    $self->x($avgs[0]);
+    $self->y($avgs[1]);
+    $self->z($avgs[2]);
+}
 
 method _build_vertices_oga {
     return $_as_oga->($self->vertices);

@@ -26,12 +26,13 @@ glClearColor(0.0, 0.0, 0.0, 0.0);
 initGL($width, $height);
 
 my $object_rotation = [0, 0, 0];
+my $object_scale = 1.0;
 
 my @objects = (
 #    SampleTriangle->new,
     #Thetraeder->new,
     #ObjLoader->new(file => 'share/models/cube.obj')->load,
-    ObjLoader->new(file => 'share/models/monkey.obj')->load,
+    ObjLoader->new(file => $ARGV[0])->load,
     # Object->new(
     #     vertices => [
     #         0, 0, 0,
@@ -101,6 +102,7 @@ sub drawGLScene {
     glRotatef($object_rotation->[0], 1, 0, 0);
     glRotatef($object_rotation->[1], 0, 1, 0);
     glRotatef($object_rotation->[2], 0, 0, 1);
+    glScalef($object_scale, $object_scale, $object_scale);
     for(@objects) {
         glPushMatrix;
 #        init_light;
@@ -130,11 +132,16 @@ sub keyPressed {
         $object_rotation->[2] += $rotate_step;
         $object_rotation->[2] %= 360;
     }
-   elsif ( $key == ord('m') ) {
-       my $new_mode = $objects[0]->mode eq 'normal'
-           ? 'mesh'
-           : 'normal';
-       $objects[0]->mode($new_mode);
-       glutPostRedisplay;
-   }
- }
+    elsif ( $key == ord('+') ) {
+        $object_scale *= 1.1;
+    }
+    elsif ( $key == ord('-') ) {
+        $object_scale /= 1.1;
+    }
+    elsif ( $key == ord('m') ) {
+        my $new_mode = $objects[0]->mode eq 'normal'
+            ? 'mesh'
+            : 'normal';
+        $objects[0]->mode($new_mode);
+    }
+}

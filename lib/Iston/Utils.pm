@@ -17,6 +17,7 @@ fun normalize($vector){
         map {$vector->[$_] }
         ($x, $y, $z);
     $length = sqrt($length);
+    return $vector if($length == 0);
     my @r =
         map { sprintf ('%f', $_) }
         map { $_ / $length  }

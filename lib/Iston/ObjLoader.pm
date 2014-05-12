@@ -68,7 +68,7 @@ method load {
         $vertices_normals[$v_index] = $vertice_normal;
     }
     # flatten vertices
-    @vertices_normals = map { @$_ } @vertices_normals;
+    @vertices_normals = map { @$_ } map { $_ // [0, 0, 0] } @vertices_normals;
 
     my $object = Object->new(
         vertices => \@vertices,
