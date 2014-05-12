@@ -25,8 +25,37 @@ subtest "Equilateral triangle in centre" => sub {
         ],
     );
     ok $t;
-    my $center = [ map{ $t->$_ } (qw/x y z/) ];
-    vector_eq([0, 0, 0], $center);
+    vector_eq($t->center, [0, 0, 0]);
+};
+
+subtest "Object transtation" => sub {
+    my $t = Object->new(
+        vertices => [
+            1, 0, 0,
+            0, 2, 0,
+            0, 0, 3,
+        ],
+        indices => [ 0, 1, 2],
+        normals => [ # does not matter
+            0, 0, 1,
+            0, 1, 0,
+            1, 0, 0,
+        ],
+    );
+    my $center = $t->center;
+    my $to_center = [ map { $_ * -1 } @$center ];
+    $t->translate($to_center);
+    vector_eq($t->center, [0, 0, 0]);
+
+    $t->translate([1.5, 2, 2.5]);
+    vector_eq([2, 1, 1], [ @{ $t->vertices} [0 .. 2] ]);
+    vector_eq([1, 3, 1], [ @{ $t->vertices} [3 .. 5] ]);
+    vector_eq([1, 1, 4], [ @{ $t->vertices} [6 .. 8] ]);
+
+    $center = $t->center;
+    $to_center = [ map { $_ * -1 } @$center ];
+    $t->translate($to_center);
+    vector_eq($t->center, [0, 0, 0]);
 };
 
 done_testing;

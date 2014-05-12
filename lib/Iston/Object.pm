@@ -8,17 +8,12 @@ use Function::Parameters qw(:strict);
 use OpenGL qw(:all);
 
 
-has ($_ => (is => 'rw', required => 0) )
-    for(qw/x y z/);
+has center   => (is => 'rw', required => 0);
 has vertices => (is => 'ro', required => 1);
 has indices  => (is => 'ro', required => 1);
 has normals  => (is => 'ro', required => 1);
 has mode     => (is => 'rw', default => sub { 'normal' }, trigger => 1);
 has contexts => (is => 'rw', default => sub { {} });
-
-has vertices_oga => (is => 'lazy');
-has normals_oga  => (is => 'lazy');
-has colors_oga   => (is => 'lazy');
 
 method BUILD {
     my ($v_size, $n_size) = map { scalar(@{ $self->$_ }) }
@@ -49,22 +44,20 @@ method _calculate_center {
         }
     }
     my @avgs = map { ($mins->[$_] + $maxs->[$_]) /2  } (0 .. 2);
-    $self->x($avgs[0]);
-    $self->y($avgs[1]);
-    $self->z($avgs[2]);
+    $self->center(\@avgs);
 }
 
-method _build_vertices_oga {
-    return $_as_oga->($self->vertices);
-};
-
-method _build_colors_oga {
-    return $_as_oga->($self->colors);
-};
-
-method _build_normals_oga {
-    return $_as_oga->($self->normals);
-};
+method translate($vector) {
+    my $vertices_count = scalar(@{$self->vertices})/3;
+    for my $vertex_index (0 .. $vertices_count-1) {
+        for my $c (0 .. 2) {
+            $self->vertices->[$vertex_index*3 + $c] += $vector->[$c];
+        }
+    };
+    for my $c (0 .. 2) {
+        $self->center->[$c] += $vector->[$c];
+    }
+}
 
 method _trigger_mode {
     my $mode = $self->mode;
@@ -97,10 +90,11 @@ method _triangle_2_lines_indices {
 method draw {
     #glEnable(GL_NORMALIZE);
 
-    my $vertices = $self->vertices_oga;
+    my ($vertices, $normals) =
+        map { $_as_oga->($self->$_) } qw/vertices normals/;
     my $components = 3; # number of coordinates
     glEnableClientState(GL_NORMAL_ARRAY);
-    glNormalPointer_p($self->normals_oga);
+    glNormalPointer_p($normals);
     glEnableClientState(GL_VERTEX_ARRAY);
     glVertexPointer_p($components, $vertices);
 

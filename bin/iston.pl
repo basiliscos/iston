@@ -138,6 +138,11 @@ sub keyPressed {
     elsif ( $key == ord('-') ) {
         $object_scale /= 1.1;
     }
+    elsif ( $key == ord('[') ) {
+        my $center = $objects[0]->center;
+        my $vector = [$center->[0]-0.01, $center->[1], $center->[2]];
+        $objects[0]->translate($vector);
+    }
     elsif ( $key == ord('m') ) {
         my $new_mode = $objects[0]->mode eq 'normal'
             ? 'mesh'

@@ -75,6 +75,9 @@ method load {
         indices  => \@indices,
         normals  => \@vertices_normals,
     );
+    my $center = $object->center;
+    my $to_center = [ map { $_ * -1 } @$center ];
+    $object->translate($to_center);
 
     return $object;
 };
