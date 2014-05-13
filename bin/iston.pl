@@ -7,11 +7,14 @@ use OpenGL qw(:all);
 
 use List::Util qw/max/;
 use Iston::Utils qw/vector_length/;
-
+use Path::Tiny;
+use Time::HiRes qw/gettimeofday tv_interval/;
 use aliased qw/Iston::SampleTriangle/;
 use aliased qw/Iston::Thetraeder/;
 use aliased qw/Iston::Object/;
 use aliased qw/Iston::ObjLoader/;
+
+sub _log_state;
 
 
 glutInit;
@@ -38,6 +41,12 @@ my ($max_distance) =
 
 my $max_boundary = 3.8;
 my $object_scale = 1/($max_distance->{length}/$max_boundary);
+
+my $started_at = [gettimeofday];
+my $history = path(".", "history_@{[ time ]}.csv")
+    ->filehandle('>');
+say $history "timestamp,a,b,d";
+_log_state;
 
 glutMainLoop;
 
@@ -103,6 +112,18 @@ sub drawGLScene {
     usleep (50000);
 }
 
+sub _log_state {
+    my $elapsed = tv_interval ( $started_at, [gettimeofday]);
+    my $line = join(',', $elapsed, $object_rotation->[1],
+                    $object_rotation->[0], "0");
+    say $history $line;
+}
+
+sub _exit {
+    say "...exiting";
+    _log_state;
+    exit;
+}
 
 sub keyPressed {
     my ($key, $x, $y) = @_;
@@ -134,8 +155,13 @@ sub keyPressed {
         '+' => $scaling->(1.05),
         '-' => $scaling->(0.95),
         'm' => $switch_mode,
+        'q' => sub {
+            my $m = glutGetModifiers;
+            _exit if($m & GLUT_ACTIVE_ALT);
+        },
     };
     my $key_char = chr($key);
     my $action = $dispatch_table->{$key_char};
     $action->() if($action);
+    _log_state;
 }
