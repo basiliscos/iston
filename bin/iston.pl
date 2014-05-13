@@ -75,7 +75,7 @@ sub initGL {
     glMatrixMode(GL_MODELVIEW);
     gluLookAt(0.0, 0.0, 5.0,    # eye is at (0,0,5)
               0.0, 0.0, 0.0,    # center is at (0,0,0)
-              0.0, 1.0, 0.);    # up is in positive Y direction
+              0.0, 1.0, 0.0);   # up is in positive Y direction
     # glTranslatef(0.0, 0.0, -1.0);
     # glRotatef(60, 1.0, 0.0, 0.0);
     # glRotatef(-20, 0.0, 0.0, 1.0);
@@ -107,33 +107,35 @@ sub drawGLScene {
 sub keyPressed {
     my ($key, $x, $y) = @_;
     my $rotate_step = 2;
-    if ($key == ord('j') ) {
-        $object_rotation->[0] += $rotate_step;
-        $object_rotation->[0] %= 360;
-    }
-    elsif ( $key == ord('k') ) {
-        $object_rotation->[1] += $rotate_step;
-        $object_rotation->[1] %= 360;
-    }
-    elsif ( $key == ord('l') ) {
-        $object_rotation->[2] += $rotate_step;
-        $object_rotation->[2] %= 360;
-    }
-    elsif ( $key == ord('+') ) {
-        $object_scale *= 1.1;
-    }
-    elsif ( $key == ord('-') ) {
-        $object_scale /= 1.1;
-    }
-    elsif ( $key == ord('[') ) {
-        my $center = $object->center;
-        my $vector = [$center->[0]-0.01, $center->[1], $center->[2]];
-        $object->translate($vector);
-    }
-    elsif ( $key == ord('m') ) {
+    my $rotation = sub {
+        my ($c, $step) = @_;
+        return sub {
+            $object_rotation->[$c] += $step;
+            $object_rotation->[$c] %= 360;
+        }
+    };
+    my $scaling = sub {
+        my $value = shift;
+        return sub {
+            $object_scale *= $value;
+        };
+    };
+    my $switch_mode = sub {
         my $new_mode = $object->mode eq 'normal'
             ? 'mesh'
             : 'normal';
         $object->mode($new_mode);
-    }
+    };
+    my $dispatch_table = {
+        'w' => $rotation->(0, -$rotate_step),
+        's' => $rotation->(0, $rotate_step),
+        'a' => $rotation->(1, -$rotate_step),
+        'd' => $rotation->(1, $rotate_step),
+        '+' => $scaling->(1.05),
+        '-' => $scaling->(0.95),
+        'm' => $switch_mode,
+    };
+    my $key_char = chr($key);
+    my $action = $dispatch_table->{$key_char};
+    $action->() if($action);
 }
