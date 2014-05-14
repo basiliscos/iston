@@ -2,19 +2,40 @@
 
 use 5.12.0;
 
-use Time::HiRes qw(usleep);
-use OpenGL qw(:all);
-
+use Getopt::Long qw(GetOptions :config no_auto_abbrev no_ignore_case);
 use List::Util qw/max/;
 use Iston::Utils qw/vector_length/;
+use OpenGL qw(:all);
 use Path::Tiny;
-use Time::HiRes qw/gettimeofday tv_interval/;
+use Text::CSV;
+use Time::HiRes qw/gettimeofday tv_interval usleep/;
+
 use aliased qw/Iston::SampleTriangle/;
 use aliased qw/Iston::Thetraeder/;
 use aliased qw/Iston::Object/;
 use aliased qw/Iston::ObjLoader/;
 
 sub _log_state;
+sub _replay_history;
+
+GetOptions(
+    'o|object=s'         => \my $object_path,
+    'r|replay_history=s' => \my $history_path,
+    'h|help'             => \my $help,
+);
+
+my $show_help = $help || !$object_path;
+die <<"EOF" if($show_help);
+usage: $0 OPTIONS
+
+     $0 [options]
+
+These options are available:
+  -o, --object         Generates pair of private an public keys and stores them
+                       in the current directory
+  -r  --replay_history History file
+  -h, --help           Show this message.
+EOF
 
 
 glutInit;
@@ -32,7 +53,8 @@ glClearColor(0.0, 0.0, 0.0, 0.0);
 initGL($width, $height);
 
 my $object_rotation = [0, 0, 0];
-my $object = ObjLoader->new(file => $ARGV[0])->load;
+$object_path = path($object_path);
+my $object = ObjLoader->new(file => $object_path)->load;
 my ($max_distance) =
     reverse sort {$a ->{length} <=> $b->{length} }
     map {
@@ -42,13 +64,18 @@ my ($max_distance) =
 my $max_boundary = 3.8;
 my $object_scale = 1/($max_distance->{length}/$max_boundary);
 
+my $history;
 my $started_at = [gettimeofday];
-my $history = path(".", "history_@{[ time ]}.csv")
-    ->filehandle('>');
-say $history "timestamp,a,b,d";
-_log_state;
 
-glutMainLoop;
+if($history_path) {
+    _replay_history;
+} else {
+    $history = path(".", "history_@{[ time ]}_@{[ $object_path->basename ]}.csv")
+        ->filehandle('>');
+    say $history "timestamp,a,b,d";
+    _log_state;
+    glutMainLoop;
+}
 
 sub init_light {
     # Initialize material property, light source, lighting model, 
@@ -109,7 +136,35 @@ sub drawGLScene {
     glPopMatrix;
     glFlush;
     glutSwapBuffers;
-    usleep (50000);
+}
+
+sub _replay_history {
+    my $csv = Text::CSV->new({
+        binary   => 1,
+        sep_char => ',',
+    }) or die "Cannot use CSV: " . Text::CSV->error_diag;
+    open my $fh, "<:encoding(utf8)", $history_path or die "$history_path: $!";
+    my @rows;
+    while ( my $row = $csv->getline( $fh ) ) {
+        push @rows, $row;
+    }
+    $csv->eof or $csv->error_diag();
+    close $fh;
+
+    my $speedup = 1;
+    my $last_time = 0;
+    for my $i (1 .. @rows-1) {
+        glutMainLoopEvent;
+        my $row = $rows[$i];
+        my $sleep_time = $row ->[0] - $last_time;
+        $object_rotation->[1] = $row->[1];
+        $object_rotation->[0] = $row->[2];
+        #sleep($sleep_time * $speedup);
+        $last_time = $row->[0];
+        glutPostRedisplay;
+    }
+    my $elapsed = tv_interval ( $started_at, [gettimeofday]);
+    say "replay time: $elapsed";
 }
 
 sub _log_state {
