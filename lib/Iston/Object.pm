@@ -15,6 +15,8 @@ has indices  => (is => 'ro', required => 1);
 has normals  => (is => 'ro', required => 1);
 has mode     => (is => 'rw', default => sub { 'normal' }, trigger => 1);
 has contexts => (is => 'rw', default => sub { {} });
+has cache    => (is => 'rw', default => sub { {} });
+
 
 method BUILD {
     my ($v_size, $n_size) = map { scalar(@{ $self->$_ }) }
@@ -92,8 +94,10 @@ method _triangle_2_lines_indices {
 method draw {
     #glEnable(GL_NORMALIZE);
 
+    my $cache = $self->cache;
     my ($vertices, $normals) =
-        map { $_as_oga->($self->$_) } qw/vertices normals/;
+        map { $cache->{$_} //= $_as_oga->($self->$_) }
+        qw/vertices normals/;
     my $components = 3; # number of coordinates
     glEnableClientState(GL_NORMAL_ARRAY);
     glNormalPointer_p($normals);
