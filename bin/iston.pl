@@ -4,16 +4,14 @@ use 5.12.0;
 
 use Getopt::Long qw(GetOptions :config no_auto_abbrev no_ignore_case);
 use List::Util qw/max/;
-use Iston::Utils qw/vector_length/;
 use OpenGL qw(:all);
 use Path::Tiny;
 use Text::CSV;
 use Time::HiRes qw/gettimeofday tv_interval usleep/;
 
-use aliased qw/Iston::SampleTriangle/;
-use aliased qw/Iston::Thetraeder/;
 use aliased qw/Iston::Object/;
 use aliased qw/Iston::ObjLoader/;
+use aliased qw/Iston::Vector/;
 
 sub _log_state;
 sub _replay_history;
@@ -37,6 +35,7 @@ These options are available:
   -h, --help           Show this message.
 EOF
 
+my $interactive_mode = !defined($history_path);
 
 glutInit;
 glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
@@ -56,13 +55,12 @@ my $object_rotation = [0, 0, 0];
 $object_path = path($object_path);
 my $object = ObjLoader->new(file => $object_path)->load;
 my ($max_distance) =
-    reverse sort {$a ->{length} <=> $b->{length} }
-    map {
-        { length => vector_length($_), vector => $_ }
-    } $object->boudaries;
+    reverse sort {$a->length <=> $b->length }
+    map { Vector->new( $_ ) }
+    $object->boudaries;
 
 my $max_boundary = 3.8;
-my $object_scale = 1/($max_distance->{length}/$max_boundary);
+my $object_scale = 1/($max_distance->length/$max_boundary);
 
 my $history;
 my $started_at = [gettimeofday];
@@ -136,6 +134,7 @@ sub drawGLScene {
     glPopMatrix;
     glFlush;
     glutSwapBuffers;
+    $interactive_mode && usleep(50000);
 }
 
 sub _replay_history {

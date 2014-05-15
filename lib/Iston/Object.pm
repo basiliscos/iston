@@ -7,6 +7,7 @@ use Moo;
 use Function::Parameters qw(:strict);
 use OpenGL qw(:all);
 
+use aliased qw/Iston::Vertex/;
 
 has center   => (is => 'rw', required => 0);
 has vertices => (is => 'ro', required => 1);
@@ -23,37 +24,36 @@ method BUILD {
 
     my($mins, $maxs) = $self->boudaries;
     my @avgs = map { ($mins->[$_] + $maxs->[$_]) /2  } (0 .. 2);
-    $self->center(\@avgs);
+    $self->center(Vertex->new(\@avgs));
 }
 
 my $_as_oga = sub {
     my $source = shift;
     return OpenGL::Array->new_list(
         GL_FLOAT,
-        @$source
+        map { @$_ } @$source
     );
 };
 
 method boudaries {
-    my $first_vertex = [ @{ $self->vertices }[0..2] ];
-    my ($mins, $maxs) = ([@$first_vertex ], [@$first_vertex]);
-    my $vertices_count = scalar(@{$self->vertices})/3;
+    my $first_vertex = $self->vertices->[0];
+    my ($mins, $maxs) = map { Vertex->new($first_vertex) } (0 .. 1);
+    my $vertices_count = scalar(@{$self->vertices});
     for my $vertex_index (0 .. $vertices_count-1) {
-        my @coords = @{ $self->vertices }
-            [ $vertex_index*3 .. $vertex_index*3+2 ];
-        for my $c(0 .. 2) {
-            $mins->[$c] = $coords[$c] if($mins->[$c] > $coords[$c]);
-            $maxs->[$c] = $coords[$c] if($maxs->[$c] < $coords[$c]);
+        my $v = $self->vertices->[$vertex_index];
+        for my $c (0 .. 2) {
+            $mins->[$c] = $v->[$c] if($mins->[$c] > $v->[$c]);
+            $maxs->[$c] = $v->[$c] if($maxs->[$c] < $v->[$c]);
         }
     }
     return ($mins, $maxs);
 }
 
 method translate($vector) {
-    my $vertices_count = scalar(@{$self->vertices})/3;
+    my $vertices_count = scalar(@{$self->vertices});
     for my $vertex_index (0 .. $vertices_count-1) {
         for my $c (0 .. 2) {
-            $self->vertices->[$vertex_index*3 + $c] += $vector->[$c];
+            $self->vertices->[$vertex_index]->[$c] += $vector->[$c];
         }
     };
     for my $c (0 .. 2) {

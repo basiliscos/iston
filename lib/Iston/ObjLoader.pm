@@ -10,9 +10,9 @@ use Moo;
 use Path::Tiny;
 use Smart::Comments -ENV;
 
-use Iston::Utils qw/normalize/;
-
 use aliased qw/Iston::Object/;
+use aliased qw/Iston::Vector/;
+use aliased qw/Iston::Vertex/;
 
 has 'file' => (is => 'ro', required => 1);
 
@@ -29,7 +29,7 @@ method load {
             my @coordinates = split(/\s+/, $1);
             croak "There should be exactly 3 coordinates for vertex: $line"
                 unless @coordinates == 3;
-            push @vertices, @coordinates;
+            push @vertices, Vertex->new(\@coordinates);
         } elsif ($line =~ /^f (.+)$/) {
             my @components = split(/\s+/, $1);
             croak "There should be exactly 3 components for face: $line"
@@ -45,7 +45,7 @@ method load {
             my @coordinates = split(/\s+/, $1);
             croak "There should be exactly 3 coordinates for normal: $line"
                 unless @coordinates == 3;
-            push @normals, @coordinates;
+            push @normals, Vector->new(\@coordinates);
         }
     }
     # converting normals for faces into normals for vertices
@@ -54,21 +54,15 @@ method load {
         ### $v_index
         my @uniq_n_indices = uniq @$n_indices;
         ### @uniq_n_indices
-        my $vertice_vector = reduce {
-            ### $a
-            ### $b
-            [
-                $a->[0] + $b->[0],
-                $a->[1] + $b->[1],
-                $a->[2] + $b->[2],
-            ]
-        } map { [@normals[ $_*3 .. $_*3+2]] }
+        my $vertice_vector =
+            reduce {$a + $b }
+            map { $normals[ $_ ] }
             @uniq_n_indices;
-        my $vertice_normal = normalize($vertice_vector);
+        my $vertice_normal = $vertice_vector->normalize;
         $vertices_normals[$v_index] = $vertice_normal;
     }
     # flatten vertices
-    @vertices_normals = map { @$_ } map { $_ // [0, 0, 0] } @vertices_normals;
+    @vertices_normals = map { $_ // Vector->new([0, 0, 0]) } @vertices_normals;
 
     my $object = Object->new(
         vertices => \@vertices,
