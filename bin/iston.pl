@@ -52,6 +52,7 @@ glClearColor(0.0, 0.0, 0.0, 0.0);
 initGL($width, $height);
 
 my $object_rotation = [0, 0, 0];
+my $camera_position = [0, 0, -7];
 $object_path = path($object_path);
 my $object = ObjLoader->new(file => $object_path)->load;
 my ($max_distance) =
@@ -97,31 +98,19 @@ sub initGL {
     my ($width, $height) = @_;
     init_light;
     glMatrixMode(GL_PROJECTION);
-    #glLoadIdentity;
+    glLoadIdentity;
     gluPerspective(65.0, $width/$height, 0.1, 100.0);
-    #glFrustum(-2, 2, -2, 2, 2.5, 20.0);
-    # gluPerspective(
-    #     40.0,                   # field of view in degree
-    #     1.0,                    # aspect ratio
-    #     1.0,                    # Z near
-    #     10.0,                   # Z far
-    # );
     glMatrixMode(GL_MODELVIEW);
-    gluLookAt(0.0, 0.0, 5.0,    # eye is at (0,0,5)
-              0.0, 0.0, 0.0,    # center is at (0,0,0)
-              0.0, 1.0, 0.0);   # up is in positive Y direction
-    # glTranslatef(0.0, 0.0, -1.0);
-    # glRotatef(60, 1.0, 0.0, 0.0);
-    # glRotatef(-20, 0.0, 0.0, 1.0);
-    glTranslatef(0.0, 0.0, -2.0);
 }
 
 sub drawGLScene {
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     glPushMatrix;
-    #glLoadIdentity;
-    #glTranslatef(0.0, 0.0, -4.0);
+    glLoadIdentity;
+    glTranslatef(@$camera_position);
+
     glRotatef($object_rotation->[0], 1, 0, 0);
     glRotatef($object_rotation->[1], 0, 1, 0);
     glRotatef($object_rotation->[2], 0, 0, 1);
@@ -158,9 +147,11 @@ sub _replay_history {
         my $sleep_time = $row ->[0] - $last_time;
         $object_rotation->[1] = $row->[1];
         $object_rotation->[0] = $row->[2];
+        @$camera_position = @{$row}[3 .. 5];
         #sleep($sleep_time * $speedup);
         $last_time = $row->[0];
         glutPostRedisplay;
+        usleep(5000);
     }
     my $elapsed = tv_interval ( $started_at, [gettimeofday]);
     say "replay time: $elapsed";
@@ -168,8 +159,12 @@ sub _replay_history {
 
 sub _log_state {
     my $elapsed = tv_interval ( $started_at, [gettimeofday]);
-    my $line = join(',', $elapsed, $object_rotation->[1],
-                    $object_rotation->[0], "0");
+    my @data = (
+        $elapsed,
+        $object_rotation->[1], $object_rotation->[0],
+        @$camera_position,
+    );
+    my $line = join(',', @data);
     say $history $line;
 }
 
@@ -195,6 +190,12 @@ sub keyPressed {
             $object_scale *= $value;
         };
     };
+    my $camera_z_move = sub {
+        my $value = shift;
+        return sub {
+            $camera_position->[2] += $value;
+        };
+    };
     my $switch_mode = sub {
         my $new_mode = $object->mode eq 'normal'
             ? 'mesh'
@@ -206,8 +207,8 @@ sub keyPressed {
         's' => $rotation->(0, $rotate_step),
         'a' => $rotation->(1, -$rotate_step),
         'd' => $rotation->(1, $rotate_step),
-        '+' => $scaling->(1.05),
-        '-' => $scaling->(0.95),
+        '+' => $camera_z_move->(0.1),
+        '-' => $camera_z_move->(-0.1),
         'm' => $switch_mode,
         'q' => sub {
             my $m = glutGetModifiers;

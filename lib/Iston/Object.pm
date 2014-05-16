@@ -109,8 +109,8 @@ method draw {
     my $mode = $self->mode;
     my $draw_mode = $mode eq 'normal'
         ? GL_TRIANGLES : GL_LINES;
-    glDrawElements_s($draw_mode, $indices_size, GL_UNSIGNED_INT,
-                     pack("L${indices_size}", @$indices));
+
+    glDrawElements_p($draw_mode, @$indices);
 }
 
 1;
