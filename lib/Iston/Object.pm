@@ -11,7 +11,7 @@ use aliased qw/Iston::Vertex/;
 
 has center   => (is => 'rw', required => 0);
 has vertices => (is => 'ro', required => 1);
-has indices  => (is => 'ro', required => 1);
+has indices  => (is => 'rw', required => 1);
 has normals  => (is => 'ro', required => 1);
 has mode     => (is => 'rw', default => sub { 'normal' }, trigger => 1);
 has contexts => (is => 'rw', default => sub { {} });
@@ -69,12 +69,12 @@ method _trigger_mode {
        $self->contexts->{normal} = {
            indices => $self->indices,
        };
-       $self->indices = $self->_triangle_2_lines_indices;
+       $self->indices($self->_triangle_2_lines_indices);
    }else {
        $self->contexts->{mesh} = {
            indices => $self->indices,
        };
-       $self->indices = $self->contexts->{normal}->{indices};
+       $self->indices($self->contexts->{normal}->{indices});
    }
 };
 

@@ -85,7 +85,7 @@ sub init_light {
 
     glMaterialfv_s(GL_FRONT, GL_DIFFUSE, pack("f4",@mat_diffuse));
     glMaterialfv_s(GL_FRONT, GL_SPECULAR, pack("f4",@mat_specular));
-    glMaterialfv_s(GL_FRONT, GL_SHININESS, pack("f1",10));
+#    glMaterialfv_s(GL_FRONT, GL_SHININESS, pack("f1",10));
     glLightfv_s(GL_LIGHT0, GL_POSITION, pack("f4",@light_position));
 
     glEnable(GL_LIGHT0);
