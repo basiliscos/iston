@@ -51,7 +51,6 @@ glutKeyboardFunc(\&keyPressed);
 glClearColor(0.0, 0.0, 0.0, 0.0);
 initGL($width, $height);
 
-my $object_rotation = [0, 0, 0];
 my $camera_position = [0, 0, -7];
 $object_path = path($object_path);
 my $object = ObjLoader->new(file => $object_path)->load;
@@ -111,9 +110,6 @@ sub drawGLScene {
     glLoadIdentity;
     glTranslatef(@$camera_position);
 
-    glRotatef($object_rotation->[0], 1, 0, 0);
-    glRotatef($object_rotation->[1], 0, 1, 0);
-    glRotatef($object_rotation->[2], 0, 0, 1);
     glScalef($object_scale, $object_scale, $object_scale);
 
     glPushMatrix;
@@ -145,8 +141,8 @@ sub _replay_history {
         glutMainLoopEvent;
         my $row = $rows[$i];
         my $sleep_time = $row ->[0] - $last_time;
-        $object_rotation->[1] = $row->[1];
-        $object_rotation->[0] = $row->[2];
+        $object->rotation->[1] = $row->[1];
+        $object->rotation->[0] = $row->[2];
         @$camera_position = @{$row}[3 .. 5];
         #sleep($sleep_time * $speedup);
         $last_time = $row->[0];
@@ -161,7 +157,7 @@ sub _log_state {
     my $elapsed = tv_interval ( $started_at, [gettimeofday]);
     my @data = (
         $elapsed,
-        $object_rotation->[1], $object_rotation->[0],
+        $object->rotation->[1], $object->rotation->[0],
         @$camera_position,
     );
     my $line = join(',', @data);
@@ -180,8 +176,8 @@ sub keyPressed {
     my $rotation = sub {
         my ($c, $step) = @_;
         return sub {
-            $object_rotation->[$c] += $step;
-            $object_rotation->[$c] %= 360;
+            $object->rotation->[$c] += $step;
+            $object->rotation->[$c] %= 360;
         }
     };
     my $scaling = sub {
