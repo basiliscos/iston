@@ -11,6 +11,7 @@ use aliased qw/Iston::Vertex/;
 
 has center   => (is => 'rw', required => 0);
 has rotation => (is => 'rw', default => sub { [0, 0, 0] });
+has scale    => (is => 'rw', default => sub { 1; });
 has vertices => (is => 'ro', required => 1);
 has indices  => (is => 'rw', required => 1);
 has normals  => (is => 'ro', required => 1);
@@ -95,6 +96,8 @@ method _triangle_2_lines_indices {
 method draw {
     #glEnable(GL_NORMALIZE);
 
+    my $scale = $self->scale;
+    glScalef($scale, $scale, $scale);
     glRotatef($self->rotation->[0], 1, 0, 0);
     glRotatef($self->rotation->[1], 0, 1, 0);
     glRotatef($self->rotation->[2], 0, 0, 1);

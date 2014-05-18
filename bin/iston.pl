@@ -60,7 +60,8 @@ my ($max_distance) =
     $object->boudaries;
 
 my $max_boundary = 3.8;
-my $object_scale = 1/($max_distance->length/$max_boundary);
+my $scale_to = 1/($max_distance->length/$max_boundary);
+$object->scale( $scale_to );
 
 my $history;
 my $started_at = [gettimeofday];
@@ -109,8 +110,6 @@ sub drawGLScene {
     glPushMatrix;
     glLoadIdentity;
     glTranslatef(@$camera_position);
-
-    glScalef($object_scale, $object_scale, $object_scale);
 
     glPushMatrix;
     $object->draw;
@@ -183,7 +182,7 @@ sub keyPressed {
     my $scaling = sub {
         my $value = shift;
         return sub {
-            $object_scale *= $value;
+            $object->scale($object->scale * $value);
         };
     };
     my $camera_z_move = sub {
