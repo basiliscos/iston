@@ -3,6 +3,9 @@ package Iston::Vertex;
 use 5.12.0;
 
 use Carp;
+use Function::Parameters qw(:strict);
+
+use aliased qw/Iston::Vector/;
 
 use overload
     'eq' => '_equal',
@@ -17,6 +20,12 @@ sub new {
 
     my $copy = [@$values];
     bless $copy => $class;
+};
+
+method vector_to($vertex_b) {
+    my ($a, $b) = ($self, $vertex_b);
+    my @values = map { $b->[$_] - $a->[$_] } (0 .. 2);
+    return Vector->new(\@values);
 };
 
 sub _equal {

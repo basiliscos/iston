@@ -4,13 +4,18 @@ use 5.12.0;
 
 use Carp;
 use List::Util qw/reduce/;
+use Function::Parameters qw(:strict);
 
 use overload
     '+'  => '_add',
+    '*'  => '_mul',
     'eq' => '_equal',
     '==' => '_equal',
     '""' => '_stringify',
     ;
+
+use parent qw/Exporter/;
+our @EXPORT_OK = qw/normal/;
 
 sub new {
     my ($class, $values) = @_;
@@ -19,6 +24,25 @@ sub new {
 
     my $copy = [@$values];
     bless $copy => $class;
+};
+
+fun normal($vertices, $indices) {
+    croak "Normal vector is defined exactly by 3 vertices"
+        unless @$indices == 3;
+    my @vertices = map { $vertices->[$_] } @$indices;
+    my $a = $vertices[0]->vector_to($vertices[1]);
+    my $b = $vertices[0]->vector_to($vertices[2]);
+    return ($a * $b)->normalize;
+}
+
+sub _mul {
+    my ($a, $b) = @_;
+    my @values = (
+        $a->[1]*$b->[2] - $a->[2]*$b->[1],
+        $a->[2]*$b->[0] - $a->[0]*$b->[2],
+        $a->[0]*$b->[1] - $a->[1]*$b->[0],
+    );
+    return Iston::Vector->new(\@values);
 };
 
 sub _add {

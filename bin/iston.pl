@@ -9,7 +9,7 @@ use Path::Tiny;
 use Text::CSV;
 use Time::HiRes qw/gettimeofday tv_interval usleep/;
 
-use aliased qw/Iston::Object/;
+use aliased qw/Iston::Object::Octahedron/;
 use aliased qw/Iston::ObjLoader/;
 use aliased qw/Iston::Vector/;
 
