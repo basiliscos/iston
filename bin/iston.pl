@@ -12,12 +12,14 @@ use Time::HiRes qw/gettimeofday tv_interval usleep/;
 use aliased qw/Iston::Object::Octahedron/;
 use aliased qw/Iston::ObjLoader/;
 use aliased qw/Iston::Vector/;
+use aliased qw/Iston::Vertex/;
 
 sub _log_state;
 sub _replay_history;
 
 GetOptions(
     'o|object=s'         => \my $object_path,
+    'n|no_history'       => \my $no_history,
     'r|replay_history=s' => \my $history_path,
     'h|help'             => \my $help,
 );
@@ -31,6 +33,7 @@ usage: $0 OPTIONS
 These options are available:
   -o, --object         Generates pair of private an public keys and stores them
                        in the current directory
+  -n, --no_history     Do not record history
   -r  --replay_history History file
   -h, --help           Show this message.
 EOF
@@ -53,25 +56,24 @@ initGL($width, $height);
 
 my $camera_position = [0, 0, -7];
 $object_path = path($object_path);
-my $object = ObjLoader->new(file => $object_path)->load;
-my ($max_distance) =
-    reverse sort {$a->length <=> $b->length }
-    map { Vector->new( $_ ) }
-    $object->boudaries;
-
-my $max_boundary = 3.8;
-my $scale_to = 1/($max_distance->length/$max_boundary);
-$object->scale( $scale_to );
+my $main_object = ObjLoader->new(file => $object_path)->load;
+my @objects = ( $main_object );
+my $max_boundary = 3.0;
+my $scale_to = 1/($main_object->max_distance->length/$max_boundary);
+$main_object->scale( $scale_to );
 
 my $history;
 my $started_at = [gettimeofday];
 
 if($history_path) {
+    $no_history = 1;
     _replay_history;
 } else {
-    $history = path(".", "history_@{[ time ]}_@{[ $object_path->basename ]}.csv")
-        ->filehandle('>');
-    say $history "timestamp,a,b,d";
+    if (!$no_history) {
+        $history = path(".", "history_@{[ time ]}_@{[ $object_path->basename ]}.csv")
+            ->filehandle('>');
+        say $history "timestamp,a,b,d";
+    }
     _log_state;
     glutMainLoop;
 }
@@ -111,9 +113,11 @@ sub drawGLScene {
     glLoadIdentity;
     glTranslatef(@$camera_position);
 
-    glPushMatrix;
-    $object->draw;
-    glPopMatrix
+    for(@objects) {
+        glPushMatrix;
+        $_->draw;
+        glPopMatrix
+    }
 
     glPopMatrix;
     glFlush;
@@ -134,16 +138,27 @@ sub _replay_history {
     $csv->eof or $csv->error_diag();
     close $fh;
 
-    my $speedup = 1;
+    my $speedup = 2;
     my $last_time = 0;
+
+    my $htm = Octahedron->new;
+    $htm->mode('mesh');
+    my $r = Vertex->new([0, 0, 0])->vector_to($htm->vertices->[0])->length;
+    my $scale_to = 1/($r/$max_boundary);
+    $htm->scale($scale_to);
+    push @objects, $htm;
+
     for my $i (1 .. @rows-1) {
         glutMainLoopEvent;
         my $row = $rows[$i];
         my $sleep_time = $row ->[0] - $last_time;
-        $object->rotation->[1] = $row->[1];
-        $object->rotation->[0] = $row->[2];
+        my ($alpha, $beta) = @{$row}[1,2];
+        for (@objects) {
+            $_->rotation->[1] = $alpha;
+            $_->rotation->[0] = $beta;
+        }
         @$camera_position = @{$row}[3 .. 5];
-        #sleep($sleep_time * $speedup);
+        sleep($sleep_time * $speedup);
         $last_time = $row->[0];
         glutPostRedisplay;
         usleep(5000);
@@ -153,10 +168,11 @@ sub _replay_history {
 }
 
 sub _log_state {
+    return if $no_history;
     my $elapsed = tv_interval ( $started_at, [gettimeofday]);
     my @data = (
         $elapsed,
-        $object->rotation->[1], $object->rotation->[0],
+        $main_object->rotation->[1], $main_object->rotation->[0],
         @$camera_position,
     );
     my $line = join(',', @data);
@@ -175,14 +191,14 @@ sub keyPressed {
     my $rotation = sub {
         my ($c, $step) = @_;
         return sub {
-            $object->rotation->[$c] += $step;
-            $object->rotation->[$c] %= 360;
+            $main_object->rotation->[$c] += $step;
+            $main_object->rotation->[$c] %= 360;
         }
     };
     my $scaling = sub {
         my $value = shift;
         return sub {
-            $object->scale($object->scale * $value);
+            $main_object->scale($main_object->scale * $value);
         };
     };
     my $camera_z_move = sub {
@@ -192,10 +208,10 @@ sub keyPressed {
         };
     };
     my $switch_mode = sub {
-        my $new_mode = $object->mode eq 'normal'
+        my $new_mode = $main_object->mode eq 'normal'
             ? 'mesh'
             : 'normal';
-        $object->mode($new_mode);
+        $main_object->mode($new_mode);
     };
     my $dispatch_table = {
         'w' => $rotation->(0, -$rotate_step),

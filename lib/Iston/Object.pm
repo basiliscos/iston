@@ -7,6 +7,7 @@ use Moo;
 use Function::Parameters qw(:strict);
 use OpenGL qw(:all);
 
+use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
 has center   => (is => 'rw', required => 0);
@@ -51,6 +52,14 @@ method boudaries {
         }
     }
     return ($mins, $maxs);
+};
+
+method max_distance {
+    my ($r) =
+        reverse sort {$a->length <=> $b->length }
+        map { Vector->new( $_ ) }
+        $self->boudaries;
+    $r;
 }
 
 method translate($vector) {
