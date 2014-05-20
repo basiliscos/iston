@@ -4,6 +4,7 @@ use 5.12.0;
 
 use Carp;
 use Function::Parameters qw(:strict);
+use Iston::Vector;
 use List::MoreUtils qw/pairwise/;
 use Moo;
 
@@ -17,6 +18,12 @@ has vertices => (is => 'rw', required => 1, isa =>
             unless @{$_[0]} == 3;
     }
 );
+
+has normal => (is => 'lazy');
+
+method _build_normal {
+    return Iston::Vector::normal($self->vertices, [0 .. 2]);
+}
 
 method subdivide {
     my @vertex_pairs = (
