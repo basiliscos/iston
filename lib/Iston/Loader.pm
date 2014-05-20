@@ -1,4 +1,4 @@
-package Iston::ObjLoader;
+package Iston::Loader;
 
 use 5.12.0;
 

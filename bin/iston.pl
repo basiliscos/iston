@@ -9,8 +9,8 @@ use Path::Tiny;
 use Text::CSV;
 use Time::HiRes qw/gettimeofday tv_interval usleep sleep/;
 
+use aliased qw/Iston::Loader/;
 use aliased qw/Iston::Object::Octahedron/;
-use aliased qw/Iston::ObjLoader/;
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
@@ -57,7 +57,7 @@ initGL($width, $height);
 my $camera_position = [0, 0, -7];
 $object_path = path($object_path);
 my $main_object = #Octahedron->new;
-    ObjLoader->new(file => $object_path)->load;
+    Loader->new(file => $object_path)->load;
     ;
 my $htm;
 

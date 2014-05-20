@@ -3,12 +3,12 @@ use 5.12.0;
 use Test::More;
 use Test::Warnings;
 
-use aliased qw/Iston::ObjLoader/;
+use aliased qw/Iston::Loader/;
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
 subtest "load cube" => sub {
-    my $l = ObjLoader->new(file => 'share/models/cube.obj');
+    my $l = Loader->new(file => 'share/models/cube.obj');
     my $c = $l->load;
     ok $c;
 
