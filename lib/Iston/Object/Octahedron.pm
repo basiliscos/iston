@@ -7,15 +7,16 @@ use Moo;
 use Function::Parameters qw(:strict);
 use Iston::Vector qw/normal/;
 
+use aliased qw/Iston::Triangle/;
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
 extends 'Iston::Object';
 
 # OK, let's calculate the defaults;
-my $_PI = 4*atan2(1,0);
+my $_PI = 2*atan2(1,0);
 my $_G  = $_PI/180;
-my $_R  = 0.5;
+my $_R  = 1;
 
 my $_vertices = [
     Vertex->new([0,  $_R, 0]), # top
@@ -46,8 +47,68 @@ my $_normals = [
     Vector->new([ 1, 0, -1])->normalize,
 ];
 
-has vertices => (is => 'ro', default => sub{ $_vertices} );
+has vertices => (is => 'rw', default => sub{ $_vertices} );
 has indices  => (is => 'rw', default => sub{ $_indices}  );
 has normals  => (is => 'ro', default => sub{ $_normals}  );
+
+method subdivide {
+    my $back_to_mode = $self->mode eq 'normal' ? undef : $self->mode;
+    $self->mode('normal') if defined($back_to_mode);
+
+    my $indices = $self->indices;
+    my $count = @$indices / 3;
+    my @triangles =
+        map { @{ $_->subdivide } }
+        map {
+            my @v_indices = ($_*3 .. $_*3+2);
+            my @vertices =
+                map { $self->vertices->[$_] }
+                map { $indices->[$_] }
+                @v_indices;
+            Triangle->new(vertices => \@vertices);
+        } (0 .. $count-1);
+    my @new_vertices;
+    my @new_indices;
+    my $t_count = @triangles;
+    for my $i (0 .. $t_count-1) {
+        my $t = $triangles[$i];
+        push @new_vertices, @{$t->vertices};
+        my $v = $i*3;
+        push @new_indices, ($v, $v+1, $v+2);
+    };
+    # normalizing
+    my $v_count = @new_vertices;
+    for my $i (0 .. $v_count-1) {
+        my $original = $new_vertices[$i];
+        for my $j ($i+1 .. $v_count-1) {
+            my $target = $new_vertices[$j];
+            next unless defined $target;
+            if($target == $original) {
+                $new_vertices[$j] = undef;
+                for(@new_indices){
+                    $_ = $i if $_ == $j;
+                }
+            }
+        }
+    }
+    my $last_defined = 0;
+    @new_vertices = map {
+        my $i = $_;
+        my $v = $new_vertices[$i];
+        if (!defined($v)) {
+            for (@new_indices) {
+                $_-- if $_ > $last_defined;
+            }
+        }else {
+            $last_defined++;
+        }
+        defined($v) ? $v : ();
+    } (0 .. $v_count-1);
+    $self->vertices(\@new_vertices);
+    $self->indices(\@new_indices);
+
+    $self->cache({});
+    $self->mode($back_to_mode) if defined($back_to_mode);
+}
 
 1;

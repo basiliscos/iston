@@ -91,8 +91,7 @@ method _trigger_mode {
 
 method _triangle_2_lines_indices {
     my $source = $self->indices;
-    my ($number_of_points, $number_of_coordinates) = (3, 3);
-    my $components = $number_of_points;
+    my $components = 3;
     my @result = map {
         my $idx = $_;
         my @v = @{$source}[$idx*3 .. $idx*3+2];

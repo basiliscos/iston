@@ -56,7 +56,11 @@ initGL($width, $height);
 
 my $camera_position = [0, 0, -7];
 $object_path = path($object_path);
-my $main_object = ObjLoader->new(file => $object_path)->load;
+my $main_object = #Octahedron->new;
+    ObjLoader->new(file => $object_path)->load;
+    ;
+my $htm;
+
 my @objects = ( $main_object );
 my $max_boundary = 3.0;
 my $scale_to = 1/($main_object->max_distance->length/$max_boundary);
@@ -141,11 +145,11 @@ sub _replay_history {
     my $speedup = 0.25;
     my $last_time = 0;
 
-    my $htm = Octahedron->new;
+    $htm = Octahedron->new;
     $htm->mode('mesh');
     my $r = Vertex->new([0, 0, 0])->vector_to($htm->vertices->[0])->length;
     my $scale_to = 1/($r/$max_boundary);
-    $htm->scale($scale_to);
+    $htm->scale($scale_to*1.25);
     push @objects, $htm;
 
     for my $i (1 .. @rows-1) {
@@ -201,6 +205,10 @@ sub keyPressed {
             $main_object->scale($main_object->scale * $value);
         };
     };
+    my $subdivide = sub {
+        my $subject = $htm // $main_object;
+        $subject->subdivide if($subject->can('subdivide'));
+    };
     my $camera_z_move = sub {
         my $value = shift;
         return sub {
@@ -208,16 +216,18 @@ sub keyPressed {
         };
     };
     my $switch_mode = sub {
-        my $new_mode = $main_object->mode eq 'normal'
+        my $subject = defined($history_path) ? $htm : $main_object;
+        my $new_mode = $subject->mode eq 'normal'
             ? 'mesh'
             : 'normal';
-        $main_object->mode($new_mode);
+        $subject->mode($new_mode);
     };
     my $dispatch_table = {
         'w' => $rotation->(0, -$rotate_step),
         's' => $rotation->(0, $rotate_step),
         'a' => $rotation->(1, -$rotate_step),
         'd' => $rotation->(1, $rotate_step),
+        'i' => $subdivide,
         '+' => $camera_z_move->(0.1),
         '-' => $camera_z_move->(-0.1),
         'm' => $switch_mode,
