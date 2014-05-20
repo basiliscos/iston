@@ -35,7 +35,7 @@ fun normal($vertices, $indices) {
     return ($a * $b)->normalize;
 }
 
-sub _mul {
+sub _mul_vector {
     my ($a, $b) = @_;
     my @values = (
         $a->[1]*$b->[2] - $a->[2]*$b->[1],
@@ -43,7 +43,23 @@ sub _mul {
         $a->[0]*$b->[1] - $a->[1]*$b->[0],
     );
     return Iston::Vector->new(\@values);
+}
+
+sub _mul_scalar {
+    my ($a, $s) = @_;
+    my @values = map { $_ * $s } @$a;
+    return Iston::Vector->new(\@values);
+}
+
+sub _mul {
+    my ($a, $b) = @_;
+    if (ref($b) eq 'Iston::Vector') {
+        return _mul_vector($a, $b);
+    } else {
+        return _mul_scalar($a, $b);
+    }
 };
+
 
 sub _add {
     my ($a, $b) = @_;

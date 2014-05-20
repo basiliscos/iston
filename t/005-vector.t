@@ -26,12 +26,24 @@ subtest "normalize simple" => sub {
     is $v->normalize, Vector->new([0, 0, 1]);
 };
 
-subtest "scalar vertices multiplication" => sub {
-    my $v = Vector->new([ 0.5, 0, 1.5])
-          * Vector->new([-0.5, 0, 1.5]);
-    is $v, Vector->new([0, -1.5, 0]);
+subtest "vertex on scalar multiplication" => sub {
+    my $v = Vector->new([ 1, -2, 3]) * 1.5;
+    is $v, Vector->new([1.5, -3, 4.5]);
+
+    $v = 1.5 * Vector->new([ 1, -2, 3]);
+    is $v, Vector->new([1.5, -3, 4.5]);
 };
 
+subtest "vertices multiplication" => sub {
+    my ($a, $b) = (
+        Vector->new([ 0.5, 0, 1.5]),
+        Vector->new([-0.5, 0, 1.5]),
+    );
+    my $v = $a * $b;
+    is $v, Vector->new([0, -1.5, 0]);
+    $v = $b * $a;
+    is $v, Vector->new([0, 1.5, 0]);
+};
 
 subtest "normal from vertices" => sub {
     my $v = normal(
