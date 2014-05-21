@@ -45,6 +45,12 @@ subtest "vertices multiplication" => sub {
     is $v, Vector->new([0, 1.5, 0]);
 };
 
+subtest "stringification/comparison" => sub{
+    my $v1 = Vector->new([1,  0,  1])->normalize;
+    my $v2 = Vector->new([1,  0,  1])->normalize;
+    is $v1, $v2;
+};
+
 subtest "normal from vertices" => sub {
     my $v = normal(
         [

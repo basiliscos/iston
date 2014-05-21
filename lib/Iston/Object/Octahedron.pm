@@ -3,6 +3,7 @@ package Iston::Object::Octahedron;
 use 5.12.0;
 
 use Carp;
+use List::Util qw/reduce/;
 use Moo;
 use Function::Parameters qw(:strict);
 use Iston::Vector qw/normal/;
@@ -30,7 +31,7 @@ my $_vertices = [
 my $_indices = [
     0, 3, 2,
     0, 4, 3,
-    0, 4, 5,
+    0, 5, 4,
     0, 2, 5,
     1, 2, 3,
     1, 3, 4,
@@ -38,18 +39,53 @@ my $_indices = [
     1, 5, 2,
 ];
 
-my $_normals = [
-    Vector->new([0,  1,  0])->normalize,
-    Vector->new([0, -1,  0])->normalize,
-    Vector->new([1,  0,  1])->normalize,
-    Vector->new([-1, 0,  1])->normalize,
-    Vector->new([-1, 0, -1])->normalize,
-    Vector->new([ 1, 0, -1])->normalize,
+# my $_normals = [
+#     Vector->new([0,  1,  0])->normalize,
+#     Vector->new([0, -1,  0])->normalize,
+#     Vector->new([1,  0,  1])->normalize,
+#     Vector->new([-1, 0,  1])->normalize,
+#     Vector->new([-1, 0, -1])->normalize,
+#     Vector->new([ 1, 0, -1])->normalize,
+# ];
+
+my $_triangles = [
+    map {
+        my @v_indices = ($_*3 .. $_*3+2);
+        my @vertices =
+            map { $_vertices->[$_] }
+            map { $_indices->[$_] }
+            @v_indices;
+        Triangle->new(vertices => \@vertices);
+    } (0 .. @$_indices/3 - 1)
 ];
 
-has vertices => (is => 'rw', default => sub{ $_vertices} );
-has indices  => (is => 'rw', default => sub{ $_indices}  );
-has normals  => (is => 'ro', default => sub{ $_normals}  );
+has triangles => (is => 'rw', default => sub { $_triangles} );
+has vertices  => (is => 'rw', default => sub{ $_vertices} );
+has indices   => (is => 'rw', default => sub{ $_indices}  );
+#has normals   => (is => 'rw', default => sub{ $_normals} );
+has normals   => (is => 'lazy' );
+
+method _build_normals {
+    my $triangles = $self->triangles;
+    #my @t_normals = map { $_->normal } @$triangles;
+    my %triangles_of;
+    for my $t (@$triangles) {
+        for my $v (@{$t->vertices}) {
+            push @{$triangles_of{$v}}, $t;
+        }
+    }
+    my %normals_for = map {
+        my $v = $_;
+        my $avg =
+            reduce { $a + $b }
+            map { $_->normal }
+            @{ $triangles_of{$v} };
+        my $n = $avg->normalize;
+        ($v => $n);
+    } keys %triangles_of;
+    my @normals = map { $normals_for{$_} } @{ $self->vertices };
+    return \@normals;
+}
 
 method subdivide {
     my $back_to_mode = $self->mode eq 'normal' ? undef : $self->mode;

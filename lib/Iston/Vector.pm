@@ -9,9 +9,10 @@ use Function::Parameters qw(:strict);
 use overload
     '+'  => '_add',
     '*'  => '_mul',
-    'eq' => '_equal',
+#    'eq' => '_equal',
     '==' => '_equal',
     '""' => '_stringify',
+    fallback => 1,
     ;
 
 use parent qw/Exporter/;

@@ -10,18 +10,17 @@ use OpenGL qw(:all);
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
-has center   => (is => 'rw', required => 0);
+has center   => (is => 'lazy');
 has rotation => (is => 'rw', default => sub { [0, 0, 0] });
 has scale    => (is => 'rw', default => sub { 1; });
 has vertices => (is => 'ro', required => 1);
 has indices  => (is => 'rw', required => 1);
-has normals  => (is => 'ro', required => 1);
+has normals  => (is => 'rw', required => 0);
 has mode     => (is => 'rw', default => sub { 'normal' }, trigger => 1);
 has contexts => (is => 'rw', default => sub { {} });
 has cache    => (is => 'rw', default => sub { {} });
 
-
-method BUILD {
+method _build_center {
     my ($v_size, $n_size) = map { scalar(@{ $self->$_ }) }
         qw/vertices normals/;
     croak "Count of vertices must match count of normals"
@@ -29,7 +28,7 @@ method BUILD {
 
     my($mins, $maxs) = $self->boudaries;
     my @avgs = map { ($mins->[$_] + $maxs->[$_]) /2  } (0 .. 2);
-    $self->center(Vertex->new(\@avgs));
+    return Vertex->new(\@avgs);
 }
 
 my $_as_oga = sub {
@@ -111,9 +110,15 @@ method draw {
     glRotatef($self->rotation->[2], 0, 0, 1);
 
     my $cache = $self->cache;
+    my ($p_vertices, $p_normals) =
+        map {
+            my $v = $self->$_;
+            croak "$_ is mandatory" if (!defined($v) or !@$v);
+            $v;
+        } qw/vertices normals/;
     my ($vertices, $normals) =
-        map { $cache->{$_} //= $_as_oga->($self->$_) }
-        qw/vertices normals/;
+        map { $cache->{$_} //= $_as_oga->($_) }
+        ($p_vertices, $p_normals);
     my $components = 3; # number of coordinates
     glEnableClientState(GL_NORMAL_ARRAY);
     glNormalPointer_p($normals);

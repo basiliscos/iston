@@ -4,11 +4,21 @@ use Test::More;
 use Test::Warnings;
 use List::MoreUtils qw/any/;
 
+use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Object::Octahedron/;
 
 subtest "simple creation" => sub {
     my $o = Octahedron->new;
     ok $o, "octahedron instance successfully has been created";
+    is $o->normals->[0], Vector->new([0,  1,  0]),
+        "normal for top is correct";
+    is $o->normals->[1], Vector->new([0,  -1,  0]),
+        "normal for top is correct";
+    is $o->normals->[2], Vector->new([1,  0,  1])->normalize;
+    is $o->normals->[3], Vector->new([-1, 0,  1])->normalize;
+    is $o->normals->[4], Vector->new([-1, 0, -1])->normalize;
+    is $o->normals->[5], Vector->new([ 1, 0, -1])->normalize;
+
     $o->subdivide;
     pass "created";
 };
