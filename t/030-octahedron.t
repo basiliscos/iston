@@ -2,23 +2,21 @@ use 5.12.0;
 
 use Test::More;
 use Test::Warnings;
-use List::MoreUtils qw/any/;
+use List::MoreUtils qw/any first_index/;
 
 use aliased qw/Iston::Vector/;
+use aliased qw/Iston::Vertex/;
 use aliased qw/Iston::Object::Octahedron/;
 
 subtest "simple creation" => sub {
     my $o = Octahedron->new;
     ok $o, "octahedron instance successfully has been created";
-    is $o->normals->[0], Vector->new([0,  1,  0]),
-        "normal for top is correct";
-    is $o->normals->[1], Vector->new([0,  -1,  0]),
-        "normal for top is correct";
-    is $o->normals->[2], Vector->new([1,  0,  1])->normalize;
-    is $o->normals->[3], Vector->new([-1, 0,  1])->normalize;
-    is $o->normals->[4], Vector->new([-1, 0, -1])->normalize;
-    is $o->normals->[5], Vector->new([ 1, 0, -1])->normalize;
-
+    my $top = Vertex->new([0, 1, 0]);
+    my $bottom = Vertex->new([0, -1, 0]);
+    my $top_idx = first_index {$top eq $_ } @{ $o->vertices };
+    is $o->normals->[$top_idx], Vector->new([0, 1, 0]);
+    my $bottom_idx = first_index {$bottom eq $_} @{ $o->vertices };
+    is $o->normals->[$bottom_idx], Vector->new([0, -1, 0]);
     $o->subdivide;
     pass "created";
 };

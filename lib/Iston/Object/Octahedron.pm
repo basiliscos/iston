@@ -3,6 +3,7 @@ package Iston::Object::Octahedron;
 use 5.12.0;
 
 use Carp;
+use List::MoreUtils qw/first_index/;
 use List::Util qw/reduce/;
 use Moo;
 use Function::Parameters qw(:strict);
@@ -60,14 +61,14 @@ my $_triangles = [
 ];
 
 has triangles => (is => 'rw', default => sub { $_triangles} );
-has vertices  => (is => 'rw', default => sub{ $_vertices} );
-has indices   => (is => 'rw', default => sub{ $_indices}  );
-#has normals   => (is => 'rw', default => sub{ $_normals} );
-has normals   => (is => 'lazy' );
+#has vertices  => (is => 'rw', default => sub{ $_vertices} );
+#has indices   => (is => 'rw', default => sub{ $_indices}  );
+has normals   => (is => 'rw', lazy => 1, builder => "_build_normals" );
+has vertices  => (is => 'rw', lazy => 1, builder => "_build_vertices" );
+has indices   => (is => 'rw', lazy => 1, builder => "_build_indices" );
 
 method _build_normals {
     my $triangles = $self->triangles;
-    #my @t_normals = map { $_->normal } @$triangles;
     my %triangles_of;
     for my $t (@$triangles) {
         for my $v (@{$t->vertices}) {
@@ -85,7 +86,33 @@ method _build_normals {
     } keys %triangles_of;
     my @normals = map { $normals_for{$_} } @{ $self->vertices };
     return \@normals;
-}
+};
+
+method _build_vertices {
+    my %added;
+    my @vertices =
+        map {
+            if (! exists $added{$_}) {
+                $added{$_} = 1;
+                $_;
+            } else {
+                ();
+            }
+        } map { @{ $_->vertices } }
+        @{ $self->triangles };
+    return \@vertices;
+};
+
+method _build_indices {
+    my $vertices = $self->vertices;
+    my @indices =
+        map {
+            my $v = $_;
+            first_index { $v == $_ } @$vertices;
+        } map { @{ $_->vertices } }
+        @{ $self->triangles };
+    return \@indices;
+};
 
 method subdivide {
     my $back_to_mode = $self->mode eq 'normal' ? undef : $self->mode;
