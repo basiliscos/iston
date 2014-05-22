@@ -49,10 +49,11 @@ method subdivide {
     my @new_triangles = map {
         Triangle->new(vertices => $_)
     }(
-        [$self->vertices->[0], $new_vertices[1], $new_vertices[2]],
+        # reserve vertices traverse order
+        [$self->vertices->[0], $new_vertices[2], $new_vertices[1]],
         [$self->vertices->[1], $new_vertices[0], $new_vertices[2]],
-        [$self->vertices->[2], $new_vertices[0], $new_vertices[1]],
-        [$new_vertices[0], $new_vertices[1], $new_vertices[2]],
+        [$self->vertices->[2], $new_vertices[1], $new_vertices[0]],
+        [$new_vertices[2], $new_vertices[0], $new_vertices[1]],
     );
     return \@new_triangles;
 };

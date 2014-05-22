@@ -25,20 +25,20 @@ subtest 'subdivision' => sub {
         Vertex->new([0, 1, 0]),
     );
     is $triangles->[0]->vertices->[0], $s1;
-    is $triangles->[0]->vertices->[1], $n2;
-    is $triangles->[0]->vertices->[2], $n3;
+    is $triangles->[0]->vertices->[1], $n3;
+    is $triangles->[0]->vertices->[2], $n2;
 
     is $triangles->[1]->vertices->[0], $s2;
     is $triangles->[1]->vertices->[1], $n1;
     is $triangles->[1]->vertices->[2], $n3;
 
     is $triangles->[2]->vertices->[0], $s3;
-    is $triangles->[2]->vertices->[1], $n1;
-    is $triangles->[2]->vertices->[2], $n2;
+    is $triangles->[2]->vertices->[1], $n2;
+    is $triangles->[2]->vertices->[2], $n1;
 
-    is $triangles->[3]->vertices->[0], $n1;
-    is $triangles->[3]->vertices->[1], $n2;
-    is $triangles->[3]->vertices->[2], $n3;
+    is $triangles->[3]->vertices->[0], $n3;
+    is $triangles->[3]->vertices->[1], $n1;
+    is $triangles->[3]->vertices->[2], $n2;
 };
 
 subtest 'normals-of-triangle' => sub {
@@ -56,6 +56,21 @@ subtest 'normals-of-triangle' => sub {
         vertices => [$b, $a, $c],
     );
     is $t2->normal, Vector->new([0, 1, 0]);
+};
+
+subtest 'normals-of-subdivided-triangles' => sub {
+    my ($a, $b, $c) = (
+        Vertex->new([0, 0, -1]),
+        Vertex->new([-0.5, 0, 0.5]),
+        Vertex->new([0.5, 0, 0.5]),
+    );
+    my $t1 = Triangle->new(vertices => [$a, $b, $c]);
+    my $n = $t1->normal;
+
+    my $triangles = $t1->subdivide;
+    for (@$triangles) {
+        is $_->normal, $n;
+    }
 };
 
 done_testing;
