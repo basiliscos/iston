@@ -83,31 +83,40 @@ method _build_normals {
     return \@normals;
 };
 
-method _build_vertices {
+method _build_vertices_and_indices {
     my %added;
+    my @indices;
+    my $last_idx = 0;
     my @vertices =
         map {
-            if (! exists $added{$_}) {
-                $added{$_} = 1;
-                $_;
+            my $v = $_;
+            my $v_index = $added{$v};
+            my $added_index;
+            if (! defined($v_index) ) {
+                $added{$v} = $added_index = $last_idx++;
             } else {
-                ();
+                $added_index = $v_index;
             }
+            push @indices, $added_index;
+            !defined($v_index) ? ($v) : ();
         } map { @{ $_->vertices } }
         @{ $self->triangles };
-    return \@vertices;
+    return {
+        vertices => \@vertices,
+        indices  => \@indices,
+    };
+}
+
+method _build_vertices {
+    my $vi = $self->_build_vertices_and_indices;
+    $self->indices($vi->{indices});
+    return $vi->{vertices};
 };
 
 method _build_indices {
-    my $vertices = $self->vertices;
-    my @indices =
-        map {
-            my $v = $_;
-            my $idx = first_index { $v eq $_ } @$vertices;
-            $idx;
-        } map { @{ $_->vertices } }
-        @{ $self->triangles };
-    return \@indices;
+    my $vi = $self->_build_vertices_and_indices;
+    $self->vertices($vi->{vertices});
+    return $vi->{indices};
 };
 
 method _trigger_level($level) {
