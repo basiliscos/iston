@@ -30,7 +30,7 @@ subtest "many subdivisions" => sub {
         my $r = (((1 + $to)))*$to/2;
         $r;
     };
-    for my $i (1 .. 4) {
+    for my $i (1 .. 3) {
         $o->level($i);
         my $layers = 2**$i;
         my $vertices_on_side_bottom = 1+$layers;
@@ -45,6 +45,7 @@ subtest "many subdivisions" => sub {
         $i_count = scalar(@{$o->indices});
         for (@{$o->indices}) {
             ok $_ < $v_count, "index $_ less then vertices count $v_count";
+            ok $_ >= 0, "index isn't negative";
         }
         for my $i (0 .. @{$o->vertices} -1) {
             my $v = $o->vertices->[$i];

@@ -73,4 +73,22 @@ subtest 'normals-of-subdivided-triangles' => sub {
     }
 };
 
+subtest 'tesselation-of-subdivided-triangles' => sub {
+    my ($a, $b, $c) = (
+        Vertex->new([2, 0, 0]),
+        Vertex->new([0, 2, 0]),
+        Vertex->new([0, 0, 2]),
+    );
+    my $t_s = Triangle->new(vertices => [$a, $b, $c], tesselation => 1);
+    my $triangles = $t_s->subtriangles;
+    for my $t (@$triangles) {
+        ok $t->tesselation, "tesselation properry has been inherited";
+        for my $vertex (@{$t->vertices}) {
+            my $v = Vector->new($vertex);
+            is $v->length, 2, "subdivided tesselated triangle has correct radius";
+        }
+    }
+};
+
+
 done_testing;

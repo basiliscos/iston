@@ -47,7 +47,7 @@ my $_triangles = [
             map { $_vertices->[$_] }
             map { $_indices->[$_] }
             @v_indices;
-        Triangle->new(vertices => \@vertices);
+        Triangle->new(vertices => \@vertices, tesselation => 1);
     } (0 .. @$_indices/3 - 1)
 ];
 
@@ -103,7 +103,8 @@ method _build_indices {
     my @indices =
         map {
             my $v = $_;
-            first_index { $v == $_ } @$vertices;
+            my $idx = first_index { $v eq $_ } @$vertices;
+            $idx;
         } map { @{ $_->vertices } }
         @{ $self->triangles };
     return \@indices;

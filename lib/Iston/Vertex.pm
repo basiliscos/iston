@@ -8,10 +8,9 @@ use Function::Parameters qw(:strict);
 use aliased qw/Iston::Vector/;
 
 use overload
-    'eq' => '_equal',
-    '==' => '_equal',
     '""' => '_stringify',
-    ;
+     fallback => 1,
+   ;
 
 sub new {
     my ($class, $values) = @_;
@@ -28,18 +27,9 @@ method vector_to($vertex_b) {
     return Vector->new(\@values);
 };
 
-sub _equal {
-    my ($a, $b) = @_;
-    my $r = 1;
-    for (0 .. 2) {
-        $r &= $a->[$_] == $b->[$_];
-    }
-    $r;
-}
-
 sub _stringify {
     my $self = shift;
-    return sprintf('vertex[%0.4f, %0.4f, %0.4f]', @{$self}[0 .. 2]);
+    return sprintf('vertex[%0.7f, %0.7f, %0.7f]', @{$self}[0 .. 2]);
 }
 
 1;

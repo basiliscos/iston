@@ -56,8 +56,8 @@ initGL($width, $height);
 
 my $camera_position = [0, 0, -7];
 $object_path = path($object_path);
-my $main_object = #Octahedron->new;
-    Loader->new(file => $object_path)->load;
+my $main_object = Octahedron->new;
+    #Loader->new(file => $object_path)->load;
     ;
 my $htm;
 
