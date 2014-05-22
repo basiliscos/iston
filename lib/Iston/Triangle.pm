@@ -34,10 +34,13 @@ method subdivide {
     my @mediate_vectors = map {
         my ($A, $B) = map {
             my ($v1, $v2) = map { $self->vertices->[$_] } @$_;
-            $v1->vector_to($v2);
+            my @vector = pairwise { $b - $a } @$v1, @$v2;
+            #$v1->vector_to($v2);
+            \@vector;
         } @$_;
         my @values = pairwise { ($a + $b)/2 } @$A, @$B;
-        Iston::Vector->new(\@values);
+        \@values;
+        #Iston::Vector->new(\@values);
     } @vertex_pairs;
     my @new_vertices = map {
         my $vector = $mediate_vectors[$_];
