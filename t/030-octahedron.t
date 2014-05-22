@@ -17,7 +17,7 @@ subtest "simple creation" => sub {
     is $o->normals->[$top_idx], Vector->new([0, 1, 0]);
     my $bottom_idx = first_index {$bottom eq $_} @{ $o->vertices };
     is $o->normals->[$bottom_idx], Vector->new([0, -1, 0]);
-    $o->subdivide;
+    $o->level($o->level+1);
     pass "created";
 };
 
@@ -25,9 +25,19 @@ subtest "many subdivisions" => sub {
     my $o = Octahedron->new;
     my $v_count = scalar(@{$o->vertices});
     my $i_count = scalar(@{$o->indices});
-    for my $i (1 .. 1) {
-        $o->subdivide;
-        is scalar(@{$o->vertices}), $v_count * 3,
+    my $sum = sub {
+        my $to = shift;
+        my $r = (((1 + $to)))*$to/2;
+        $r;
+    };
+    for my $i (1 .. 4) {
+        $o->level($i);
+        my $layers = 2**$i;
+        my $vertices_on_side_bottom = 1+$layers;
+        my $vertices_per_side = $sum->($vertices_on_side_bottom);
+        my $vertices_per_pyramid = $vertices_per_side*4 - $vertices_on_side_bottom*4 + 1;
+        my $vertices = $vertices_per_pyramid*2 - $vertices_on_side_bottom*4 + 4;
+        is scalar(@{$o->vertices}), $vertices;
             "vertices count match";
         is scalar(@{$o->indices}), $i_count * 4,
             "indices count match";

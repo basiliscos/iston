@@ -16,7 +16,7 @@ subtest 'subdivision' => sub {
     my $source = Triangle->new(
         vertices => [$s1, $s2, $s3],
     );
-    my $triangles = $source->subdivide;
+    my $triangles = $source->subtriangles;
     is scalar(@$triangles), 4;
 
     my ($n1, $n2, $n3) = (
@@ -67,7 +67,7 @@ subtest 'normals-of-subdivided-triangles' => sub {
     my $t1 = Triangle->new(vertices => [$a, $b, $c]);
     my $n = $t1->normal;
 
-    my $triangles = $t1->subdivide;
+    my $triangles = $t1->subtriangles;
     for (@$triangles) {
         is $_->normal, $n;
     }

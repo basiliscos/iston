@@ -56,8 +56,8 @@ initGL($width, $height);
 
 my $camera_position = [0, 0, -7];
 $object_path = path($object_path);
-my $main_object = Octahedron->new;
-    #Loader->new(file => $object_path)->load;
+my $main_object = #Octahedron->new;
+    Loader->new(file => $object_path)->load;
     ;
 my $htm;
 
@@ -205,9 +205,15 @@ sub keyPressed {
             $main_object->scale($main_object->scale * $value);
         };
     };
-    my $subdivide = sub {
+    my $detalize = sub {
+        my $level_delta = shift;
         my $subject = $htm // $main_object;
-        $subject->subdivide if($subject->can('subdivide'));
+        return sub {
+            if ($subject->can('level')) {
+                my $level = $subject->level;
+                $subject->level($level + $level_delta);
+            }
+        };
     };
     my $camera_z_move = sub {
         my $value = shift;
@@ -227,7 +233,8 @@ sub keyPressed {
         's' => $rotation->(0, $rotate_step),
         'a' => $rotation->(1, -$rotate_step),
         'd' => $rotation->(1, $rotate_step),
-        'i' => $subdivide,
+        'i' => $detalize->(1),
+        'I' => $detalize->(-1),
         '+' => $camera_z_move->(0.1),
         '-' => $camera_z_move->(-0.1),
         'm' => $switch_mode,

@@ -51,10 +51,16 @@ my $_triangles = [
     } (0 .. @$_indices/3 - 1)
 ];
 
-has triangles => (is => 'rw', default => sub { $_triangles} );
-has normals   => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
-has vertices  => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
-has indices   => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
+has level        => (is => 'rw', default => sub { 0  }, trigger => 1 );
+has levels_cache => (is => 'ro', default => sub { {} } );
+has triangles    => (is => 'rw', default => sub { $_triangles} );
+has normals      => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
+has vertices     => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
+has indices      => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
+
+method BUILD {
+    $self->levels_cache->{$self->level} = $self->triangles;
+}
 
 method _build_normals {
     my $triangles = $self->triangles;
@@ -103,17 +109,20 @@ method _build_indices {
     return \@indices;
 };
 
-method subdivide {
+method _trigger_level($level) {
     my $back_to_mode = $self->mode eq 'normal' ? undef : $self->mode;
-    $self->mode('normal') if defined($back_to_mode);
+    #$self->mode('normal') if defined($back_to_mode);
 
-    my @triangles = map {
-        @{ $_->subdivide() }
-    } @{$self->triangles};
-
-    $self->triangles(\@triangles);
-    $self->clear_vertices;
+    my $current_triangles = $self->triangles;
+    $self->levels_cache->{$level} //= do {
+        my @triangles = map {
+            @{ $_->subtriangles() }
+        } @$current_triangles;
+        \@triangles;
+    };
+    $self->triangles($self->levels_cache->{$level});
     $self->clear_indices;
+    $self->clear_vertices;
     $self->clear_normals;
     $self->cache({});
 

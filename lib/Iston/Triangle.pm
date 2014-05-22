@@ -19,13 +19,14 @@ has vertices => (is => 'rw', required => 1, isa =>
     }
 );
 
-has normal => (is => 'lazy');
+has normal       => (is => 'lazy');
+has subtriangles => (is => 'lazy');
 
 method _build_normal {
     return Iston::Vector::normal($self->vertices, [0 .. 2]);
-}
+};
 
-method subdivide {
+method _build_subtriangles {
     my @vertex_pairs = (
         [ [0, 1], [0, 2] ],
         [ [1, 0], [1, 2] ],
@@ -59,6 +60,6 @@ method subdivide {
         [$new_vertices[2], $new_vertices[0], $new_vertices[1]],
     );
     return \@new_triangles;
-};
+}
 
 1;
