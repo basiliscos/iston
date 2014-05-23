@@ -124,13 +124,16 @@ method _trigger_level($level) {
     #$self->mode('normal') if defined($back_to_mode);
 
     my $current_triangles = $self->triangles;
-    $self->levels_cache->{$level} //= do {
-        my @triangles = map {
-            @{ $_->subtriangles() }
-        } @$current_triangles;
-        \@triangles;
-    };
-    $self->triangles($self->levels_cache->{$level});
+    for my $l (1 .. $level) {
+        $self->levels_cache->{$l} //= do {
+            my @triangles = map {
+                @{ $_->subtriangles() }
+            } @$current_triangles;
+            \@triangles;
+        };
+        $current_triangles = $self->levels_cache->{$l};
+    }
+    $self->triangles($current_triangles);
     $self->clear_indices;
     $self->clear_vertices;
     $self->clear_normals;

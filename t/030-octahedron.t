@@ -21,7 +21,18 @@ subtest "simple creation" => sub {
     pass "created";
 };
 
-subtest "many subdivisions" => sub {
+subtest "check indices directly at 4-th level" => sub {
+    my $o = Octahedron->new;
+    is $o->level, 0;
+    my $i_count = scalar(@{$o->indices});
+    is $i_count, 8*3;
+
+    $o->level(4);
+    $i_count = scalar(@{$o->indices});
+    is $i_count, (8*3)*4**4;
+};
+
+subtest "sequential subdivisions" => sub {
     my $o = Octahedron->new;
     my $v_count = scalar(@{$o->vertices});
     my $i_count = scalar(@{$o->indices});

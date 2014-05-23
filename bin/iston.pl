@@ -56,8 +56,8 @@ initGL($width, $height);
 
 my $camera_position = [0, 0, -7];
 $object_path = path($object_path);
-my $main_object = Octahedron->new;
-    #Loader->new(file => $object_path)->load;
+my $main_object = #Octahedron->new;
+    Loader->new(file => $object_path)->load;
     ;
 my $htm;
 
@@ -149,7 +149,8 @@ sub _replay_history {
     $htm->mode('mesh');
     my $r = Vertex->new([0, 0, 0])->vector_to($htm->vertices->[0])->length;
     my $scale_to = 1/($r/$max_boundary);
-    $htm->scale($scale_to*1.25);
+    $htm->scale($scale_to);
+    $htm->level(4);
     push @objects, $htm;
 
     for my $i (1 .. @rows-1) {
