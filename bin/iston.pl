@@ -143,7 +143,6 @@ sub _replay_history {
     close $fh;
 
     my $speedup = 0.25;
-    my $last_time = 0;
 
     $htm = Octahedron->new;
     $htm->mode('mesh');
@@ -153,20 +152,22 @@ sub _replay_history {
     $htm->level(4);
     push @objects, $htm;
 
-    for my $i (1 .. @rows-1) {
-        glutMainLoopEvent;
-        my $row = $rows[$i];
-        my $sleep_time = $row ->[0] - $last_time;
-        my ($alpha, $beta) = @{$row}[1,2];
-        for (@objects) {
-            $_->rotation->[1] = $alpha;
-            $_->rotation->[0] = $beta;
+    for (0 .. 10) {
+        my $last_time = 0;
+        for my $i (1 .. @rows-1) {
+            glutMainLoopEvent;
+            my $row = $rows[$i];
+            my $sleep_time = $row ->[0] - $last_time;
+            my ($alpha, $beta) = @{$row}[1,2];
+            for (@objects) {
+                $_->rotation->[1] = $alpha;
+                $_->rotation->[0] = $beta;
+            }
+            @$camera_position = @{$row}[3 .. 5];
+            glutPostRedisplay;
+            sleep($sleep_time * $speedup);
+            $last_time = $row->[0];
         }
-        @$camera_position = @{$row}[3 .. 5];
-        glutPostRedisplay;
-        sleep($sleep_time * $speedup);
-        $last_time = $row->[0];
-        #usleep(5000);
     }
     my $elapsed = tv_interval ( $started_at, [gettimeofday]);
     say "replay time: $elapsed";
