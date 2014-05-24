@@ -129,7 +129,8 @@ sub drawGLScene {
     $interactive_mode && usleep(50000);
 }
 
-sub _replay_history {
+sub _read_rows {
+    my $path = shift;
     my $csv = Text::CSV->new({
         binary   => 1,
         sep_char => ',',
@@ -141,6 +142,11 @@ sub _replay_history {
     }
     $csv->eof or $csv->error_diag();
     close $fh;
+    return \@rows;
+}
+
+sub _replay_history {
+    my $rows = _read_rows($history_path);
 
     my $speedup = 0.25;
 
@@ -154,9 +160,9 @@ sub _replay_history {
 
     for (0 .. 10) {
         my $last_time = 0;
-        for my $i (1 .. @rows-1) {
+        for my $i (1 .. @$rows-1) {
             glutMainLoopEvent;
-            my $row = $rows[$i];
+            my $row = $rows->[$i];
             my $sleep_time = $row ->[0] - $last_time;
             my ($alpha, $beta) = @{$row}[1,2];
             for (@objects) {
