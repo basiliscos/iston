@@ -16,15 +16,18 @@ use aliased qw/Iston::Vertex/;
 
 sub _log_state;
 sub _replay_history;
+sub _load_object;
 
 GetOptions(
     'o|object=s'         => \my $object_path,
     'n|no_history'       => \my $no_history,
-    'r|replay_history=s' => \my $history_path,
+    'r|replay_history'   => \my $replay_history,
+    'm|models_path=s'    => \my $models_path,
     'h|help'             => \my $help,
 );
 
-my $show_help = $help || !$object_path;
+my $show_help = $help || (!$object_path && !$replay_history)
+    || ($replay_history && !defined($models_path));
 die <<"EOF" if($show_help);
 usage: $0 OPTIONS
 
@@ -34,11 +37,13 @@ These options are available:
   -o, --object         Generates pair of private an public keys and stores them
                        in the current directory
   -n, --no_history     Do not record history
-  -r  --replay_history History file
+  -m, --models_path    Path to directory with models
+  -r  --replay_history Replay history mode
   -h, --help           Show this message.
 EOF
 
-my $interactive_mode = !defined($history_path);
+$models_path //= '.';
+my $interactive_mode = !defined($replay_history);
 
 glutInit;
 glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
@@ -55,24 +60,21 @@ glClearColor(0.0, 0.0, 0.0, 0.0);
 initGL($width, $height);
 
 my $camera_position = [0, 0, -7];
-$object_path = path($object_path);
-my $main_object = #Octahedron->new;
-    Loader->new(file => $object_path)->load;
-    ;
-my $htm;
+my ($main_object, $htm);
 
-my @objects = ( $main_object );
+my @other_objects;
 my $max_boundary = 3.0;
-my $scale_to = 1/($main_object->max_distance->length/$max_boundary);
-$main_object->scale( $scale_to );
 
 my $history;
+my $history_rows;
 my $started_at = [gettimeofday];
 
-if($history_path) {
+if($replay_history) {
     $no_history = 1;
     _replay_history;
 } else {
+    $object_path = path($object_path);
+    _load_object($object_path);
     if (!$no_history) {
         $history = path(".", "history_@{[ time ]}_@{[ $object_path->basename ]}.csv")
             ->filehandle('>');
@@ -83,7 +85,7 @@ if($history_path) {
 }
 
 sub init_light {
-    # Initialize material property, light source, lighting model, 
+    # Initialize material property, light source, lighting model,
     # and depth buffer.
     my @mat_specular = ( 0.0, 0.0, 0.01, 1.0 );
     my @mat_diffuse  = ( 0.8, 0.8, 0.8, 1.0 );
@@ -117,7 +119,8 @@ sub drawGLScene {
     glLoadIdentity;
     glTranslatef(@$camera_position);
 
-    for(@objects) {
+    for($main_object, @other_objects) {
+        next unless $_;
         glPushMatrix;
         $_->draw;
         glPopMatrix
@@ -135,7 +138,7 @@ sub _read_rows {
         binary   => 1,
         sep_char => ',',
     }) or die "Cannot use CSV: " . Text::CSV->error_diag;
-    open my $fh, "<:encoding(utf8)", $history_path or die "$history_path: $!";
+    open my $fh, "<:encoding(utf8)", $path or die "$path: $!";
     my @rows;
     while ( my $row = $csv->getline( $fh ) ) {
         push @rows, $row;
@@ -145,9 +148,65 @@ sub _read_rows {
     return \@rows;
 }
 
-sub _replay_history {
-    my $rows = _read_rows($history_path);
 
+sub _create_menu {
+    my @models =
+        map  { { path => $_ }}
+        sort { $a cmp $b }
+        grep { /\.obj$/i }
+        path($models_path)->children;
+    my %history_of = map { $_->{path}->basename => $_ }
+        @models;
+
+    my @histories =  grep { /\.csv/i } path(".")->children;
+    for my $h (@histories) {
+        if($h->basename =~ /history_(\d+)_(.+)\.csv/) {
+            my $model_name = $2;
+            if ( exists $history_of{$model_name} ) {
+                push @{ $history_of{$model_name}->{histories} }, $h;
+            }
+        }
+    };
+    @models = grep { exists $history_of{$_->{path}->basename}->{histories} } @models;
+    for (@models) {
+        $_->{histories} = [
+            sort {$a cmp $b}
+            @{ $history_of{$_->{path}->basename}->{histories} }
+        ];
+    }
+
+    my $menu_callback = sub {
+        my $menu_id = shift;
+        say "clicked on:", $menu_id;
+    };
+
+    my @submenus;
+    for my $idx (0 .. @models-1) {
+        my $me = $models[$idx];
+        my $name = $me->{path}->basename;
+        my $histories = $me->{histories};
+        my $menu_handler = sub {
+            _load_object($me->{path});
+            my $history_idx = shift;
+            my $history = $histories->[$history_idx];
+            $history_rows = _read_rows($history);
+        };
+        my $submenu_id = glutCreateMenu($menu_handler);
+        for my $h_idx (0 .. @$histories - 1 ){
+            my $h_name = $histories->[$h_idx];
+            glutAddMenuEntry($h_name->basename, $h_idx);
+        }
+        push @submenus, { id => $submenu_id, name => $name};
+    }
+    my $menu_id = glutCreateMenu($menu_callback);
+    for (@submenus) {
+        glutAddSubMenu($_->{name}, $_->{id});
+    }
+    glutAttachMenu(GLUT_RIGHT_BUTTON) if(@submenus);
+}
+
+sub _replay_history {
+    _create_menu;
     my $speedup = 0.25;
 
     $htm = Octahedron->new;
@@ -155,17 +214,24 @@ sub _replay_history {
     my $r = Vertex->new([0, 0, 0])->vector_to($htm->vertices->[0])->length;
     my $scale_to = 1/($r/$max_boundary);
     $htm->scale($scale_to);
-    $htm->level(4);
-    push @objects, $htm;
+    $htm->level(1);
+    push @other_objects, $htm;
 
-    for (0 .. 10) {
+    while(1) {
+        glutPostRedisplay;
+        glutMainLoopEvent;
+        my $playing_history = $history_rows;
+        if(!defined($playing_history)) {
+            next;
+        }
         my $last_time = 0;
-        for my $i (1 .. @$rows-1) {
+        for my $i (1 .. @$history_rows-1) {
             glutMainLoopEvent;
-            my $row = $rows->[$i];
+            last if($playing_history != $history_rows);
+            my $row = $history_rows->[$i];
             my $sleep_time = $row ->[0] - $last_time;
             my ($alpha, $beta) = @{$row}[1,2];
-            for (@objects) {
+            for ($main_object, @other_objects) {
                 $_->rotation->[1] = $alpha;
                 $_->rotation->[0] = $beta;
             }
@@ -174,6 +240,10 @@ sub _replay_history {
             sleep($sleep_time * $speedup);
             $last_time = $row->[0];
         }
+        # no cycle termination by other model choosing
+        sleep(3) if($playing_history == $history_rows)
+    }
+    for (0 .. 10) {
     }
     my $elapsed = tv_interval ( $started_at, [gettimeofday]);
     say "replay time: $elapsed";
@@ -197,20 +267,31 @@ sub _exit {
     exit;
 }
 
+sub _load_object {
+    my $path = shift;
+    $main_object = Loader->new(file => $path)->load;
+
+    my $scale_to = 1/($main_object->max_distance->length/$max_boundary);
+    $main_object->scale( $scale_to );
+    say "model $path loaded";
+}
+
 sub keyPressed {
     my ($key, $x, $y) = @_;
     my $rotate_step = 2;
     my $rotation = sub {
         my ($c, $step) = @_;
+        my $subject = $main_object // $htm;
         return sub {
-            $main_object->rotation->[$c] += $step;
-            $main_object->rotation->[$c] %= 360;
+            $subject->rotation->[$c] += $step;
+            $subject->rotation->[$c] %= 360;
         }
     };
     my $scaling = sub {
         my $value = shift;
+        my $subject = $main_object // $htm;
         return sub {
-            $main_object->scale($main_object->scale * $value);
+            $subject->scale($main_object->scale * $value);
         };
     };
     my $detalize = sub {
@@ -230,7 +311,7 @@ sub keyPressed {
         };
     };
     my $switch_mode = sub {
-        my $subject = defined($history_path) ? $htm : $main_object;
+        my $subject = defined($replay_history) ? $htm : $main_object;
         my $new_mode = $subject->mode eq 'normal'
             ? 'mesh'
             : 'normal';
