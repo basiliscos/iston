@@ -58,6 +58,12 @@ has normals      => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
 has vertices     => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
 has indices      => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
 
+# material properties
+has diffuse   => (is => 'rw', default => sub { [0.75, 0.75, 0, 1]} );
+has ambient   => (is => 'rw', default => sub { [0.75, 0.75, 0, 1]} );
+has specular  => (is => 'rw', default => sub { [1.0, 1.0, 1.0, 1.0]} );
+has shininess => (is => 'rw', default => sub { 80.0 } );
+
 method BUILD {
     $self->levels_cache->{$self->level} = $self->triangles;
 }

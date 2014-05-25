@@ -47,6 +47,7 @@ my $interactive_mode = !defined($replay_history);
 
 glutInit;
 glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
+#glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE | GLUT_DEPTH);
 glEnable(GL_DEPTH_TEST);
 glEnableClientState(GL_COLOR_ARRAY);
 glEnableClientState(GL_VERTEX_ARRAY);
@@ -85,19 +86,22 @@ if($replay_history) {
 }
 
 sub init_light {
+
+    glShadeModel (GL_SMOOTH);
+
     # Initialize material property, light source, lighting model,
     # and depth buffer.
-    my @mat_specular = ( 0.0, 0.0, 0.01, 1.0 );
-    my @mat_diffuse  = ( 0.8, 0.8, 0.8, 1.0 );
-    my @light_position = ( 5.0, 5.0, 5.0, 0.0 );
+    my @mat_specular = ( 1.0, 1.0, 1.0, 1.0 );
+    #my @mat_diffuse  = ( 0.1, 0.4, 0.8, 1.0 );
+    my @light_position = ( 20.0, 20.0, 20.0, 0.0 );
 
-    glMaterialfv_s(GL_FRONT, GL_DIFFUSE, pack("f4",@mat_diffuse));
+    #glMaterialfv_s(GL_FRONT, GL_DIFFUSE, pack("f4",@mat_diffuse));
     glMaterialfv_s(GL_FRONT, GL_SPECULAR, pack("f4",@mat_specular));
-#    glMaterialfv_s(GL_FRONT, GL_SHININESS, pack("f1",10));
+    glMaterialfv_s(GL_FRONT, GL_SHININESS, pack("f1", 120.0));
     glLightfv_s(GL_LIGHT0, GL_POSITION, pack("f4",@light_position));
 
-    glEnable(GL_LIGHT0);
     glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
     glDepthFunc(GL_LESS);
     glEnable(GL_DEPTH_TEST);
 }
@@ -109,24 +113,26 @@ sub initGL {
     glLoadIdentity;
     gluPerspective(65.0, $width/$height, 0.1, 100.0);
     glMatrixMode(GL_MODELVIEW);
+    glEnable(GL_NORMALIZE);
 }
 
 sub drawGLScene {
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glPushMatrix;
     glLoadIdentity;
     glTranslatef(@$camera_position);
 
     for($main_object, @other_objects) {
         next unless $_;
         glPushMatrix;
+        glPushClientAttrib(GL_CLIENT_ALL_ATTRIB_BITS);
+        glPushAttrib(GL_ALL_ATTRIB_BITS);
         $_->draw;
-        glPopMatrix
+        glPopAttrib;
+        glPopClientAttrib;
+        glPopMatrix;
     }
 
-    glPopMatrix;
     glFlush;
     glutSwapBuffers;
     $interactive_mode && usleep(50000);
@@ -214,7 +220,7 @@ sub _replay_history {
     my $r = Vertex->new([0, 0, 0])->vector_to($htm->vertices->[0])->length;
     my $scale_to = 1/($r/$max_boundary);
     $htm->scale($scale_to);
-    $htm->level(0);
+    $htm->level(3);
     push @other_objects, $htm;
 
     while(1) {
@@ -273,7 +279,7 @@ sub _load_object {
 
     my $scale_to = 1/($main_object->max_distance->length/$max_boundary);
     $main_object->scale( $scale_to );
-    say "model $path loaded";
+    say "model $path loaded, scaled: $scale_to";
 }
 
 sub keyPressed {

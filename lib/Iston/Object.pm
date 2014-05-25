@@ -20,6 +20,12 @@ has mode     => (is => 'rw', default => sub { 'normal' }, trigger => 1);
 has contexts => (is => 'rw', default => sub { {} });
 has cache    => (is => 'rw', default => sub { {} });
 
+# material properties
+has diffuse   => (is => 'rw', default => sub { [0.75, 0.75, 0.75, 1]} );
+has ambient   => (is => 'rw', default => sub { [0.75, 0.75, 0.75, 1]} );
+has specular  => (is => 'rw', default => sub { [0.8, 0.8, 0.8, 1.0]} );
+has shininess => (is => 'rw', default => sub { 50.0 } );
+
 method _build_center {
     my ($v_size, $n_size) = map { scalar(@{ $self->$_ }) }
         qw/vertices normals/;
@@ -101,7 +107,8 @@ method _triangle_2_lines_indices {
 }
 
 method draw {
-    #glEnable(GL_NORMALIZE);
+
+    glPushMatrix;
 
     my $scale = $self->scale;
     glScalef($scale, $scale, $scale);
@@ -125,6 +132,12 @@ method draw {
     glEnableClientState(GL_VERTEX_ARRAY);
     glVertexPointer_p($components, $vertices);
 
+    # applying material properties to the whole object
+    glMaterialfv_s(GL_FRONT, GL_DIFFUSE,   pack("f4", @{ $self->diffuse } ));
+    glMaterialfv_s(GL_FRONT, GL_AMBIENT,   pack("f4", @{ $self->ambient } ));
+    glMaterialfv_s(GL_FRONT, GL_SPECULAR,  pack("f4", @{ $self->specular} ));
+    glMaterialfv_s(GL_FRONT, GL_SHININESS, pack("f1", $self->shininess));
+
     my $indices = $self->indices;
     my $indices_size = scalar(@$indices);
     my $mode = $self->mode;
@@ -132,6 +145,8 @@ method draw {
         ? GL_TRIANGLES : GL_LINES;
 
     glDrawElements_p($draw_mode, @$indices);
+
+    glPopMatrix;
 }
 
 1;
