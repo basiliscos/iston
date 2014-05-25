@@ -192,10 +192,15 @@ sub _create_menu {
         my $name = $me->{path}->basename;
         my $histories = $me->{histories};
         my $menu_handler = sub {
-            _load_object($me->{path});
             my $history_idx = shift;
+            _load_object($me->{path});
             my $history = $histories->[$history_idx];
             $history_rows = _read_rows($history);
+
+            my $r1 = ($main_object->radius) * $main_object->scale;
+            my $r2 = $htm->radius;
+            my $scale_to = $r1/$r2;
+            $htm->scale($scale_to*1.01);
         };
         my $submenu_id = glutCreateMenu($menu_handler);
         for my $h_idx (0 .. @$histories - 1 ){
@@ -219,7 +224,7 @@ sub _replay_history {
     $htm->mode('mesh');
     my $r = Vertex->new([0, 0, 0])->vector_to($htm->vertices->[0])->length;
     my $scale_to = 1/($r/$max_boundary);
-    $htm->scale($scale_to);
+    $htm->scale(2.5);
     $htm->level(3);
     push @other_objects, $htm;
 
@@ -277,7 +282,11 @@ sub _load_object {
     my $path = shift;
     $main_object = Loader->new(file => $path)->load;
 
-    my $scale_to = 1/($main_object->max_distance->length/$max_boundary);
+    my ($max_distance) =
+        reverse sort {$a->length <=> $b->length }
+        map { Vector->new( $_ ) }
+        $main_object->boudaries;
+    my $scale_to = 1/($max_distance->length/$max_boundary);
     $main_object->scale( $scale_to );
     say "model $path loaded, scaled: $scale_to";
 }

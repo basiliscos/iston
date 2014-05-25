@@ -4,6 +4,7 @@ use 5.12.0;
 
 use Carp;
 use Moo;
+use List::Util qw/max/;
 use Function::Parameters qw(:strict);
 use OpenGL qw(:all);
 
@@ -59,11 +60,13 @@ method boudaries {
     return ($mins, $maxs);
 };
 
-method max_distance {
-    my ($r) =
-        reverse sort {$a->length <=> $b->length }
-        map { Vector->new( $_ ) }
-        $self->boudaries;
+method radius {
+    my $c = $self->center;
+    my $r = max(
+        map { $_->length }
+        map { $c->vector_to($_) }
+        @{ $self->vertices }
+    );
     $r;
 }
 

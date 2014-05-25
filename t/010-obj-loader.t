@@ -24,6 +24,8 @@ subtest "load cube" => sub {
     is scalar(@{ $c->normals }), scalar(@{ $c->vertices });
     is_deeply $c->normals->[0],
         Vector->new([qw/0.577350 -0.577350 -0.577350/]);
+
+    ok $c->radius - sqrt(1+1+1) < 0.0001, "got correct radius";
 };
 
 done_testing;
