@@ -214,7 +214,7 @@ sub _replay_history {
     my $r = Vertex->new([0, 0, 0])->vector_to($htm->vertices->[0])->length;
     my $scale_to = 1/($r/$max_boundary);
     $htm->scale($scale_to);
-    $htm->level(1);
+    $htm->level(0);
     push @other_objects, $htm;
 
     while(1) {

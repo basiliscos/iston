@@ -30,6 +30,10 @@ subtest "check indices directly at 4-th level" => sub {
     $o->level(4);
     $i_count = scalar(@{$o->indices});
     is $i_count, (8*3)*4**4;
+
+    $o->level(0);
+    my $i_count = scalar(@{$o->indices});
+    is $i_count, 8*3;
 };
 
 subtest "sequential subdivisions" => sub {

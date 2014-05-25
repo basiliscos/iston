@@ -124,7 +124,7 @@ method _trigger_level($level) {
     #$self->mode('normal') if defined($back_to_mode);
 
     my $current_triangles = $self->triangles;
-    for my $l (1 .. $level) {
+    for my $l (0 .. $level) {
         $self->levels_cache->{$l} //= do {
             my @triangles = map {
                 @{ $_->subtriangles() }
