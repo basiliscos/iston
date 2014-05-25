@@ -47,7 +47,6 @@ my $interactive_mode = !defined($replay_history);
 
 glutInit;
 glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
-#glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE | GLUT_DEPTH);
 glEnable(GL_DEPTH_TEST);
 glEnableClientState(GL_COLOR_ARRAY);
 glEnableClientState(GL_VERTEX_ARRAY);
