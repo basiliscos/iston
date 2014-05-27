@@ -9,6 +9,7 @@ use Path::Tiny;
 use Time::HiRes qw/gettimeofday tv_interval usleep sleep/;
 
 use aliased qw/Iston::History/;
+use aliased qw/Iston::History::Record/;
 use aliased qw/Iston::Loader/;
 use aliased qw/Iston::Object::Octahedron/;
 use aliased qw/Iston::Vector/;
@@ -219,17 +220,17 @@ sub _replay_history {
         for my $i (0 .. $history->elements - 1) {
             glutMainLoopEvent;
             last if($playing_history != $history);
-            my $row = $history->records->[$i];
-            my $sleep_time = $row->[0] - $last_time;
-            my ($alpha, $beta) = @{$row}[1,2];
+            my $record = $history->records->[$i];
+            my $sleep_time = $record->timestamp - $last_time;
+            my ($alpha, $beta) = map { $record->$_ } qw/alpha beta/;
             for ($main_object, @other_objects) {
                 $_->rotation->[1] = $alpha;
                 $_->rotation->[0] = $beta;
             }
-            @$camera_position = @{$row}[3 .. 5];
+            @$camera_position = map { $record->$_ } qw/camera_x camera_y camera_z/;
             glutPostRedisplay;
             sleep($sleep_time * $speedup);
-            $last_time = $row->[0];
+            $last_time = $record->timestamp;
         }
         # no cycle termination by other model choosing
         sleep(3) if($playing_history == $history)
@@ -242,19 +243,22 @@ sub _replay_history {
 
 sub _log_state {
     return if $no_history;
-    my $elapsed = tv_interval ( $started_at, [gettimeofday]);
-    my @data = (
-        $elapsed,
-        $main_object->rotation->[1], $main_object->rotation->[0],
-        @$camera_position,
+    my $record = Record->new(
+        timestamp => tv_interval ( $started_at, [gettimeofday]),
+        alpha     => $main_object->rotation->[1],
+        beta      => $main_object->rotation->[0],
+        camera_x  => $camera_position->[0],
+        camera_y  => $camera_position->[1],
+        camera_z  => $camera_position->[2],
     );
-    push @{ $history->records }, \@data;
+    push @{ $history->records }, $record;
 }
 
 sub _exit {
     say "...exiting";
     _log_state;
-    $history->save;
+    $history->save if(!$no_history);
+    glutLeaveMainLoop;
     exit;
 }
 

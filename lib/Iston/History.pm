@@ -7,6 +7,8 @@ use Moo;
 use Path::Tiny qw//;
 use Text::CSV;
 
+use aliased qw/Iston::History::Record/;
+
 has path => (is => 'ro', required => 1);
 has records => (is => 'rw', default => sub{ [] } );
 
@@ -19,8 +21,14 @@ method load {
     open my $fh, "<:encoding(utf8)", $path or die "$path: $!";
     my @rows;
     my $header = $csv->getline( $fh ); # just remove it from headers
+    for (0 .. @$header - 1) {
+        my $h = $header->[$_];
+        die("unknown header: $h ")
+            unless $h eq $Iston::History::Record::fields[$_];
+    }
     while ( my $row = $csv->getline( $fh ) ) {
-        push @rows, $row;
+        my %data = map { $header->[$_] => $row->[$_] } (0 .. @$header - 1);
+        push @rows, Record->new(%data);
     }
     $csv->eof or $csv->error_diag();
     close $fh;
@@ -29,9 +37,14 @@ method load {
 };
 
 method save {
-    my $header = join(',', qw/timestamp a b camera_x camera_y camera_z/);
+    my @fields = @Iston::History::Record::fields;
+    my $header = join(',', @fields);
+    my @rows = map {
+        my $r = $_;
+        [map { $r->$_ } @fields];
+    } @{ $self->records };
     my @data = map { $_ . "\n"}
-        ($header,  map { join(',', @$_ ) } @{ $self->records } );
+        ($header,  map { join(',', @$_ ) } @rows );
     Path::Tiny->new($self->path)->spew(@data);
 };
 
