@@ -11,6 +11,8 @@ use OpenGL qw(:all);
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
+with('Iston::Drawable');
+
 has center   => (is => 'lazy');
 has rotation => (is => 'rw', default => sub { [0, 0, 0] });
 has scale    => (is => 'rw', default => sub { 1; });

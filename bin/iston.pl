@@ -6,9 +6,9 @@ use Getopt::Long qw(GetOptions :config no_auto_abbrev no_ignore_case);
 use List::Util qw/max/;
 use OpenGL qw(:all);
 use Path::Tiny;
-use Text::CSV;
 use Time::HiRes qw/gettimeofday tv_interval usleep sleep/;
 
+use aliased qw/Iston::History/;
 use aliased qw/Iston::Loader/;
 use aliased qw/Iston::Object::Octahedron/;
 use aliased qw/Iston::Vector/;
@@ -66,7 +66,6 @@ my @other_objects;
 my $max_boundary = 3.0;
 
 my $history;
-my $history_rows;
 my $started_at = [gettimeofday];
 
 if($replay_history) {
@@ -76,9 +75,8 @@ if($replay_history) {
     $object_path = path($object_path);
     _load_object($object_path);
     if (!$no_history) {
-        $history = path(".", "history_@{[ time ]}_@{[ $object_path->basename ]}.csv")
-            ->filehandle('>');
-        say $history "timestamp,a,b,d";
+        my $history_path = join('_', 'history', time, $object_path->basename ) . ".csv";
+        $history = History->new(path => $history_path);
     }
     _log_state;
     glutMainLoop;
@@ -137,23 +135,6 @@ sub drawGLScene {
     $interactive_mode && usleep(50000);
 }
 
-sub _read_rows {
-    my $path = shift;
-    my $csv = Text::CSV->new({
-        binary   => 1,
-        sep_char => ',',
-    }) or die "Cannot use CSV: " . Text::CSV->error_diag;
-    open my $fh, "<:encoding(utf8)", $path or die "$path: $!";
-    my @rows;
-    while ( my $row = $csv->getline( $fh ) ) {
-        push @rows, $row;
-    }
-    $csv->eof or $csv->error_diag();
-    close $fh;
-    return \@rows;
-}
-
-
 sub _create_menu {
     my @models =
         map  { { path => $_ }}
@@ -193,8 +174,8 @@ sub _create_menu {
         my $menu_handler = sub {
             my $history_idx = shift;
             _load_object($me->{path});
-            my $history = $histories->[$history_idx];
-            $history_rows = _read_rows($history);
+            my $history_path = $histories->[$history_idx];
+            $history = History->new( path => $history_path)->load;
 
             my $r1 = ($main_object->radius) * $main_object->scale;
             my $r2 = $htm->radius;
@@ -230,16 +211,16 @@ sub _replay_history {
     while(1) {
         glutPostRedisplay;
         glutMainLoopEvent;
-        my $playing_history = $history_rows;
+        my $playing_history = $history;
         if(!defined($playing_history)) {
             next;
         }
         my $last_time = 0;
-        for my $i (1 .. @$history_rows-1) {
+        for my $i (0 .. $history->elements - 1) {
             glutMainLoopEvent;
-            last if($playing_history != $history_rows);
-            my $row = $history_rows->[$i];
-            my $sleep_time = $row ->[0] - $last_time;
+            last if($playing_history != $history);
+            my $row = $history->records->[$i];
+            my $sleep_time = $row->[0] - $last_time;
             my ($alpha, $beta) = @{$row}[1,2];
             for ($main_object, @other_objects) {
                 $_->rotation->[1] = $alpha;
@@ -251,7 +232,7 @@ sub _replay_history {
             $last_time = $row->[0];
         }
         # no cycle termination by other model choosing
-        sleep(3) if($playing_history == $history_rows)
+        sleep(3) if($playing_history == $history)
     }
     for (0 .. 10) {
     }
@@ -267,13 +248,13 @@ sub _log_state {
         $main_object->rotation->[1], $main_object->rotation->[0],
         @$camera_position,
     );
-    my $line = join(',', @data);
-    say $history $line;
+    push @{ $history->records }, \@data;
 }
 
 sub _exit {
     say "...exiting";
     _log_state;
+    $history->save;
     exit;
 }
 
