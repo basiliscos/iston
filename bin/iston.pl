@@ -12,6 +12,7 @@ use aliased qw/Iston::History/;
 use aliased qw/Iston::History::Record/;
 use aliased qw/Iston::Loader/;
 use aliased qw/Iston::Object::Octahedron/;
+use aliased qw/Iston::Object::ObservationPath/;
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
@@ -61,7 +62,7 @@ glClearColor(0.0, 0.0, 0.0, 0.0);
 initGL($width, $height);
 
 my $camera_position = [0, 0, -7];
-my ($main_object, $htm);
+my ($main_object, $htm, $observation_path);
 
 my @other_objects;
 my $max_boundary = 3.0;
@@ -182,6 +183,9 @@ sub _create_menu {
             my $r2 = $htm->radius;
             my $scale_to = $r1/$r2;
             $htm->scale($scale_to*1.01);
+            $observation_path = ObservationPath->new(history => $history);
+            $observation_path->scale($scale_to*1.01);
+            @other_objects = ($htm, $observation_path);
         };
         my $submenu_id = glutCreateMenu($menu_handler);
         for my $h_idx (0 .. @$histories - 1 ){
@@ -199,7 +203,7 @@ sub _create_menu {
 
 sub _replay_history {
     _create_menu;
-    my $speedup = 0.25;
+    my $speedup = 2.25;
 
     $htm = Octahedron->new;
     $htm->mode('mesh');
@@ -222,10 +226,11 @@ sub _replay_history {
             last if($playing_history != $history);
             my $record = $history->records->[$i];
             my $sleep_time = $record->timestamp - $last_time;
-            my ($alpha, $beta) = map { $record->$_ } qw/alpha beta/;
+            my ($x_axis_degree, $y_axis_degree) = map { $record->$_ }
+                qw/x_axis_degree y_axis_degree/;
             for ($main_object, @other_objects) {
-                $_->rotation->[1] = $alpha;
-                $_->rotation->[0] = $beta;
+                $_->rotation->[0] = $x_axis_degree;
+                $_->rotation->[1] = $y_axis_degree;
             }
             @$camera_position = map { $record->$_ } qw/camera_x camera_y camera_z/;
             glutPostRedisplay;
@@ -242,12 +247,12 @@ sub _replay_history {
 sub _log_state {
     return if $no_history;
     my $record = Record->new(
-        timestamp => tv_interval ( $started_at, [gettimeofday]),
-        alpha     => $main_object->rotation->[1],
-        beta      => $main_object->rotation->[0],
-        camera_x  => $camera_position->[0],
-        camera_y  => $camera_position->[1],
-        camera_z  => $camera_position->[2],
+        timestamp     => tv_interval ( $started_at, [gettimeofday]),
+        x_axis_degree => $main_object->rotation->[0],
+        y_axis_degree => $main_object->rotation->[1],
+        camera_x      => $camera_position->[0],
+        camera_y      => $camera_position->[1],
+        camera_z      => $camera_position->[2],
     );
     push @{ $history->records }, $record;
 }

@@ -112,9 +112,6 @@ method _triangle_2_lines_indices {
 }
 
 method draw {
-
-    glPushMatrix;
-
     my $scale = $self->scale;
     glScalef($scale, $scale, $scale);
     glRotatef($self->rotation->[0], 1, 0, 0);
@@ -150,8 +147,6 @@ method draw {
         ? GL_TRIANGLES : GL_LINES;
 
     glDrawElements_p($draw_mode, @$indices);
-
-    glPopMatrix;
 }
 
 1;
