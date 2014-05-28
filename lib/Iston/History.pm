@@ -9,15 +9,17 @@ use Text::CSV;
 
 use aliased qw/Iston::History::Record/;
 
-has path => (is => 'ro', required => 1);
+has path => (is => 'rw', required => 0);
 has records => (is => 'rw', default => sub{ [] } );
 
 method load {
+    my $path = $self->path;
+    croak("Path should be specified") unless defined($path);
+
     my $csv = Text::CSV->new({
         binary   => 1,
         sep_char => ',',
     }) or die "Cannot use CSV: " . Text::CSV->error_diag;
-    my $path = $self->path;
     open my $fh, "<:encoding(utf8)", $path or die "$path: $!";
     my @rows;
     my $header = $csv->getline( $fh ); # just remove it from headers
@@ -37,6 +39,9 @@ method load {
 };
 
 method save {
+    my $path = $self->path;
+    croak("Path should be specified") unless defined($path);
+
     my @fields = @Iston::History::Record::fields;
     my $header = join(',', @fields);
     my @rows = map {
@@ -45,7 +50,7 @@ method save {
     } @{ $self->records };
     my @data = map { $_ . "\n"}
         ($header,  map { join(',', @$_ ) } @rows );
-    Path::Tiny->new($self->path)->spew(@data);
+    Path::Tiny->new($path)->spew(@data);
 };
 
 method log_state($record) {

@@ -235,8 +235,6 @@ sub _replay_history {
         # no cycle termination by other model choosing
         sleep(3) if($playing_history == $history)
     }
-    for (0 .. 10) {
-    }
     my $elapsed = tv_interval ( $started_at, [gettimeofday]);
     say "replay time: $elapsed";
 }
