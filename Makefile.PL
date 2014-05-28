@@ -36,6 +36,7 @@ my %WriteMakefileArgs = (
     "OpenGL" => 0,
     "Path::Tiny" => "0.049",
     "Smart::Comments" => 0,
+    "Text::CSV" => 0,
     "aliased" => 0
   },
   "TEST_REQUIRES" => {
@@ -68,6 +69,7 @@ my %FallbackPrereqs = (
   "Smart::Comments" => 0,
   "Test::More" => "0.98",
   "Test::Warnings" => "0.013",
+  "Text::CSV" => 0,
   "aliased" => 0
 );
 

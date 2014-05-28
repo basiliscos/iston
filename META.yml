@@ -28,5 +28,6 @@ requires:
   OpenGL: '0'
   Path::Tiny: '0.049'
   Smart::Comments: '0'
+  Text::CSV: '0'
   aliased: '0'
 version: '0.01'
