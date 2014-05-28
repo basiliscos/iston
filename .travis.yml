@@ -1,5 +1,5 @@
 language: perl
-install: cpanm --installdeps --notest .
+install: cpanm -v --installdeps --notest .
 perl:
   - "5.18"
   - "5.16"
