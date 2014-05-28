@@ -1,4 +1,6 @@
 language: perl
+before_install:
+  - sudo apt-get install freeglut3-dev
 install: cpanm -v --installdeps --notest .
 perl:
   - "5.18"
