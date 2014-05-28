@@ -19,6 +19,7 @@ has scale    => (is => 'rw', default => sub { 1; });
 has rotation => (is => 'rw', default => sub { [0, 0, 0] });
 has vertices => (is => 'rw');
 has indices  => (is => 'rw');
+has index_at => (is => 'rw', default => sub{ {} });
 
 method BUILD {
     $self->_build_vertices_and_indices;
@@ -32,7 +33,8 @@ method _build_vertices_and_indices {
     my @indices;
     for my $i (0 .. $history->elements-1) {
         my $record = $history->records->[$i];
-        my ($dx, $dy) = map { $record->$_ } qw/x_axis_degree y_axis_degree/;
+        my ($dx, $dy, $timestamp) = map { $record->$_ }
+            qw/x_axis_degree y_axis_degree timestamp/;
         $x_axis_degree = $dx * -1;
         $y_axis_degree = $dy * -1;
         my $r_a = Math::MatrixReal->new_from_rows([
@@ -51,6 +53,7 @@ method _build_vertices_and_indices {
         my $v = Vertex->new([$x, $y, $z]);
         push @vertices, $v;
         push @indices, $i-1, $i if($i);
+        $self->index_at->{$timestamp} = $i;
     }
     $self->vertices(\@vertices);
     $self->indices(\@indices);

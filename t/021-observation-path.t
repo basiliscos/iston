@@ -7,12 +7,13 @@ use aliased qw/Iston::History/;
 use aliased qw/Iston::History::Record/;
 use aliased qw/Iston::Object::ObservationPath/;
 
+my $ts_idx = 0;
 my $_a2r = sub {
     my $angles = shift;
     return [ map  {
         my ($a, $b) = @$_;
         Record->new(
-            timestamp     => 0,
+            timestamp     => $ts_idx++,
             x_axis_degree => $a,
             y_axis_degree => $b,
             camera_x      => 0,
@@ -35,6 +36,8 @@ subtest "simple 2 point path" => sub {
     is @{$o->vertices}, 2;
     is $o->vertices->[0], "vertex[0.0000000, 0.0000000, 1.0000000]";
     is $o->vertices->[1], "vertex[1.0000000, 0.0000000, 0.0000000]";
+
+    is $o->index_at->{ $h->records->[-1]->timestamp }, 1;
 };
 
 subtest "up: 45, counter-clock-wise: 90" => sub {
@@ -48,6 +51,8 @@ subtest "up: 45, counter-clock-wise: 90" => sub {
     is $o->vertices->[0], "vertex[0.0000000, 0.0000000, 1.0000000]";
     is $o->vertices->[1], "vertex[0.0000000, 0.7071068, 0.7071068]";
     is $o->vertices->[2], "vertex[0.7071068, 0.7071068, 0.0000000]";
+
+    is $o->index_at->{ $h->records->[-1]->timestamp }, 2;
 };
 
 done_testing;
