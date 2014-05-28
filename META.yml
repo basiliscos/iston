@@ -1,0 +1,32 @@
+---
+abstract: '3D models view/rotation research'
+author:
+  - 'Ivan Baidakou <dmol@gmx.com>,'
+build_requires:
+  File::Spec: '0'
+  File::Temp: '0'
+  IO::Handle: '0'
+  IPC::Open3: '0'
+  Test::More: '0.98'
+  Test::Warnings: '0.013'
+configure_requires:
+  ExtUtils::MakeMaker: '6.86'
+  File::ShareDir::Install: '0.06'
+dynamic_config: 0
+generated_by: 'Dist::Zilla version 5.019, CPAN::Meta::Converter version 2.141170'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: '1.4'
+name: Iston
+requires:
+  Carp: '1.26'
+  Function::Parameters: '1.0201'
+  List::MoreUtils: '0'
+  Math::MatrixReal: '2.11'
+  Moo: '0'
+  OpenGL: '0'
+  Path::Tiny: '0.049'
+  Smart::Comments: '0'
+  aliased: '0'
+version: '0.01'
