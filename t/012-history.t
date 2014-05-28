@@ -13,12 +13,12 @@ subtest "simple-history" => sub {
     my $history_path = path($tmp_dir, "h.csv");
     my $h = History->new(path => $history_path);
     my $record = Record->new(
-        timestamp => 0,
-        alpha     => 1,
-        beta      => 2,
-        camera_x  => 3,
-        camera_y  => 4,
-        camera_z  => 5,
+        timestamp     => 0,
+        x_axis_degree => 1,
+        y_axis_degree => 2,
+        camera_x      => 3,
+        camera_y      => 4,
+        camera_z      => 5,
     );
     push @{ $h->records }, $record;
     $h->save;
