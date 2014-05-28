@@ -1,5 +1,7 @@
 language: perl
 before_install:
+  - "export DISPLAY=:99.0"
+  - "sh -e /etc/init.d/xvfb start"
   - sudo apt-get install freeglut3-dev libxmu-dev
 install: cpanm -v --installdeps --notest .
 perl:
@@ -10,4 +12,3 @@ perl:
 branches:
   only:
     - /^build/
-
