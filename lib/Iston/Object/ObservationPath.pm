@@ -70,11 +70,10 @@ method draw {
     glVertexPointer_p(3, $vertices);
 
     # applying material properties to the whole object
-    glMaterialfv_s(GL_FRONT, GL_DIFFUSE,   pack("f4", 0.75, 0.0, 0,0, 1.0 ));
-    glMaterialfv_s(GL_FRONT, GL_AMBIENT,   pack("f4", 0.75, 0.0, 0,0, 1.0 ));
-    #glMaterialfv_s(GL_FRONT, GL_SPECULAR,  pack("f4", @{ $self->specular} ));
-    #glMaterialfv_s(GL_FRONT, GL_SHININESS, pack("f1", $self->shininess));
-    
+    glMaterialfv_s(GL_FRONT, GL_DIFFUSE,   pack("f4", 0.45, 0.0, 0,0, 1.0 ));
+    glMaterialfv_s(GL_FRONT, GL_AMBIENT,   pack("f4", 0.45, 0.0, 0,0, 1.0 ));
+    glMaterialfv_s(GL_FRONT, GL_EMISSION,  pack("f4", 0.45, 0.0, 0,0, 1.0 ));
+
     my $indices = $self->indices;
     glDrawElements_p(GL_LINES, @$indices);
 }
