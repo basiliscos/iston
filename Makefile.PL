@@ -28,6 +28,7 @@ my %WriteMakefileArgs = (
   "LICENSE" => "perl",
   "NAME" => "Iston",
   "PREREQ_PM" => {
+    "AnyEvent" => 0,
     "Carp" => "1.26",
     "Function::Parameters" => "1.0201",
     "List::MoreUtils" => 0,
@@ -55,6 +56,7 @@ my %WriteMakefileArgs = (
 
 
 my %FallbackPrereqs = (
+  "AnyEvent" => 0,
   "Carp" => "1.26",
   "File::Spec" => 0,
   "File::Temp" => 0,

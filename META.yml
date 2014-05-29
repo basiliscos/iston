@@ -20,6 +20,7 @@ meta-spec:
   version: '1.4'
 name: Iston
 requires:
+  AnyEvent: '0'
   Carp: '1.26'
   Function::Parameters: '1.0201'
   List::MoreUtils: '0'
