@@ -2,6 +2,7 @@
 
 use 5.12.0;
 
+use AnyEvent;
 use Getopt::Long qw(GetOptions :config no_auto_abbrev no_ignore_case);
 use List::Util qw/max/;
 use OpenGL qw(:all);
@@ -17,7 +18,8 @@ use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
 sub _log_state;
-sub _replay_history;
+sub _prepare_replay;
+sub _start_replay;
 sub _load_object;
 
 GetOptions(
@@ -72,7 +74,7 @@ my $started_at = [gettimeofday];
 
 if($replay_history) {
     $no_history = 1;
-    _replay_history;
+    _prepare_replay;
 } else {
     $object_path = path($object_path);
     _load_object($object_path);
@@ -81,8 +83,16 @@ if($replay_history) {
         $history = History->new(path => $history_path);
     }
     _log_state;
-    glutMainLoop;
 }
+
+my $refresh_world = sub {
+    glutMainLoopEvent;
+    glutPostRedisplay;
+};
+my $t; $t = AE::timer 0, 0.01, sub {
+    $refresh_world->();
+};
+AE::cv->recv;
 
 sub init_light {
 
@@ -186,6 +196,7 @@ sub _create_menu {
             $observation_path = ObservationPath->new(history => $history);
             $observation_path->scale($scale_to*1.01);
             @other_objects = ($htm, $observation_path);
+            _start_replay;
         };
         my $submenu_id = glutCreateMenu($menu_handler);
         for my $h_idx (0 .. @$histories - 1 ){
@@ -201,9 +212,48 @@ sub _create_menu {
     glutAttachMenu(GLUT_RIGHT_BUTTON) if(@submenus);
 }
 
-sub _replay_history {
+sub _start_replay {
+    my $time_ratio = 0.25;
+    my ($last_time, $i, $record, $sleep_time, $history_object);
+    my $initialize = sub {
+        $last_time = $i = 0;
+        $record = $history->records->[$i];
+        $sleep_time = $record->timestamp - $last_time;
+        $history_object = $history;
+    };
+    $initialize->();
+    my $step; $step = sub {
+        my $t; $t = AE::timer $sleep_time * $time_ratio, 0, sub {
+            undef $t;
+            return if($history_object != $history);
+
+            my ($x_axis_degree, $y_axis_degree) = map { $record->$_ }
+                qw/x_axis_degree y_axis_degree/;
+            for ($main_object, @other_objects) {
+                $_->rotation->[0] = $x_axis_degree;
+                $_->rotation->[1] = $y_axis_degree;
+            }
+            @$camera_position = map { $record->$_ } qw/camera_x camera_y camera_z/;
+            $refresh_world->();
+
+            $last_time = $record->timestamp;
+            $record = $history->records->[++$i];
+            if($record) {
+                $sleep_time = $record->timestamp - $last_time;
+                $step->();
+            } else {
+                my $pause; $pause = AE::timer 3, 0, sub {
+                    undef $pause;
+                    _start_replay;
+                }
+            }
+        }
+    };
+    $step->();
+}
+
+sub _prepare_replay {
     _create_menu;
-    my $speedup = 2.25;
 
     $htm = Octahedron->new;
     $htm->mode('mesh');
@@ -212,36 +262,6 @@ sub _replay_history {
     $htm->scale(2.5);
     $htm->level(3);
     push @other_objects, $htm;
-
-    while(1) {
-        glutPostRedisplay;
-        glutMainLoopEvent;
-        my $playing_history = $history;
-        if(!defined($playing_history)) {
-            next;
-        }
-        my $last_time = 0;
-        for my $i (0 .. $history->elements - 1) {
-            glutMainLoopEvent;
-            last if($playing_history != $history);
-            my $record = $history->records->[$i];
-            my $sleep_time = $record->timestamp - $last_time;
-            my ($x_axis_degree, $y_axis_degree) = map { $record->$_ }
-                qw/x_axis_degree y_axis_degree/;
-            for ($main_object, @other_objects) {
-                $_->rotation->[0] = $x_axis_degree;
-                $_->rotation->[1] = $y_axis_degree;
-            }
-            @$camera_position = map { $record->$_ } qw/camera_x camera_y camera_z/;
-            glutPostRedisplay;
-            sleep($sleep_time * $speedup);
-            $last_time = $record->timestamp;
-        }
-        # no cycle termination by other model choosing
-        sleep(3) if($playing_history == $history)
-    }
-    my $elapsed = tv_interval ( $started_at, [gettimeofday]);
-    say "replay time: $elapsed";
 }
 
 sub _log_state {
