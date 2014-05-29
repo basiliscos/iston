@@ -71,13 +71,13 @@ method arrow_vertices($index_to, $index_from) {
     my $d_normal = Vector->new([@$direction])->normalize;
     my $n = Vector->new([0, 1, 0]);
     my $scalar = reduce { $a + $b } pairwise { $a * $b} @$d_normal, @$n;
-    my $φ = acos($scalar);
+    my $f = acos($scalar);
     my $axis = ($n * $d_normal)->normalize;
     my ($x, $y, $z) = @$axis;
     my $rotation = Math::MatrixReal->new_from_rows([
-        [cos($φ)+(1-cos($φ))*$x**2,    (1-cos($φ))*$x*$y-sin($φ)*$z, (1-cos($φ))*$x*$z+sin($φ)*$y ],
-        [(1-cos($φ))*$y*$z+sin($φ)*$z, cos($φ)+(1-cos($φ))*$y**2 ,   (1-cos($φ))*$y*$z-sin($φ)*$x ],
-        [(1-cos($φ))*$z*$x-sin($φ)*$y, (1-cos($φ))*$z*$y+sin($φ)*$x, cos($φ)+(1-cos($φ))*$z**2    ],
+        [cos($f)+(1-cos($f))*$x**2,    (1-cos($f))*$x*$y-sin($f)*$z, (1-cos($f))*$x*$z+sin($f)*$y ],
+        [(1-cos($f))*$y*$z+sin($f)*$z, cos($f)+(1-cos($f))*$y**2 ,   (1-cos($f))*$y*$z-sin($f)*$x ],
+        [(1-cos($f))*$z*$x-sin($f)*$y, (1-cos($f))*$z*$y+sin($f)*$x, cos($f)+(1-cos($f))*$z**2    ],
     ]);
     my @normals = map { Vector->new($_) }
         ([1, 0, 0], [0, 0, -1], [-1, 0, 0], [0, 0, 1]);
@@ -117,8 +117,8 @@ method draw {
     my $active_time = $self->active_time;
     if (defined $active_time && exists $self->index_at->{$active_time}) {
         my $last_index = $self->index_at->{$active_time};
-        my $count = 5;
-        if ($last_index >= $count*2) {
+        my $count = $last_index >= 5 ? 5 : $last_index;
+        if ($count) {
             my $color = pack("f4", 0.0, 0.95, 0.0, 1.0);
             glMaterialfv_s(GL_FRONT, GL_DIFFUSE,   $color);
             glMaterialfv_s(GL_FRONT, GL_AMBIENT,   $color);
