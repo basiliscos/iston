@@ -106,4 +106,12 @@ sub _stringify {
     return sprintf('vector[%0.4f, %0.4f, %0.4f]', @{$self}[0 .. 2]);
 }
 
+sub smart_2string {
+    my $self = shift;
+    my @values =
+        map { $_ eq '-0.00' ? '0.00' : $_ }
+        map { sprintf('%0.2f', $_) } @{$self}[0 .. 2];
+    sprintf('vector[%s, %s, %s]', @values);
+}
+
 1;

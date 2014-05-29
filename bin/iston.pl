@@ -234,6 +234,7 @@ sub _start_replay {
                 $_->rotation->[1] = $y_axis_degree;
             }
             @$camera_position = map { $record->$_ } qw/camera_x camera_y camera_z/;
+            $observation_path->active_time($record->timestamp);
             $refresh_world->();
 
             $last_time = $record->timestamp;

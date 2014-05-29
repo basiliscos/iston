@@ -6,6 +6,7 @@ use Test::Warnings;
 use aliased qw/Iston::History/;
 use aliased qw/Iston::History::Record/;
 use aliased qw/Iston::Object::ObservationPath/;
+use aliased qw/Iston::Vertex/;
 
 my $ts_idx = 0;
 my $_a2r = sub {
@@ -53,6 +54,31 @@ subtest "up: 45, counter-clock-wise: 90" => sub {
     is $o->vertices->[2], "vertex[0.7071068, 0.7071068, 0.0000000]";
 
     is $o->index_at->{ $h->records->[-1]->timestamp }, 2;
+};
+
+subtest "simple arrow vertices" => sub {
+    my $h = History->new;
+    my @angels = ([0,0], [0, -90]);
+    my $records = $_a2r->(\@angels);
+    push @{$h->records}, @$records;
+    my $o = ObservationPath->new(history => $h);
+    is @{$o->indices}, 2;
+    is $o->indices->[0], 0;
+    is $o->indices->[1], 1;
+
+    is @{$o->vertices}, 2;
+    # for simplification
+    $o->vertices->[0] = Vertex->new([2, 0, 0]);
+    $o->vertices->[1] = Vertex->new([4, 0, 0]);
+    is $o->vertices->[0], "vertex[2.0000000, 0.0000000, 0.0000000]";
+    is $o->vertices->[1], "vertex[4.0000000, 0.0000000, 0.0000000]";
+    my @arrows = $o->arrow_vertices(1, 0);
+    is scalar(@arrows), 4, "got exactly 4 arrow points";
+    my ($v1, $v2, $v3, $v4) = @arrows;
+    is $v1->smart_2string, 'vector[2.00, -2.00, 0.00]';
+    is $v2->smart_2string, 'vector[2.00, 0.00, -2.00]';
+    is $v3->smart_2string, 'vector[2.00, 2.00, 0.00]';
+    is $v4->smart_2string, 'vector[2.00, 0.00, 2.00]';
 };
 
 done_testing;
