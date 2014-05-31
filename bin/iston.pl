@@ -54,13 +54,14 @@ glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
 glEnable(GL_DEPTH_TEST);
 glEnableClientState(GL_COLOR_ARRAY);
 glEnableClientState(GL_VERTEX_ARRAY);
-my ($width, $height) = (800, 600);
-glutInitWindowSize($width, $height);
 glutCreateWindow("Iston");
 glutDisplayFunc(\&drawGLScene);
 glutIdleFunc(\&drawGLScene);
 glutKeyboardFunc(\&keyPressed);
 glClearColor(0.0, 0.0, 0.0, 0.0);
+glutFullScreen;
+my ($width, $height) = (glutGet(GLUT_SCREEN_WIDTH), glutGet(GLUT_SCREEN_HEIGHT));
+say "width: $width, height: $height";
 initGL($width, $height);
 
 my $camera_position = [0, 0, -7];
@@ -89,10 +90,11 @@ my $refresh_world = sub {
     glutMainLoopEvent;
     glutPostRedisplay;
 };
-my $t; $t = AE::timer 0, 0.01, sub {
+my $t; $t = AE::timer 0, 0.03, sub {
     $refresh_world->();
 };
-AE::cv->recv;
+my $finish = AE::cv;
+$finish->recv;
 
 sub init_light {
 
@@ -120,7 +122,7 @@ sub initGL {
     init_light;
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity;
-    gluPerspective(65.0, $width/$height, 0.1, 100.0);
+    gluPerspective(65.0, $width/$height, 1, 100.0);
     glMatrixMode(GL_MODELVIEW);
     glEnable(GL_NORMALIZE);
 }
@@ -282,8 +284,7 @@ sub _exit {
     say "...exiting";
     _log_state;
     $history->save if(!$no_history);
-    glutLeaveMainLoop;
-    exit;
+    $finish->send;
 }
 
 sub _load_object {
