@@ -6,6 +6,9 @@ META.yml
 Makefile.PL
 bin/iston.pl
 dist.ini
+lib/Iston/Application.pm
+lib/Iston/Application/Analyzer.pm
+lib/Iston/Application/Observer.pm
 lib/Iston/Drawable.pm
 lib/Iston/History.pm
 lib/Iston/History/Record.pm
