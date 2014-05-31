@@ -179,6 +179,20 @@ sub key_pressed {
             $self->time_ratio( $self->time_ratio * $value );
         };
     };
+    my $switch_mode = sub {
+        my $subject = $self->main_object // $self->htm;
+        my $new_mode = $subject->mode eq 'normal'
+            ? 'mesh'
+            : 'normal';
+        $subject->mode($new_mode);
+    };
+    my $detalize = sub {
+        my $level_delta = shift;
+        return sub {
+            my $level = $self->htm->level;
+            $self->htm->level($level + $level_delta);
+        };
+    };
     my $dispatch_table = {
         'w' => $rotation->(0, -$rotate_step),
         's' => $rotation->(0, $rotate_step),
@@ -186,6 +200,9 @@ sub key_pressed {
         'd' => $rotation->(1, $rotate_step),
         '+' => $adjust_time_ration->(1.1),
         '-' => $adjust_time_ration->(0.95),
+        'i' => $detalize->(1),
+        'I' => $detalize->(-1),
+        'm' => $switch_mode,
         'q' => sub {
             my $m = glutGetModifiers;
             $self->_exit if($m & GLUT_ACTIVE_ALT);
