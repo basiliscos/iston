@@ -213,4 +213,10 @@ sub key_pressed {
     $action->() if($action);
 };
 
+sub mouse_movement {
+}
+
+sub mouse_click {
+}
+
 1;

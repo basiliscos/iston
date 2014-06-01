@@ -13,6 +13,7 @@ use aliased qw/Iston::History/;
 GetOptions(
     'o|object=s'         => \my $object_path,
     'n|no_history'       => \my $no_history,
+    'N|no_full_screen'   => \my $no_fullscreen,
     'r|replay_history'   => \my $replay_history,
     'm|models_path=s'    => \my $models_path,
     'h|help'             => \my $help,
@@ -29,6 +30,7 @@ These options are available:
   -o, --object         Generates pair of private an public keys and stores them
                        in the current directory
   -n, --no_history     Do not record history
+  -N, --no_full_screen Do not enter into fullscreen mode
   -m, --models_path    Path to directory with models
   -r  --replay_history Replay history mode
   -h, --help           Show this message.
@@ -38,7 +40,8 @@ my $app;
 
 if($replay_history) {
     $app = Analyzer->new(
-        models_path => $models_path // '.'
+        models_path => $models_path // '.',
+        full_screen => !$no_fullscreen,
     );
 } else {
     $object_path = path($object_path);
@@ -48,6 +51,7 @@ if($replay_history) {
     $app = Observer->new(
         object_path => $object_path,
         history     => $history,
+        full_screen => !$no_fullscreen,
     );
 }
 

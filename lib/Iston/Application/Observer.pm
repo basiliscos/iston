@@ -10,9 +10,10 @@ use aliased qw/Iston::History::Record/;
 
 with('Iston::Application');
 
-has started_at  => (is => 'ro', default => sub { [gettimeofday]} );
-has object_path => (is => 'ro', required => 1);
-has main_object => (is => 'rw');
+has started_at     => (is => 'ro', default => sub { [gettimeofday]} );
+has object_path    => (is => 'ro', required => 1);
+has main_object    => (is => 'rw');
+has mouse_position => (is => 'rw');
 
 sub BUILD {
     my $self = shift;
@@ -20,6 +21,11 @@ sub BUILD {
     my $object = $self->load_object($self->object_path);
     $self->main_object($object);
     push @{ $self->objects }, $object;
+
+    my ($x, $y) = ($self->width/2, $self->height/2);
+    glutWarpPointer($x, $y);
+    $self->mouse_position([$x, $y]);
+
     $self->_log_state;
 };
 
@@ -50,6 +56,7 @@ sub _exit {
     $self->history->save if($self->history);
     $self->cv_finish->send;
 }
+
 
 sub key_pressed {
     my ($self, $key) = @_;
@@ -84,6 +91,45 @@ sub key_pressed {
     my $action = $dispatch_table->{$key_char};
     $action->() if($action);
     $self->_log_state;
+}
+
+sub mouse_movement {
+    my ($self, $x, $y) = @_;
+
+    # guard the edges
+    my $barrier = 30;
+    my $reset_position = 0;
+    ($reset_position, $x) = (1, $self->width/2)
+        if ($x < $barrier or $self->width - $x < $barrier);
+    ($reset_position, $y) = (1, $self->height/2)
+        if ($y < $barrier or $self->height -$y < $barrier);
+    if ($reset_position) {
+        glutWarpPointer($x, $y);
+        return $self->mouse_position( [$x, $y] );
+    }
+
+    my $last_position = $self->mouse_position;
+    my ($dX, $dY) = ($last_position->[0] - $x, $last_position->[1] - $y);
+
+    my ($dx_axis_degree, $dy_axis_degree) = map { $_ * -1} ($dX, $dY);
+    my $rotation = $self->main_object->rotation;
+    $rotation->[1] += $dx_axis_degree;
+    $rotation->[1] %= 360;
+    $rotation->[0] += $dy_axis_degree;
+    $rotation->[0] %= 360;
+    $self->_log_state;
+    $self->mouse_position( [$x, $y] );
+    glutPostRedisplay;
+}
+
+sub mouse_click {
+    my ($self, $button, $state, $x, $y) = @_;
+    if ($button == 3 or $button == 4) { # scroll event
+        if (!$state != GLUT_UP) {
+            my $step = 0.1 * ( ($button == 3) ? 1: -1);
+            $self->camera_position->[2] += $step;
+        }
+    }
 }
 
 1;
