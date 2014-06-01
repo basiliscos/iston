@@ -119,10 +119,10 @@ method draw {
         my $last_index = $self->index_at->{$active_time};
         my $count = $last_index >= 5 ? 5 : $last_index;
         if ($count) {
-            my $color = pack("f4", 0.0, 0.95, 0.0, 1.0);
-            glMaterialfv_s(GL_FRONT, GL_DIFFUSE,   $color);
-            glMaterialfv_s(GL_FRONT, GL_AMBIENT,   $color);
-            glMaterialfv_s(GL_FRONT, GL_EMISSION,  $color);
+            my $color = OpenGL::Array->new_list(GL_FLOAT, 0.0, 0.95, 0.0, 1.0);
+            glMaterialfv_c(GL_FRONT, GL_DIFFUSE, $color->ptr);
+            glMaterialfv_c(GL_FRONT, GL_AMBIENT, $color->ptr);
+            glMaterialfv_s(GL_FRONT, GL_EMISSION,$color->ptr);
             my @active_indices = splice(@passive_indices, ($last_index-$count)*2, $count*2);
             glDrawElements_p(GL_LINES, @active_indices);
 
@@ -139,9 +139,10 @@ method draw {
     }
 
     glVertexPointer_p(3, $vertices);
-    glMaterialfv_s(GL_FRONT, GL_DIFFUSE,   pack("f4", 0.45, 0.0, 0.0, 1.0 ));
-    glMaterialfv_s(GL_FRONT, GL_AMBIENT,   pack("f4", 0.45, 0.0, 0.0, 1.0 ));
-    glMaterialfv_s(GL_FRONT, GL_EMISSION,  pack("f4", 0.45, 0.0, 0.0, 1.0 ));
+    my $color =  OpenGL::Array->new_list(GL_FLOAT, 0.45, 0.0, 0.0, 1.0 );
+    glMaterialfv_c(GL_FRONT, GL_DIFFUSE,  $color->ptr);
+    glMaterialfv_c(GL_FRONT, GL_AMBIENT,  $color->ptr);
+    glMaterialfv_c(GL_FRONT, GL_EMISSION, $color->ptr);
     glDrawElements_p(GL_LINES, @passive_indices);
 }
 

@@ -46,9 +46,12 @@ sub _init_light {
     my @light_position = ( 20.0, 20.0, 20.0, 0.0 );
 
     #glMaterialfv_s(GL_FRONT, GL_DIFFUSE, pack("f4",@mat_diffuse));
-    glMaterialfv_s(GL_FRONT, GL_SPECULAR, pack("f4",@mat_specular));
-    glMaterialfv_s(GL_FRONT, GL_SHININESS, pack("f1", 120.0));
-    glLightfv_s(GL_LIGHT0, GL_POSITION, pack("f4",@light_position));
+    glMaterialfv_c(GL_FRONT, GL_SPECULAR, OpenGL::Array->new_list(
+        GL_FLOAT, @mat_specular)->ptr);
+    glMaterialfv_c(GL_FRONT, GL_SHININESS, OpenGL::Array->new_list(
+        GL_FLOAT, 120.0)->ptr);
+    glLightfv_c(GL_LIGHT0, GL_POSITION, OpenGL::Array->new_list(
+        GL_FLOAT, @light_position)->ptr);
 
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
