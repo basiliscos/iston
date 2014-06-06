@@ -8,7 +8,7 @@ use OpenGL qw(:all);
 use Path::Tiny;
 
 use aliased qw/Iston::History/;
-use aliased qw/Iston::Object::Octahedron/;
+use aliased qw/Iston::Object::HTM/;
 use aliased qw/Iston::Object::ObservationPath/;
 use aliased qw/Iston::Vertex/;
 
@@ -34,7 +34,7 @@ sub BUILD {
 
 sub _build_htm {
     my $self = shift;
-    my $htm = Octahedron->new;
+    my $htm = HTM->new;
     $htm->mode('mesh');
     my $r = Vertex->new([0, 0, 0])->vector_to($htm->vertices->[0])->length;
     my $scale_to = 1/($r/$self->max_boundary);
@@ -50,6 +50,8 @@ sub objects {
 
 sub _build_menu {
     my $self = shift;
+
+    # submenus for loading objects
     my @models =
         map  { { path => $_ }}
         sort { $a cmp $b }
@@ -109,9 +111,42 @@ sub _build_menu {
         }
         push @submenus, { id => $submenu_id, name => $name};
     }
+    if(@submenus) {
+        my $load_submenu = glutCreateMenu($menu_callback);
+        for (@submenus) {
+            glutAddSubMenu($_->{name}, $_->{id});
+        }
+        @submenus = ({ id => $load_submenu, name => "load object" });
+    }
+
+    # create turn on/off objects menu
+    {
+        my @items = (
+            main_object      => 'Object',
+            htm              => 'Hierarchical Triangular Mesh',
+            observation_path => 'Observation path',
+        );
+        my $visibility_handler = sub {
+            my $idx = shift;
+            my $object_name = $items[$idx];
+            my $object = $self->$object_name;
+            return unless $object;
+            my $state = $object->enabled;
+            $object->enabled(!$state);
+        };
+        my $visibility_submenu = glutCreateMenu($visibility_handler);
+        for my $idx (0 .. @items/2-1){
+            my $object_name = $items[$idx*2];
+            my $label       = $items[$idx*2 + 1];
+            glutAddMenuEntry($label, $idx*2);
+        }
+        push @submenus, ({ id => $visibility_submenu, name => "visibility" });
+    }
+
     my $menu_id = glutCreateMenu($menu_callback);
     for (@submenus) {
         glutAddSubMenu($_->{name}, $_->{id});
+        say "added ", $_->{name};
     }
     glutAttachMenu(GLUT_RIGHT_BUTTON) if(@submenus);
 }

@@ -90,7 +90,7 @@ sub _drawGLScene {
     glTranslatef(@{ $self->camera_position });
 
     for(@{ $self->objects }) {
-        next unless $_;
+        next if !$_ or !$_->enabled;
         glPushMatrix;
         glPushClientAttrib(GL_CLIENT_ALL_ATTRIB_BITS);
         glPushAttrib(GL_ALL_ATTRIB_BITS);

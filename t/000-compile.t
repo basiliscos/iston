@@ -18,8 +18,8 @@ my @module_files = (
     'Iston/History/Record.pm',
     'Iston/Loader.pm',
     'Iston/Object.pm',
+    'Iston/Object/HTM.pm',
     'Iston/Object/ObservationPath.pm',
-    'Iston/Object/Octahedron.pm',
     'Iston/Triangle.pm',
     'Iston/Vector.pm',
     'Iston/Vertex.pm'

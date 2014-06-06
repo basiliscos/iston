@@ -6,10 +6,10 @@ use List::MoreUtils qw/any first_index/;
 
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
-use aliased qw/Iston::Object::Octahedron/;
+use aliased qw/Iston::Object::HTM/;
 
 subtest "simple creation" => sub {
-    my $o = Octahedron->new;
+    my $o = HTM->new;
     ok $o, "octahedron instance successfully has been created";
     my $top = Vertex->new([0, 1, 0]);
     my $bottom = Vertex->new([0, -1, 0]);
@@ -22,7 +22,7 @@ subtest "simple creation" => sub {
 };
 
 subtest "check indices directly at 4-th level" => sub {
-    my $o = Octahedron->new;
+    my $o = HTM->new;
     is $o->level, 0;
     my $i_count = scalar(@{$o->indices});
     is $i_count, 8*3;
@@ -37,7 +37,7 @@ subtest "check indices directly at 4-th level" => sub {
 };
 
 subtest "sequential subdivisions" => sub {
-    my $o = Octahedron->new;
+    my $o = HTM->new;
     my $v_count = scalar(@{$o->vertices});
     my $i_count = scalar(@{$o->indices});
     my $sum = sub {
