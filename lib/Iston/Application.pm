@@ -12,10 +12,15 @@ use aliased qw/Iston::Vector/;
 has camera_position => (is => 'rw', default => sub { [0, 0, -7] });
 has cv_finish       => (is => 'ro', default => sub { AE::cv });
 has max_boundary    => (is => 'ro', default => sub { 3.0 });
+has full_screen     => (is => 'ro', default => sub { 1 });
+has width           => (is => 'rw');
+has height          => (is => 'rw');
 
 has history         => (is => 'rw');
 
 requires qw/key_pressed/;
+requires qw/mouse_movement/;
+requires qw/mouse_click/;
 requires qw/objects/;
 
 sub init_app {
@@ -30,8 +35,11 @@ sub init_app {
     glutDisplayFunc($draw_callback);
     glutIdleFunc($draw_callback);
     glutKeyboardFunc(sub { $self->key_pressed(@_) });
+    glutSetCursor(GLUT_CURSOR_NONE);
+    glutMouseFunc(sub { $self->mouse_click(@_) });
+    glutPassiveMotionFunc(sub { $self->mouse_movement(@_) });
     glClearColor(0.0, 0.0, 0.0, 0.0);
-    glutFullScreen;
+    glutFullScreen if $self->full_screen;
     $self->_initGL;
 }
 
@@ -46,9 +54,12 @@ sub _init_light {
     my @light_position = ( 20.0, 20.0, 20.0, 0.0 );
 
     #glMaterialfv_s(GL_FRONT, GL_DIFFUSE, pack("f4",@mat_diffuse));
-    glMaterialfv_s(GL_FRONT, GL_SPECULAR, pack("f4",@mat_specular));
-    glMaterialfv_s(GL_FRONT, GL_SHININESS, pack("f1", 120.0));
-    glLightfv_s(GL_LIGHT0, GL_POSITION, pack("f4",@light_position));
+    glMaterialfv_c(GL_FRONT, GL_SPECULAR, OpenGL::Array->new_list(
+        GL_FLOAT, @mat_specular)->ptr);
+    glMaterialfv_c(GL_FRONT, GL_SHININESS, OpenGL::Array->new_list(
+        GL_FLOAT, 120.0)->ptr);
+    glLightfv_c(GL_LIGHT0, GL_POSITION, OpenGL::Array->new_list(
+        GL_FLOAT, @light_position)->ptr);
 
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
@@ -58,13 +69,16 @@ sub _init_light {
 
 sub _initGL {
     my $self = shift;
-    my ($width, $height) = (glutGet(GLUT_SCREEN_WIDTH), glutGet(GLUT_SCREEN_HEIGHT));
+    $self->width(glutGet( $self->full_screen ? GLUT_SCREEN_WIDTH : GLUT_WINDOW_WIDTH) );
+    $self->height(glutGet( $self->full_screen ? GLUT_SCREEN_HEIGHT : GLUT_WINDOW_HEIGHT) );
+    my ($width, $height) = map { $self->$_ } qw/width height/;
     say "screen: ${width}x${height} px";
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity;
     gluPerspective(65.0, $width/$height, 1, 100.0);
     glMatrixMode(GL_MODELVIEW);
     glEnable(GL_NORMALIZE);
+    glutWarpPointer($width/2, $height/2);
     _init_light;
 }
 

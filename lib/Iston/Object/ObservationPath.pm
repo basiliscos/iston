@@ -85,7 +85,7 @@ method arrow_vertices($index_to, $index_from) {
     my @results =
         map {
             for my $i (0 .. 2) {
-                $_->[$i] += $start->[$i] 
+                $_->[$i] += $start->[$i]
             }
             $_;
         }
@@ -113,16 +113,18 @@ method draw {
     my $indices = $self->indices;
     my @passive_indices = @$indices;
 
+
     # hilight recent active path
     my $active_time = $self->active_time;
     if (defined $active_time && exists $self->index_at->{$active_time}) {
         my $last_index = $self->index_at->{$active_time};
         my $count = $last_index >= 5 ? 5 : $last_index;
         if ($count) {
-            my $color = pack("f4", 0.0, 0.95, 0.0, 1.0);
-            glMaterialfv_s(GL_FRONT, GL_DIFFUSE,   $color);
-            glMaterialfv_s(GL_FRONT, GL_AMBIENT,   $color);
-            glMaterialfv_s(GL_FRONT, GL_EMISSION,  $color);
+            my $diffusion = OpenGL::Array->new_list(GL_FLOAT, 0.0, 0.0, 0.0, 1.0);
+            my $emission = OpenGL::Array->new_list(GL_FLOAT, 0.0, 0.95, 0.0, 1.0);
+            glMaterialfv_c(GL_FRONT, GL_DIFFUSE, $diffusion->ptr);
+            glMaterialfv_c(GL_FRONT, GL_AMBIENT, $diffusion->ptr);
+            glMaterialfv_c(GL_FRONT, GL_EMISSION,$emission->ptr);
             my @active_indices = splice(@passive_indices, ($last_index-$count)*2, $count*2);
             glDrawElements_p(GL_LINES, @active_indices);
 
@@ -134,14 +136,17 @@ method draw {
             );
             my @arrow_indices = (1, 0, 2, 0, 3, 0, 4, 0);
             glVertexPointer_p(3, $arrow_vertices);
+
             glDrawElements_p(GL_LINES, @arrow_indices);
         }
     }
 
     glVertexPointer_p(3, $vertices);
-    glMaterialfv_s(GL_FRONT, GL_DIFFUSE,   pack("f4", 0.45, 0.0, 0.0, 1.0 ));
-    glMaterialfv_s(GL_FRONT, GL_AMBIENT,   pack("f4", 0.45, 0.0, 0.0, 1.0 ));
-    glMaterialfv_s(GL_FRONT, GL_EMISSION,  pack("f4", 0.45, 0.0, 0.0, 1.0 ));
+    my $diffusion = OpenGL::Array->new_list(GL_FLOAT, 0.0, 0.0, 0.0, 1.0);
+    my $emission = OpenGL::Array->new_list(GL_FLOAT, 0.75, 0.0, 0.0, 1.0);
+    glMaterialfv_c(GL_FRONT, GL_DIFFUSE,  $diffusion->ptr);
+    glMaterialfv_c(GL_FRONT, GL_AMBIENT,  $diffusion->ptr);
+    glMaterialfv_c(GL_FRONT, GL_EMISSION, $emission->ptr);
     glDrawElements_p(GL_LINES, @passive_indices);
 }
 

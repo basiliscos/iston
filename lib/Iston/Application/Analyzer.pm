@@ -14,17 +14,21 @@ use aliased qw/Iston::Vertex/;
 
 with('Iston::Application');
 
-has main_object      => (is => 'rw');
-has models_path      => (is => 'ro', required => 1);
-has htm              => (is => 'lazy');
-has observation_path => (is => 'rw');
-has time_ratio       => (is => 'rw', default => sub { 1 });
+has main_object       => (is => 'rw');
+has models_path       => (is => 'ro', required => 1);
+has htm               => (is => 'lazy');
+has observation_path  => (is => 'rw');
+has time_ratio        => (is => 'rw', default => sub { 1 });
+has timer             => (is => 'rw');
+has step_function     => (is => 'rw');
+has step_end_function => (is => 'rw');
 
 sub _build_menu;
 
 sub BUILD {
     my $self = shift;
     $self->init_app;
+    glutSetCursor(GLUT_CURSOR_INHERIT);
     $self->_build_menu;
 }
 
@@ -128,37 +132,47 @@ sub _start_replay {
         $history_object = $self->history;
     };
     $initialize->();
-    my $step; $step = sub {
-        my $t; $t = AE::timer $sleep_time * $self->time_ratio, 0, sub {
-            undef $t;
-            return if($history_object != $self->history);
-
-            my ($x_axis_degree, $y_axis_degree) = map { $record->$_ }
-                qw/x_axis_degree y_axis_degree/;
-            for (@{ $self->objects }) {
-                $_->rotation->[0] = $x_axis_degree;
-                $_->rotation->[1] = $y_axis_degree;
-            }
-            $self->camera_position([
-                map { $record->$_ } qw/camera_x camera_y camera_z/
-            ]);
-            $self->observation_path->active_time($record->timestamp);
-            $self->refresh_world();
-
-            $last_time = $record->timestamp;
-            $record = $self->history->records->[++$i];
-            if($record) {
-                $sleep_time = $record->timestamp - $last_time;
-                $step->();
-            } else {
-                my $pause; $pause = AE::timer 3, 0, sub {
-                    undef $pause;
-                    $self->_start_replay;
-                }
+    my $renew_timer_funciton;
+    my $step_end_function = sub {
+        if ($record) {
+            $sleep_time = $record->timestamp - $last_time;
+            $renew_timer_funciton->();
+        } else {
+            my $pause; $pause = AE::timer 3, 0, sub {
+                undef $pause;
+                $self->_start_replay;
             }
         }
     };
-    $step->();
+    $self->step_end_function($step_end_function);
+    my $step = sub {
+        return if($history_object != $self->history or !defined($record));
+        my ($x_axis_degree, $y_axis_degree) = map { $record->$_ }
+            qw/x_axis_degree y_axis_degree/;
+        for (@{ $self->objects }) {
+            $_->rotation->[0] = $x_axis_degree;
+            $_->rotation->[1] = $y_axis_degree;
+        }
+        $self->camera_position([
+            map { $record->$_ } qw/camera_x camera_y camera_z/
+        ]);
+        $self->observation_path->active_time($record->timestamp);
+        $self->refresh_world();
+
+        $last_time = $record->timestamp;
+        $record = $self->history->records->[++$i];
+        $self->step_end_function->();
+    };
+    $self->step_function($step);
+    $renew_timer_funciton = sub {
+        # timer = 0 check, i.e. stop replay has been pressed
+        return if(defined($self->timer) && $self->timer == 0);
+        my $t; $t = AE::timer $sleep_time * $self->time_ratio, 0, sub {
+            $self->step_function->();
+        };
+        $self->timer($t);
+    };
+    $renew_timer_funciton->();
 }
 
 sub key_pressed {
@@ -179,6 +193,28 @@ sub key_pressed {
             $self->time_ratio( $self->time_ratio * $value );
         };
     };
+    my $switch_mode = sub {
+        my $subject = $self->main_object // $self->htm;
+        my $new_mode = $subject->mode eq 'normal'
+            ? 'mesh'
+            : 'normal';
+        $subject->mode($new_mode);
+    };
+    my $detalize = sub {
+        my $level_delta = shift;
+        return sub {
+            my $level = $self->htm->level;
+            $self->htm->level($level + $level_delta);
+        };
+    };
+    my $pause_unpause = sub {
+        if($self->timer) {
+            $self->timer(0);
+        }else {
+            $self->timer(1);
+            $self->step_end_function->();
+        }
+    };
     my $dispatch_table = {
         'w' => $rotation->(0, -$rotate_step),
         's' => $rotation->(0, $rotate_step),
@@ -186,15 +222,25 @@ sub key_pressed {
         'd' => $rotation->(1, $rotate_step),
         '+' => $adjust_time_ration->(1.1),
         '-' => $adjust_time_ration->(0.95),
+        'i' => $detalize->(1),
+        'I' => $detalize->(-1),
+        'm' => $switch_mode,
         'q' => sub {
             my $m = glutGetModifiers;
             $self->_exit if($m & GLUT_ACTIVE_ALT);
         },
+        ' ' => $pause_unpause,
     };
     my $key_char = chr($key);
     my $action = $dispatch_table->{$key_char};
     $action->() if($action);
 };
+
+sub mouse_movement {
+}
+
+sub mouse_click {
+}
 
 1;
 

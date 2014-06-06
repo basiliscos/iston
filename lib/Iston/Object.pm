@@ -135,10 +135,14 @@ method draw {
     glVertexPointer_p($components, $vertices);
 
     # applying material properties to the whole object
-    glMaterialfv_s(GL_FRONT, GL_DIFFUSE,   pack("f4", @{ $self->diffuse } ));
-    glMaterialfv_s(GL_FRONT, GL_AMBIENT,   pack("f4", @{ $self->ambient } ));
-    glMaterialfv_s(GL_FRONT, GL_SPECULAR,  pack("f4", @{ $self->specular} ));
-    glMaterialfv_s(GL_FRONT, GL_SHININESS, pack("f1", $self->shininess));
+    glMaterialfv_c(GL_FRONT, GL_DIFFUSE,   OpenGL::Array->new_list(
+        GL_FLOAT, @{ $self->diffuse } )->ptr);
+    glMaterialfv_c(GL_FRONT, GL_AMBIENT,   OpenGL::Array->new_list(
+        GL_FLOAT, @{ $self->ambient } )->ptr);
+    glMaterialfv_c(GL_FRONT, GL_SPECULAR,  OpenGL::Array->new_list(
+        GL_FLOAT, @{ $self->specular} )->ptr);
+    glMaterialfv_c(GL_FRONT, GL_SHININESS, OpenGL::Array->new_list(
+        GL_FLOAT, $self->shininess)->ptr);
 
     my $indices = $self->indices;
     my $indices_size = scalar(@$indices);
