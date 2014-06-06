@@ -8,7 +8,7 @@ use OpenGL qw(:all);
 use Path::Tiny;
 
 use aliased qw/Iston::History/;
-use aliased qw/Iston::Object::Octahedron/;
+use aliased qw/Iston::Object::HTM/;
 use aliased qw/Iston::Object::ObservationPath/;
 use aliased qw/Iston::Vertex/;
 
@@ -34,7 +34,7 @@ sub BUILD {
 
 sub _build_htm {
     my $self = shift;
-    my $htm = Octahedron->new;
+    my $htm = HTM->new;
     $htm->mode('mesh');
     my $r = Vertex->new([0, 0, 0])->vector_to($htm->vertices->[0])->length;
     my $scale_to = 1/($r/$self->max_boundary);

@@ -1,4 +1,5 @@
-package Iston::Object::Octahedron;
+package Iston::Object::HTM;
+# Abstract: Hierarchical Triangular Map
 
 use 5.12.0;
 
