@@ -25,6 +25,7 @@ sub _build_menu;
 sub BUILD {
     my $self = shift;
     $self->init_app;
+    glutSetCursor(GLUT_CURSOR_INHERIT);
     $self->_build_menu;
 }
 
