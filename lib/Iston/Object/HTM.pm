@@ -31,14 +31,14 @@ my $_vertices = [
 ];
 
 my $_indices = [
-    0, 3, 2,
-    0, 4, 3,
-    0, 5, 4,
-    0, 2, 5,
-    1, 2, 3,
-    1, 3, 4,
-    1, 4, 5,
-    1, 5, 2,
+    0, 3, 2, # 0: north-front
+    0, 4, 3, # 1: north-right
+    0, 5, 4, # 2: north-back
+    0, 2, 5, # 3: north-left
+    1, 2, 3, # 4: south-front
+    1, 3, 4, # 5: south-right
+    1, 4, 5, # 6: south-back
+    1, 5, 2, # 7: south-left
 ];
 
 my $_triangles = [
