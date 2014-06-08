@@ -14,7 +14,6 @@ use aliased qw/Iston::Vertex/;
 with('Iston::Drawable');
 
 has center   => (is => 'lazy');
-has rotation => (is => 'rw', default => sub { [0, 0, 0] });
 has scale    => (is => 'rw', default => sub { 1; });
 has vertices => (is => 'rw', required => 0);
 has indices  => (is => 'rw', required => 0);
@@ -38,7 +37,7 @@ method _build_center {
     my($mins, $maxs) = $self->boudaries;
     my @avgs = map { ($mins->[$_] + $maxs->[$_]) /2  } (0 .. 2);
     return Vertex->new(\@avgs);
-}
+};
 
 my $_as_oga = sub {
     my $source = shift;
@@ -114,9 +113,9 @@ method _triangle_2_lines_indices {
 method draw {
     my $scale = $self->scale;
     glScalef($scale, $scale, $scale);
-    glRotatef($self->rotation->[0], 1, 0, 0);
-    glRotatef($self->rotation->[1], 0, 1, 0);
-    glRotatef($self->rotation->[2], 0, 0, 1);
+    glRotatef($self->rotate(0), 1, 0, 0);
+    glRotatef($self->rotate(1), 0, 1, 0);
+    glRotatef($self->rotate(2), 0, 0, 1);
 
     my $cache = $self->cache;
     my ($p_vertices, $p_normals) =
