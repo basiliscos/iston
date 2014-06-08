@@ -1,20 +1,23 @@
 package Iston::Object::HTM;
 # Abstract: Hierarchical Triangular Map
-$Iston::Object::HTM::VERSION = '0.01';
+$Iston::Object::HTM::VERSION = '0.02';
 use 5.12.0;
 
 use Carp;
+use Iston::Vector qw/normal/;
 use List::MoreUtils qw/first_index/;
-use List::Util qw/reduce/;
+use List::Util qw/max min reduce/;
 use Moo;
 use Function::Parameters qw(:strict);
-use Iston::Vector qw/normal/;
+use OpenGL qw(:all);
 
 use aliased qw/Iston::Triangle/;
+use aliased qw/Iston::TrianglePath/;
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
-extends 'Iston::Object';
+#extends 'Iston::Object';
+with('Iston::Drawable');
 
 # OK, let's calculate the defaults;
 my $_PI = 2*atan2(1,0);
@@ -48,88 +51,54 @@ my $_triangles = [
             map { $_vertices->[$_] }
             map { $_indices->[$_] }
             @v_indices;
-        Triangle->new(vertices => \@vertices, tesselation => 1);
+        Triangle->new(
+            vertices    => \@vertices,
+            path        => TrianglePath->new($_),
+            tesselation => 1,
+        );
     } (0 .. @$_indices/3 - 1)
 ];
 
 has level        => (is => 'rw', default => sub { 0  }, trigger => 1 );
 has levels_cache => (is => 'ro', default => sub { {} } );
 has triangles    => (is => 'rw', default => sub { $_triangles} );
-has normals      => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
-has vertices     => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
-has indices      => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
+#has normals      => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
+#has vertices     => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
+#has indices      => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
 
-# material properties
-has diffuse   => (is => 'rw', default => sub { [0.75, 0.75, 0, 1]} );
-has ambient   => (is => 'rw', default => sub { [0.75, 0.75, 0, 1]} );
-has specular  => (is => 'rw', default => sub { [1.0, 1.0, 1.0, 1.0]} );
-has shininess => (is => 'rw', default => sub { 80.0 } );
 
 method BUILD {
     $self->levels_cache->{$self->level} = $self->triangles;
-}
+    $self->_calculate_normals;
+};
 
-method _build_normals {
+
+method _calculate_normals {
     my $triangles = $self->triangles;
     my %triangles_of;
+    my %index_of_vertex;
     for my $t (@$triangles) {
-        for my $v (@{$t->vertices}) {
+        my $vertices = $t->vertices;
+        for my $idx (0 .. @$vertices-1) {
+            my $v = $vertices->[$idx];
             push @{$triangles_of{$v}}, $t;
+            $index_of_vertex{$v}->{$t} = $idx;
         }
     }
-    my %normals_for = map {
-        my $v = $_;
+    for my $v (keys %triangles_of) {
         my $avg =
             reduce { $a + $b }
             map { $_->normal }
             @{ $triangles_of{$v} };
         my $n = $avg->normalize;
-        ($v => $n);
-    } keys %triangles_of;
-    my @normals = map { $normals_for{$_} } @{ $self->vertices };
-    return \@normals;
-};
-
-method _build_vertices_and_indices {
-    my %added;
-    my @indices;
-    my $last_idx = 0;
-    my @vertices =
-        map {
-            my $v = $_;
-            my $v_index = $added{$v};
-            my $added_index;
-            if (! defined($v_index) ) {
-                $added{$v} = $added_index = $last_idx++;
-            } else {
-                $added_index = $v_index;
-            }
-            push @indices, $added_index;
-            !defined($v_index) ? ($v) : ();
-        } map { @{ $_->vertices } }
-        @{ $self->triangles };
-    return {
-        vertices => \@vertices,
-        indices  => \@indices,
-    };
+        for my $t (@{ $triangles_of{$v} }) {
+            my $v_idx = $index_of_vertex{$v}->{$t};
+            $t->normals->[$v_idx] = $n;
+        }
+    }
 }
 
-method _build_vertices {
-    my $vi = $self->_build_vertices_and_indices;
-    $self->indices($vi->{indices});
-    return $vi->{vertices};
-};
-
-method _build_indices {
-    my $vi = $self->_build_vertices_and_indices;
-    $self->vertices($vi->{vertices});
-    return $vi->{indices};
-};
-
 method _trigger_level($level) {
-    my $back_to_mode = $self->mode eq 'normal' ? undef : $self->mode;
-    #$self->mode('normal') if defined($back_to_mode);
-
     my $current_triangles = $self->triangles;
     for my $l (0 .. $level) {
         $self->levels_cache->{$l} //= do {
@@ -141,12 +110,102 @@ method _trigger_level($level) {
         $current_triangles = $self->levels_cache->{$l};
     }
     $self->triangles($current_triangles);
-    $self->clear_indices;
-    $self->clear_vertices;
-    $self->clear_normals;
-    $self->cache({});
+    $self->_calculate_normals;
+}
 
-    $self->mode($back_to_mode) if defined($back_to_mode);
+sub scale {
+    my ($self, $value) = @_;
+    if (defined $value) {
+        for (@{ $self->triangles }) {
+            $_->scale($value);
+        }
+    }
+    else {
+        return $self->triangles->[0]->scale;
+    }
+}
+
+method rotate($axis,$value = undef){
+    if (defined $value) {
+        for (@{ $self->triangles }) {
+            $_->rotate($axis, $value);
+        }
+    }
+    else {
+        return $self->triangles->[0]->rotate($axis);
+    }
+}
+
+method radius {
+    return 1;
+}
+
+method draw {
+    for (@{ $self->triangles }) {
+        next if !$_ or !$_->enabled;
+        glPushMatrix;
+        glPushClientAttrib(GL_CLIENT_ALL_ATTRIB_BITS);
+        glPushAttrib(GL_ALL_ATTRIB_BITS);
+        $_->draw;
+        glPopAttrib;
+        glPopClientAttrib;
+        glPopMatrix;
+    }
+};
+
+method find_projections($observation_path) {
+    my $max_level = max keys %{ $self->levels_cache };
+    my $sphere_vertices = $observation_path->vertices;
+    my %examined_triangles_at;
+    for my $vertex_index  ( 0 .. @$sphere_vertices - 1  ) {
+        $examined_triangles_at{0}{$vertex_index} = $self->levels_cache->{0};
+    }
+    my %projections_for;
+    for my $level (0 .. $max_level) {
+        for my $vertex_index  ( 0 .. @$sphere_vertices - 1  ) {
+            my $examined_triangles = $examined_triangles_at{$level}->{$vertex_index};
+            my $vertex_on_sphere = $sphere_vertices->[$vertex_index];
+            my @vertices =
+                map {
+                    my $length = Vector->new($_)->length;
+                    $length > 1
+                        ? undef
+                        : $_
+                        ;
+                }
+                map {
+                    $_->intersects_with($vertex_on_sphere);
+                } @$examined_triangles;
+            my @distances =
+                map  {
+                    defined $_
+                        ? $_->vector_to($vertex_on_sphere)->length
+                        : undef;
+                }
+                @vertices;
+            my $min_distance = min grep { defined($_) } @distances;
+            @vertices = map {
+                (defined($vertices[$_]) && $distances[$_] == $min_distance)
+                    ? $vertices[$_]
+                    : undef;
+            } (0 .. @vertices - 1);
+            my @triangle_indices =
+                grep { defined $vertices[$_] }
+                (0 .. @vertices-1);
+            my @paths =
+                map  { $examined_triangles->[$_]->path }
+                @triangle_indices;
+            $projections_for{$vertex_index}->{$level} = \@paths;
+            if ($level < $max_level) {
+                $examined_triangles_at{$level+1}->{$vertex_index} = [
+                    map {
+                        @{ $examined_triangles->[$_]->subtriangles }
+                    } @triangle_indices
+                ];
+            }
+        }
+    }
+    return \%projections_for;
 }
 
 1;
@@ -163,11 +222,11 @@ Iston::Object::HTM
 
 =head1 VERSION
 
-version 0.01
+version 0.02
 
 =head1 AUTHOR
 
-Ivan Baidakou <dmol@gmx.com>,
+Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 

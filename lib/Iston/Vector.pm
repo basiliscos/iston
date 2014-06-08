@@ -1,13 +1,15 @@
 package Iston::Vector;
-$Iston::Vector::VERSION = '0.01';
+$Iston::Vector::VERSION = '0.02';
 use 5.12.0;
 
 use Carp;
 use List::Util qw/reduce/;
+use List::MoreUtils qw/pairwise/;
 use Function::Parameters qw(:strict);
 
 use overload
     '+'  => '_add',
+    '-'  => '_sub',
     '*'  => '_mul',
 #    'eq' => '_equal',
     '==' => '_equal',
@@ -52,6 +54,7 @@ sub _mul_scalar {
     return Iston::Vector->new(\@values);
 }
 
+# does either vector multiplicaiton or vector to scalar
 sub _mul {
     my ($a, $b) = @_;
     if (ref($b) eq 'Iston::Vector') {
@@ -61,10 +64,23 @@ sub _mul {
     }
 };
 
+sub scalar_multiplication {
+    my ($p, $q) = @_;
+    return
+        reduce   { $a + $b }
+        pairwise { $a * $b }
+        @$p, @$q
+}
 
 sub _add {
     my ($a, $b) = @_;
     my @r = map { $a->[$_] + $b->[$_] } (0 .. 2);
+    return Iston::Vector->new(\@r);
+}
+
+sub _sub {
+    my ($a, $b) = @_;
+    my @r = map { $a->[$_] - $b->[$_] } (0 .. 2);
     return Iston::Vector->new(\@r);
 }
 
@@ -109,9 +125,14 @@ sub _stringify {
 sub smart_2string {
     my $self = shift;
     my @values =
-        map { $_ eq '-0.00' ? '0.00' : $_ }
-        map { sprintf('%0.2f', $_) } @{$self}[0 .. 2];
+        map { $_ eq '-0.0000' ? '0.0000' : $_ }
+        map { sprintf('%0.4f', $_) } @{$self}[0 .. 2];
     sprintf('vector[%s, %s, %s]', @values);
+}
+
+sub is_zero {
+    my $self = shift;
+    return $self->smart_2string eq 'vector[0.0000, 0.0000, 0.0000]';
 }
 
 1;
@@ -128,11 +149,11 @@ Iston::Vector
 
 =head1 VERSION
 
-version 0.01
+version 0.02
 
 =head1 AUTHOR
 
-Ivan Baidakou <dmol@gmx.com>,
+Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 

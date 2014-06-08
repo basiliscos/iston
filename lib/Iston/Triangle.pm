@@ -1,5 +1,5 @@
 package Iston::Triangle;
-$Iston::Triangle::VERSION = '0.01';
+$Iston::Triangle::VERSION = '0.02';
 use 5.12.0;
 
 use Carp;
@@ -10,8 +10,11 @@ use List::Util qw/reduce/;
 use Moo;
 
 use aliased qw/Iston::Triangle/;
+use aliased qw/Iston::TrianglePath/;
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
+
+extends 'Iston::Object';
 
 has vertices => (is => 'rw', required => 1, isa =>
     sub {
@@ -19,10 +22,19 @@ has vertices => (is => 'rw', required => 1, isa =>
             unless @{$_[0]} == 3;
     }
 );
+has path => (is => 'ro', required => 1);
 
-has normal       => (is => 'lazy');
+has indices      => (is => 'rw', default => sub { [0, 1, 2 ] });
+has normals      => (is => 'rw', default => sub { [] });   # vertices normals
+has normal       => (is => 'lazy'); # triangle normal
 has subtriangles => (is => 'lazy');
 has tesselation  => (is => 'ro', default => sub { 0  });
+
+# material properties
+has diffuse   => (is => 'rw', default => sub { [0.75, 0.75, 0, 1]} );
+has ambient   => (is => 'rw', default => sub { [0.75, 0.75, 0, 1]} );
+has specular  => (is => 'rw', default => sub { [1.0, 1.0, 1.0, 1.0]} );
+has shininess => (is => 'rw', default => sub { 80.0 } );
 
 method _build_normal {
     return Iston::Vector::normal($self->vertices, [0 .. 2]);
@@ -62,16 +74,36 @@ method _build_subtriangles {
         }
         Iston::Vertex->new(\@values);
     } (0 .. 2);
-    my @new_triangles = map {
-        Triangle->new(vertices => $_, tesselation => $do_tesselation)
-    }(
+    my @new_triangle_vertices = (
         # reserve vertices traverse order
-        [$vertices->[0], $new_vertices[2], $new_vertices[1]],
-        [$vertices->[1], $new_vertices[0], $new_vertices[2]],
-        [$vertices->[2], $new_vertices[1], $new_vertices[0]],
+        [$vertices->[0],   $new_vertices[2], $new_vertices[1]],
+        [$vertices->[1],   $new_vertices[0], $new_vertices[2]],
+        [$vertices->[2],   $new_vertices[1], $new_vertices[0]],
         [$new_vertices[2], $new_vertices[0], $new_vertices[1]],
     );
+    my $base_path = $self->path;
+    my @new_triangles = map {
+        my $vertices = $new_triangle_vertices[$_];
+        Triangle->new(
+            vertices    => $vertices,
+            path        => TrianglePath->new($base_path, $_),
+            tesselation => $do_tesselation,
+            scale       => $self->scale,
+        )
+    } (0 .. @new_triangle_vertices-1);
     return \@new_triangles;
+};
+
+
+method intersects_with($vertex_on_sphere) {
+    my $n = $self->normal;
+    my $a = Vector->new([@$vertex_on_sphere]); # guide vector
+    my $an = $a->scalar_multiplication($n);
+    return if sprintf('%0.6f', abs($an)) eq '0.000000';
+    my $r0 = Vector->new($self->vertices->[0]);
+    my $t = $r0->scalar_multiplication($n) / $an;
+    my $vertex_on_triangle = Vertex->new($a*$t);
+    $vertex_on_triangle;
 }
 
 1;
@@ -88,11 +120,21 @@ Iston::Triangle
 
 =head1 VERSION
 
-version 0.01
+version 0.02
+
+=head1 METHODS
+
+=head2 intersects_with
+
+Finds the vertex, which is get via intersection a line from
+(0,0,0) (center of sphere with radus = 1) and the vertex on the
+sphere with the plane, formed by current tirangle.
+
+If no intersection can be found, undef is returned
 
 =head1 AUTHOR
 
-Ivan Baidakou <dmol@gmx.com>,
+Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 

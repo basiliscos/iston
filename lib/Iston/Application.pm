@@ -1,5 +1,5 @@
 package Iston::Application;
-$Iston::Application::VERSION = '0.01';
+$Iston::Application::VERSION = '0.02';
 use 5.12.0;
 
 use AnyEvent;
@@ -138,11 +138,11 @@ Iston::Application
 
 =head1 VERSION
 
-version 0.01
+version 0.02
 
 =head1 AUTHOR
 
-Ivan Baidakou <dmol@gmx.com>,
+Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 

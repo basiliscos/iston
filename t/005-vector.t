@@ -8,12 +8,25 @@ use Iston::Vector qw/normal/;
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
+subtest 'zero vector' => sub {
+    my $a = Vector->new([0,0,0]);
+    my $b = Vector->new([0,0,-0.00000000001]);
+    ok $a->is_zero;
+    ok $b->is_zero;
+};
 
 subtest 'addition' => sub {
     my $a = Vector->new([1,2,3]);
     my $b = Vector->new([0,4,5]);
     my $c = $a + $b;
     is $c, Vector->new([1,6,8]);
+};
+
+subtest 'substraction' => sub {
+    my $a = Vector->new([1,2,3]);
+    my $b = Vector->new([0,4,5]);
+    my $c = $b - $a;
+    is $c, Vector->new([-1,2,2]);
 };
 
 subtest "normalize normalized" => sub {
@@ -43,6 +56,18 @@ subtest "vertices multiplication" => sub {
     is $v, Vector->new([0, -1.5, 0]);
     $v = $b * $a;
     is $v, Vector->new([0, 1.5, 0]);
+};
+
+subtest 'scalar vertices multiplication' => sub {
+    is Vector->new([-1, 0, 0])->scalar_multiplication(
+        Vector->new([ 0, 1, 0])
+    ), 0;
+    is Vector->new([-1, 1, 0])->scalar_multiplication(
+        Vector->new([ 1, 1, 0])
+    ), 0;
+    is Vector->new([-1, 1, 0])->scalar_multiplication(
+        Vector->new([ -1, 2, 0])
+    ), 3;
 };
 
 subtest "stringification/comparison" => sub{

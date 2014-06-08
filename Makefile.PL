@@ -15,7 +15,7 @@ install_share dist => "share";
 
 my %WriteMakefileArgs = (
   "ABSTRACT" => "3D models view/rotation research",
-  "AUTHOR" => "Ivan Baidakou <dmol\@gmx.com>,",
+  "AUTHOR" => "Ivan Baidakou <dmol\@gmx.com>",
   "CONFIGURE_REQUIRES" => {
     "ExtUtils::MakeMaker" => "6.86",
     "File::ShareDir::Install" => "0.06"
@@ -48,7 +48,7 @@ my %WriteMakefileArgs = (
     "Test::More" => "0.98",
     "Test::Warnings" => "0.013"
   },
-  "VERSION" => "0.01",
+  "VERSION" => "0.02",
   "test" => {
     "TESTS" => "t/*.t"
   }

@@ -1,7 +1,7 @@
 ---
 abstract: '3D models view/rotation research'
 author:
-  - 'Ivan Baidakou <dmol@gmx.com>,'
+  - 'Ivan Baidakou <dmol@gmx.com>'
 build_requires:
   File::Spec: '0'
   File::Temp: '0'
@@ -31,4 +31,4 @@ requires:
   Smart::Comments: '0'
   Text::CSV: '0'
   aliased: '0'
-version: '0.01'
+version: '0.02'

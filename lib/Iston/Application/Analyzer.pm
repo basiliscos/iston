@@ -1,5 +1,5 @@
 package Iston::Application::Analyzer;
-$Iston::Application::Analyzer::VERSION = '0.01';
+$Iston::Application::Analyzer::VERSION = '0.02';
 use 5.12.0;
 
 use AnyEvent;
@@ -35,11 +35,11 @@ sub BUILD {
 sub _build_htm {
     my $self = shift;
     my $htm = HTM->new;
-    $htm->mode('mesh');
-    my $r = Vertex->new([0, 0, 0])->vector_to($htm->vertices->[0])->length;
+    # $htm->mode('mesh');
+    my $r = Vertex->new([0, 0, 0])->vector_to($htm->triangles->[0]->vertices->[0])->length;
     my $scale_to = 1/($r/$self->max_boundary);
     $htm->scale($scale_to); # 2.5
-    $htm->level(3);
+    $htm->level(0);
     return $htm;
 }
 
@@ -185,8 +185,8 @@ sub _start_replay {
         my ($x_axis_degree, $y_axis_degree) = map { $record->$_ }
             qw/x_axis_degree y_axis_degree/;
         for (@{ $self->objects }) {
-            $_->rotation->[0] = $x_axis_degree;
-            $_->rotation->[1] = $y_axis_degree;
+            $_->rotate(0, $x_axis_degree);
+            $_->rotate(1, $y_axis_degree);
         }
         $self->camera_position([
             map { $record->$_ } qw/camera_x camera_y camera_z/
@@ -215,11 +215,13 @@ sub key_pressed {
 
     my $rotate_step = 2;
     my $rotation = sub {
-        my ($c, $step) = @_;
+        my ($axis, $step) = @_;
         my $subject = $self->htm;
         return sub {
-            $subject->rotation->[$c] += $step;
-            $subject->rotation->[$c] %= 360;
+            my $value = $subject->rotate($axis);
+            $value += $step;
+            $value %= 360;
+            $subject->rotate($axis, $value);
         }
     };
     my $adjust_time_ration = sub {
@@ -291,11 +293,11 @@ Iston::Application::Analyzer
 
 =head1 VERSION
 
-version 0.01
+version 0.02
 
 =head1 AUTHOR
 
-Ivan Baidakou <dmol@gmx.com>,
+Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 

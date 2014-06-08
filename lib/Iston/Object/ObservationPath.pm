@@ -1,5 +1,5 @@
 package Iston::Object::ObservationPath;
-$Iston::Object::ObservationPath::VERSION = '0.01';
+$Iston::Object::ObservationPath::VERSION = '0.02';
 use 5.12.0;
 use utf8;
 
@@ -21,7 +21,6 @@ my $_G2R = $_PI / 180;
 
 has history     => (is => 'ro', required => 1);
 has scale       => (is => 'rw', default => sub { 1; });
-has rotation    => (is => 'rw', default => sub { [0, 0, 0] });
 has vertices    => (is => 'rw');
 has indices     => (is => 'rw');
 has index_at    => (is => 'rw', default => sub{ {} });
@@ -100,9 +99,9 @@ method arrow_vertices($index_to, $index_from) {
 method draw {
     my $scale = $self->scale;
     glScalef($scale, $scale, $scale);
-    glRotatef($self->rotation->[0], 1, 0, 0);
-    glRotatef($self->rotation->[1], 0, 1, 0);
-    glRotatef($self->rotation->[2], 0, 0, 1);
+    glRotatef($self->rotate(0), 1, 0, 0);
+    glRotatef($self->rotate(1), 0, 1, 0);
+    glRotatef($self->rotate(2), 0, 0, 1);
 
     my $vertices = OpenGL::Array->new_list( GL_FLOAT,
         map { @$_ } @{ $self->vertices }
@@ -164,11 +163,11 @@ Iston::Object::ObservationPath
 
 =head1 VERSION
 
-version 0.01
+version 0.02
 
 =head1 AUTHOR
 
-Ivan Baidakou <dmol@gmx.com>,
+Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 

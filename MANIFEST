@@ -19,6 +19,7 @@ lib/Iston/Object.pm
 lib/Iston/Object/HTM.pm
 lib/Iston/Object/ObservationPath.pm
 lib/Iston/Triangle.pm
+lib/Iston/TrianglePath.pm
 lib/Iston/Vector.pm
 lib/Iston/Vertex.pm
 share/models/cube.obj
@@ -33,3 +34,4 @@ t/012-history.t
 t/020-obj-mesh.t
 t/021-observation-path.t
 t/030-htm.t
+t/031-htm-and-obs-path.t

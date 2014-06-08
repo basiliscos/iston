@@ -1,5 +1,5 @@
 package Iston::Application::Observer;
-$Iston::Application::Observer::VERSION = '0.01';
+$Iston::Application::Observer::VERSION = '0.02';
 use 5.12.0;
 
 use Moo;
@@ -7,6 +7,8 @@ use OpenGL qw(:all);
 use Time::HiRes qw/gettimeofday tv_interval usleep sleep/;
 
 use aliased qw/Iston::History::Record/;
+use aliased qw/Iston::Triangle/;
+use aliased qw/Iston::Vertex/;
 
 with('Iston::Application');
 
@@ -18,7 +20,21 @@ has mouse_position => (is => 'rw');
 sub BUILD {
     my $self = shift;
     $self->init_app;
-    my $object = $self->load_object($self->object_path);
+    my $object = 
+        # Triangle->new(
+        #     vertices    => [
+        #         Vertex->new([1, 0, 0]),
+        #         Vertex->new([-1, 0, 0]),
+        #         Vertex->new([0, 1, 0]),
+        #     ],
+        #     tesselation => 1,
+        # );
+        $self->load_object($self->object_path);
+    # $object->normals([
+    #     $object->normal,
+    #     $object->normal,
+    #     $object->normal,
+    # ]);
     $self->main_object($object);
     push @{ $self->objects }, $object;
 
@@ -40,8 +56,8 @@ sub _log_state {
     return unless $self->history;
     my $record = Record->new(
         timestamp     => tv_interval ( $self->started_at, [gettimeofday]),
-        x_axis_degree => $self->main_object->rotation->[0],
-        y_axis_degree => $self->main_object->rotation->[1],
+        x_axis_degree => $self->main_object->rotate(0),
+        y_axis_degree => $self->main_object->rotate(1),
         camera_x      => $self->camera_position->[0],
         camera_y      => $self->camera_position->[1],
         camera_z      => $self->camera_position->[2],
@@ -62,11 +78,13 @@ sub key_pressed {
     my ($self, $key) = @_;
     my $rotate_step = 2;
     my $rotation = sub {
-        my ($c, $step) = @_;
+        my ($axis, $step) = @_;
         my $subject = $self->main_object;
         return sub {
-            $subject->rotation->[$c] += $step;
-            $subject->rotation->[$c] %= 360;
+            my $value = $subject->rotate($axis);
+            $value += $step;
+            $value %= 360;
+            $subject->rotate($axis, $value);
         }
     };
     my $camera_z_move = sub {
@@ -111,12 +129,14 @@ sub mouse_movement {
     my $last_position = $self->mouse_position;
     my ($dX, $dY) = ($last_position->[0] - $x, $last_position->[1] - $y);
 
-    my ($dx_axis_degree, $dy_axis_degree) = map { $_ * -1} ($dX, $dY);
-    my $rotation = $self->main_object->rotation;
-    $rotation->[1] += $dx_axis_degree;
-    $rotation->[1] %= 360;
-    $rotation->[0] += $dy_axis_degree;
-    $rotation->[0] %= 360;
+    my @rotations = map { $_ * -1} ($dY, $dX);
+    my $rot_x = $self->main_object->rotate(0);
+    for my $axis (0 .. @rotations-1) {
+        my $value = $self->main_object->rotate($axis);
+        $value += $rotations[$axis];
+        $value %= 360;
+        $self->main_object->rotate($axis, $value);
+    }
     $self->_log_state;
     $self->mouse_position( [$x, $y] );
     glutPostRedisplay;
@@ -146,11 +166,11 @@ Iston::Application::Observer
 
 =head1 VERSION
 
-version 0.01
+version 0.02
 
 =head1 AUTHOR
 
-Ivan Baidakou <dmol@gmx.com>,
+Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 
