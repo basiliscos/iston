@@ -5,6 +5,7 @@ use 5.12.0;
 use Carp;
 use Function::Parameters qw(:strict);
 use Iston::Vector;
+use Iston::Utils qw/maybe_zero/;
 use List::MoreUtils qw/pairwise all/;
 use List::Util qw/first reduce/;
 use Moo;
@@ -95,14 +96,11 @@ method _build_subtriangles {
 };
 
 
-my $_accuracy_format = '%0.6f';
-my $_accuracy_zero   = sprintf($_accuracy_format, 0);
-
 method intersects_with($vertex_on_sphere) {
     my $n = $self->normal;
     my $a = Vector->new([@$vertex_on_sphere]); # guide vector
     my $an = $a->scalar_multiplication($n);
-    return if sprintf($_accuracy_format, abs($an)) eq $_accuracy_zero;
+    return if maybe_zero(abs($an)) == 0;
     my $r0 = Vector->new($self->vertices->[0]);
     my $t = $r0->scalar_multiplication($n) / $an;
     my $vertex_on_triangle = Vertex->new($a*$t);
@@ -122,10 +120,7 @@ method intersects_with($vertex_on_sphere) {
     } @indices;
     my $vector_to_triangle = Vector->new($vertex_on_triangle);
     my @values =
-        map {
-            my $rounded = sprintf($_accuracy_format, abs($_));
-            $rounded eq $_accuracy_zero ? 0 : $_;
-        }
+        map { maybe_zero($_) }
         map {
             my ($normal, $alpha) = @$_;
             $vector_to_triangle->scalar_multiplication($normal) - $alpha;

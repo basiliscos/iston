@@ -123,4 +123,26 @@ subtest "vertex on sphere hit to the vertex of the 4 triangles (north pole)" => 
     };
 };
 
+subtest "vertex on sphere hit to the vertex of the 6 triangles" => sub {
+    my $h = History->new;
+    my @angels = ([0, 0], [10, 0] );
+    my $records = $_a2r->(\@angels);
+    push @{$h->records}, @$records;
+    my $o = ObservationPath->new(history => $h);
+    my $htm = HTM->new;
+    $htm->level(1);
+    my $projections = $htm->find_projections($o);
+
+    is_deeply $projections, {
+        0 => {
+            0 => [qw/path[0]   path[4]/],
+            1 => [qw/path[0:1] path[0:2] path[0:3] path[4:1] path[4:2] path[4:3]/],
+        },
+        1 => {
+            0 => [qw/path[0]/],
+            1 => [qw/path[0:3]/],
+        },
+    };
+};
+
 done_testing;

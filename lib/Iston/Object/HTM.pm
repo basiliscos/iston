@@ -5,6 +5,7 @@ use 5.12.0;
 
 use Carp;
 use Iston::Vector qw/normal/;
+use Iston::Utils qw/maybe_zero/;
 use List::MoreUtils qw/first_index/;
 use List::Util qw/max min reduce/;
 use Moo;
@@ -177,15 +178,16 @@ method find_projections($observation_path) {
                     $vertex;
                 }
                 map {
-                    $_->intersects_with($vertex_on_sphere);
+                    my $intersection = $_->intersects_with($vertex_on_sphere);
+                    $intersection;
                 } @$examined_triangles;
             my @distances =
-                map  {
+                map {
                     defined $_
                         ? $_->vector_to($vertex_on_sphere)->length
                         : undef;
-                }
-                @vertices;
+                } @vertices;
+            @distances =  map { maybe_zero($_) } @distances;
             my $min_distance = min grep { defined($_) } @distances;
             @vertices = map {
                 (defined($vertices[$_]) && $distances[$_] == $min_distance)

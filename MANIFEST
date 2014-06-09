@@ -20,6 +20,7 @@ lib/Iston/Object/HTM.pm
 lib/Iston/Object/ObservationPath.pm
 lib/Iston/Triangle.pm
 lib/Iston/TrianglePath.pm
+lib/Iston/Utils.pm
 lib/Iston/Vector.pm
 lib/Iston/Vertex.pm
 share/models/cube.obj
