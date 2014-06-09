@@ -167,11 +167,14 @@ method find_projections($observation_path) {
             my $vertex_on_sphere = $sphere_vertices->[$vertex_index];
             my @vertices =
                 map {
-                    my $length = Vector->new($_)->length;
-                    $length > 1
-                        ? undef
-                        : $_
-                        ;
+                    my $vertex = $_;
+                    if (defined $vertex) {
+                        $vertex =
+                            Vector->new($_)->length <= 1
+                            ? $_
+                            : undef;
+                    }
+                    $vertex;
                 }
                 map {
                     $_->intersects_with($vertex_on_sphere);

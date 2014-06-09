@@ -120,13 +120,58 @@ subtest 'intesection-of-sphere-radius-with-triangle' => sub {
     is $vertex_on_triangle, Vertex->new([0, 0, 0.5]);
 };
 
-subtest 'no-intesection-of-sphere-radius-with-triangle' => sub {
+subtest 'intesection-of-sphere-radius-with-triangle(one of vertex on sphere exact case)' => sub {
+    my $vertex_on_sphere = Vertex->new([0, 0.5, 0.5]);
+    my $triangle = Triangle->new(
+        vertices    => [
+            Vertex->new([0,     0.5, 0.5]),
+            Vertex->new([0.5,  -0.5, 0.5]),
+            Vertex->new([-0.5, -0.5, 0.5]),
+        ],
+        path        => TrianglePath->new(0),
+        tesselation => 0,
+    );
+    my $vertex_on_triangle = $triangle->intersects_with($vertex_on_sphere);
+    is $vertex_on_triangle, Vertex->new([0, 0.5, 0.5]);
+};
+
+subtest 'intesection-of-sphere-radius-with-triangle(one of vertex on sphere case, almost case)' => sub {
+    my $vertex_on_sphere = Vertex->new([6.12323399573677e-17, 0.5, 0.5]);
+    my $triangle = Triangle->new(
+        vertices    => [
+            Vertex->new([0,     0.5, 0.5]),
+            Vertex->new([0.5,  -0.5, 0.5]),
+            Vertex->new([-0.5, -0.5, 0.5]),
+        ],
+        path        => TrianglePath->new(0),
+        tesselation => 0,
+    );
+    my $vertex_on_triangle = $triangle->intersects_with($vertex_on_sphere);
+    is $vertex_on_triangle, Vertex->new([0, 0.5, 0.5]);
+};
+
+subtest 'no-intesection-of-sphere-radius-with-triangle(parallel case)' => sub {
     my $vertex_on_sphere = Vertex->new([0, 0, 2]);
     my $triangle = Triangle->new(
         vertices    => [
             Vertex->new([0,    0.5,  0.5]),
             Vertex->new([0.5,  0.5, -0.5]),
             Vertex->new([-0.5, 0.5, -0.5]),
+        ],
+        path        => TrianglePath->new(0),
+        tesselation => 0,
+    );
+    my $vertex_on_triangle = $triangle->intersects_with($vertex_on_sphere);
+    is $vertex_on_triangle, undef;
+};
+
+subtest 'no-intesection-of-sphere-radius-with-triangle(outside case)' => sub {
+    my $vertex_on_sphere = Vertex->new([0, -1, 2]);
+    my $triangle = Triangle->new(
+        vertices    => [
+            Vertex->new([0,     0.5, 0]),
+            Vertex->new([0.5,     0, 0.5]),
+            Vertex->new([-0.5,    0, 0.5]),
         ],
         path        => TrianglePath->new(0),
         tesselation => 0,
