@@ -59,7 +59,7 @@ subtest "unique vertex on sphere hit to just 1 trianle" => sub {
 # 0  'vertex[0.0000000, 0.0000000, 1.0000000]'
 # 0  'vertex[0.5000000, 0.7071068, 0.5000000]'
     my $h = History->new;
-    my @angels = ([-1, -33], [-2, -35]);
+    my @angels = ([1, -33], [2, -35]);
     my $records = $_a2r->(\@angels);
     push @{$h->records}, @$records;
     my $o = ObservationPath->new(history => $h);
@@ -75,6 +75,50 @@ subtest "unique vertex on sphere hit to just 1 trianle" => sub {
         1 => {
             0 => ["path[0]"],
             1 => ["path[0:2]"],
+        },
+    };
+};
+
+subtest "vertex on sphere hit to 2 adjacent trianle" => sub {
+    my $h = History->new;
+    my @angels = ([0, -10], [0, -15]);
+    my $records = $_a2r->(\@angels);
+    push @{$h->records}, @$records;
+    my $o = ObservationPath->new(history => $h);
+    my $htm = HTM->new;
+    $htm->level(1);
+    my $projections = $htm->find_projections($o);
+
+    is_deeply $projections, {
+        0 => {
+            0 => [qw/path[0]   path[4]/],
+            1 => [qw/path[0:2] path[4:1]/],
+        },
+        1 => {
+            0 => [qw/path[0]   path[4]/],
+            1 => [qw/path[0:2] path[4:1]/],
+        },
+    };
+};
+
+subtest "vertex on sphere hit to the vertex of the 4 triangles (north pole)" => sub {
+    my $h = History->new;
+    my @angels = ([10, 0], [90, 0] );
+    my $records = $_a2r->(\@angels);
+    push @{$h->records}, @$records;
+    my $o = ObservationPath->new(history => $h);
+    my $htm = HTM->new;
+    $htm->level(1);
+    my $projections = $htm->find_projections($o);
+
+    is_deeply $projections, {
+        0 => {
+            0 => [qw/path[0]/],
+            1 => [qw/path[0:3]/],
+        },
+        1 => {
+            0 => [qw/path[0]   path[1]   path[2]   path[3]/],
+            1 => [qw/path[0:0] path[1:0] path[2:0] path[3:0]/],
         },
     };
 };

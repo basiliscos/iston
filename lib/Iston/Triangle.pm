@@ -5,8 +5,8 @@ use 5.12.0;
 use Carp;
 use Function::Parameters qw(:strict);
 use Iston::Vector;
-use List::MoreUtils qw/pairwise/;
-use List::Util qw/reduce/;
+use List::MoreUtils qw/pairwise all/;
+use List::Util qw/first reduce/;
 use Moo;
 
 use aliased qw/Iston::Triangle/;
@@ -95,15 +95,45 @@ method _build_subtriangles {
 };
 
 
+my $_accuracy_format = '%0.6f';
+my $_accuracy_zero   = sprintf($_accuracy_format, 0);
+
 method intersects_with($vertex_on_sphere) {
     my $n = $self->normal;
     my $a = Vector->new([@$vertex_on_sphere]); # guide vector
     my $an = $a->scalar_multiplication($n);
-    return if sprintf('%0.6f', abs($an)) eq '0.000000';
+    return if sprintf($_accuracy_format, abs($an)) eq $_accuracy_zero;
     my $r0 = Vector->new($self->vertices->[0]);
     my $t = $r0->scalar_multiplication($n) / $an;
     my $vertex_on_triangle = Vertex->new($a*$t);
-    $vertex_on_triangle;
+
+    # now, check, wheather the vertex is inside the triangle
+    my @indices = (
+        [0, 1],
+        [1, 2],
+        [2, 0],
+    );
+    # planes, formed by the tringle sidies
+    my @planes = map {
+        my ($a, $b) = map {$self->vertices->[$_]} @$_;
+        my $normal = $a->vector_to($b)*$n;
+        my $alpha = Vector->new($a)->scalar_multiplication($normal);
+        [$normal, $alpha];
+    } @indices;
+    my $vector_to_triangle = Vector->new($vertex_on_triangle);
+    my @values =
+        map {
+            my $rounded = sprintf($_accuracy_format, abs($_));
+            $rounded eq $_accuracy_zero ? 0 : $_;
+        }
+        map {
+            my ($normal, $alpha) = @$_;
+            $vector_to_triangle->scalar_multiplication($normal) - $alpha;
+        } @planes;
+    my @signes = map { $_ > 0 ? 1 : $_ < 0 ? -1 : 0 } @values;
+    my $any_non_zero = first { $_  } @signes;
+    my $is_inside = all { $_ == 0 or $_ == $any_non_zero } @signes;
+    return $is_inside ? $vertex_on_triangle : undef;
 }
 
 1;
@@ -130,7 +160,8 @@ Finds the vertex, which is get via intersection a line from
 (0,0,0) (center of sphere with radus = 1) and the vertex on the
 sphere with the plane, formed by current tirangle.
 
-If no intersection can be found, undef is returned
+If no intersection can be found or it is outside the triangle
+undef is returned
 
 =head1 AUTHOR
 
