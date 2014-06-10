@@ -67,6 +67,7 @@ has triangles    => (is => 'rw', default => sub { $_triangles} );
 #has vertices     => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
 #has indices      => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
 
+has scale    => (is => 'rw', default => sub { 1; });
 
 method BUILD {
     $self->levels_cache->{$self->level} = $self->triangles;
@@ -114,18 +115,6 @@ method _trigger_level($level) {
     $self->_calculate_normals;
 }
 
-sub scale {
-    my ($self, $value) = @_;
-    if (defined $value) {
-        for (@{ $self->triangles }) {
-            $_->scale($value);
-        }
-    }
-    else {
-        return $self->triangles->[0]->scale;
-    }
-}
-
 method rotate($axis,$value = undef){
     if (defined $value) {
         for (@{ $self->triangles }) {
@@ -142,15 +131,15 @@ method radius {
 }
 
 method draw {
+    my $scale = $self->scale;
+    glScalef($scale, $scale, $scale);
+    glRotatef($self->rotate(0), 1, 0, 0);
+    glRotatef($self->rotate(1), 0, 1, 0);
+    glRotatef($self->rotate(2), 0, 0, 1);
+
     for (@{ $self->triangles }) {
         next if !$_ or !$_->enabled;
-        glPushMatrix;
-        glPushClientAttrib(GL_CLIENT_ALL_ATTRIB_BITS);
-        glPushAttrib(GL_ALL_ATTRIB_BITS);
         $_->draw;
-        glPopAttrib;
-        glPopClientAttrib;
-        glPopMatrix;
     }
 };
 
