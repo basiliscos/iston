@@ -48,6 +48,27 @@ sub objects {
     [map { $_ ? $_ : () } ($self->main_object, $self->htm, $self->observation_path) ];
 }
 
+sub _load_object {
+    my ($self, $object_path, $history_path) = @_;
+    my $object = $self->load_object($object_path);
+    $self->main_object($object);
+    my $history = History->new( path => $history_path)->load;
+    $self->history($history);
+
+    my $r1 = ($object->radius) * $object->scale;
+    my $r2 = $self->htm->radius;
+    my $scale_to = $r1/$r2;
+    $self->htm->scale($scale_to*1.01);
+    my $observation_path = ObservationPath->new(history => $history);
+    $observation_path->scale($scale_to*1.01);
+    $self->observation_path($observation_path);
+
+    my $projections = $self->htm->find_projections($observation_path);
+    $self->htm->apply_projections($projections);
+
+    $self->_start_replay;
+}
+
 sub _build_menu {
     my $self = shift;
 
@@ -89,20 +110,7 @@ sub _build_menu {
         my $histories = $me->{histories};
         my $menu_handler = sub {
             my $history_idx = shift;
-            my $object = $self->load_object($me->{path});
-            $self->main_object($object);
-            my $history_path = $histories->[$history_idx];
-            my $history = History->new( path => $history_path)->load;
-            $self->history($history);
-
-            my $r1 = ($object->radius) * $object->scale;
-            my $r2 = $self->htm->radius;
-            my $scale_to = $r1/$r2;
-            $self->htm->scale($scale_to*1.01);
-            my $observation_path = ObservationPath->new(history => $history);
-            $observation_path->scale($scale_to*1.01);
-            $self->observation_path($observation_path);
-            $self->_start_replay;
+            $self->_load_object($me->{path}, $histories->[$history_idx]);
         };
         my $submenu_id = glutCreateMenu($menu_handler);
         for my $h_idx (0 .. @$histories - 1 ){

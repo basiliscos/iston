@@ -213,4 +213,24 @@ method find_projections($observation_path) {
     return \%projections_for;
 }
 
+method apply_projections ($projections) {
+    my $max_level = max keys %{ $self->levels_cache };
+    # disable all triangles
+    for my $level (0 .. $max_level) {
+        my $triangles = $self->levels_cache->{$level};
+        $_->enabled(0) for (@$triangles);
+    }
+    my $root = $self->levels_cache->{0};
+    while (my ($vertex_index, $levels_path) = each %$projections) {
+        while (my ($level, $triangle_paths) = each %$levels_path) {
+            for my $path (@$triangle_paths) {
+                $path->apply($root, sub {
+                    my ($triangle, $path) = @_;
+                    $triangle->enabled(1);
+                });
+            }
+        }
+    }
+}
+
 1;
