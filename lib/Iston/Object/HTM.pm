@@ -202,6 +202,17 @@ method find_projections($observation_path) {
     return \%projections_for;
 }
 
+method walk_projections ($projections, $action) {
+    my $max_level = max keys %{ $self->levels_cache };
+    while (my ($vertex_index, $levels_path) = each %$projections) {
+        while (my ($level, $triangle_paths) = each %$levels_path) {
+            for my $path (@$triangle_paths) {
+                $action->($vertex_index, $level, $path);
+            }
+        }
+    }
+}
+
 method apply_projections ($projections) {
     my $max_level = max keys %{ $self->levels_cache };
     # disable all triangles
@@ -209,17 +220,34 @@ method apply_projections ($projections) {
         my $triangles = $self->levels_cache->{$level};
         $_->enabled(0) for (@$triangles);
     }
-    my $root = $self->levels_cache->{0};
-    while (my ($vertex_index, $levels_path) = each %$projections) {
-        while (my ($level, $triangle_paths) = each %$levels_path) {
-            for my $path (@$triangle_paths) {
-                $path->apply($root, sub {
-                    my ($triangle, $path) = @_;
-                    $triangle->enabled(1);
-                });
-            }
+    my $root_list = $self->levels_cache->{0};
+    $self->walk_projections($projections, sub {
+        my ($vertex_index, $level, $path) = @_;
+        $path->apply($root_list, sub {
+            my ($triangle, $path) = @_;
+            $triangle->enabled(1);
+        });
+    });
+}
+
+method calculate_observation_timings ($projections, $observation_path) {
+    my $root_list = $self->levels_cache->{0};
+    my $records = $observation_path->history->records;
+    my $last_index = @$records-1;
+    $self->walk_projections($projections, sub {
+        my ($vertex_index, $level, $path) = @_;
+        if ($vertex_index < $last_index) {
+            my $interval = reduce {$b - $a}
+                map { $records->[$_]->timestamp }
+                ($vertex_index, $vertex_index + 1);
+            $path->apply($root_list, sub {
+                my ($triangle, $path) = @_;
+                my $payload = $triangle->payload;
+                $payload->{total_time} //= 0;
+                $payload->{total_time} += $interval;
+            });
         }
-    }
+    });
 }
 
 1;

@@ -65,8 +65,40 @@ sub _load_object {
 
     my $projections = $self->htm->find_projections($observation_path);
     $self->htm->apply_projections($projections);
+    $self->htm->calculate_observation_timings($projections, $observation_path);
+
+    my $analisys_path = "${history_path}-analisys.txt";
+    open my $analisys_fh, ">:encoding(utf8)", $analisys_path
+        or die "Can't open $analisys_path : $!";
+    $self->_dump_analisys($projections, $analisys_fh);
 
     $self->_start_replay;
+}
+
+sub _dump_analisys {
+    my ($self, $projections, $output_fh) = @_;
+    my $root_list = $self->htm->levels_cache->{0};
+    my $info = [];
+    $self->htm->walk_projections($projections, sub {
+        my ($vertex_index, $level, $path) = @_;
+        $path->apply($root_list, sub {
+            my ($triangle, $path) = @_;
+            my $total_time = $triangle->payload->{total_time};
+            $info->[$level]->{$path} = $total_time;
+        });
+    });
+
+    say $output_fh "total time per level and per triangle path in seconds";
+    for my $level (0 .. @$info - 1) {
+        say $output_fh "==================";
+        say $output_fh "level: $level";
+        say $output_fh "==================\n";
+        my @paths = sort { $a cmp $b } keys %{ $info->[$level] };
+        for my $path (@paths) {
+            say $output_fh "$path = ", $info->[$level]->{$path};
+        }
+        say $output_fh "\n";
+    }
 }
 
 sub _build_menu {

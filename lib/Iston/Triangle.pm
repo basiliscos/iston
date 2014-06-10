@@ -30,6 +30,7 @@ has normals      => (is => 'rw', default => sub { [] });   # vertices normals
 has normal       => (is => 'lazy'); # triangle normal
 has subtriangles => (is => 'lazy');
 has tesselation  => (is => 'ro', default => sub { 0  });
+has payload      => (is => 'ro', default => sub { {} });
 
 # material properties
 has diffuse   => (is => 'rw', default => sub { [0.75, 0.75, 0, 1]} );
