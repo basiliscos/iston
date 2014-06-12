@@ -30,7 +30,7 @@ subtest "simple 2 point path" => sub {
     my $records = $_a2r->(\@angels);
     push @{$h->records}, @$records;
     my $o = ObservationPath->new(history => $h);
-    is @{$o->indices}, 2;
+    ok @{$o->indices} >= 2, "indices count >= vertices count";
     is $o->indices->[0], 0;
     is $o->indices->[1], 1;
 
@@ -62,7 +62,7 @@ subtest "simple arrow vertices" => sub {
     my $records = $_a2r->(\@angels);
     push @{$h->records}, @$records;
     my $o = ObservationPath->new(history => $h);
-    is @{$o->indices}, 2;
+    ok @{$o->indices} >= 2, "indices count >= vertices count";
     is $o->indices->[0], 0;
     is $o->indices->[1], 1;
 
@@ -75,10 +75,10 @@ subtest "simple arrow vertices" => sub {
     my @arrows = $o->arrow_vertices(1, 0);
     is scalar(@arrows), 4, "got exactly 4 arrow points";
     my ($v1, $v2, $v3, $v4) = @arrows;
-    is $v1->smart_2string, 'vector[2.0000, -2.0000, 0.0000]';
-    is $v2->smart_2string, 'vector[2.0000, 0.0000, -2.0000]';
-    is $v3->smart_2string, 'vector[2.0000, 2.0000, 0.0000]';
-    is $v4->smart_2string, 'vector[2.0000, 0.0000, 2.0000]';
+    is $v1->smart_2string, 'vector[2.0000, -1.0000, 0.0000]';
+    is $v2->smart_2string, 'vector[2.0000, 0.0000, -1.0000]';
+    is $v3->smart_2string, 'vector[2.0000, 1.0000, 0.0000]';
+    is $v4->smart_2string, 'vector[2.0000, 0.0000, 1.0000]';
 };
 
 done_testing;
