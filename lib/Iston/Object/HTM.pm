@@ -44,24 +44,26 @@ my $_indices = [
     1, 5, 2, # 7: south-left
 ];
 
-my $_triangles = [
-    map {
-        my @v_indices = ($_*3 .. $_*3+2);
-        my @vertices =
-            map { $_vertices->[$_] }
-            map { $_indices->[$_] }
-            @v_indices;
-        Triangle->new(
-            vertices    => \@vertices,
-            path        => TrianglePath->new($_),
-            tesselation => 1,
-        );
-    } (0 .. @$_indices/3 - 1)
-];
-
 has level        => (is => 'rw', default => sub { 0  }, trigger => 1 );
 has levels_cache => (is => 'ro', default => sub { {} } );
-has triangles    => (is => 'rw', default => sub { $_triangles} );
+has triangles    => (is => 'rw', default =>
+    sub {
+        my @triangles = 
+            map {
+                my @v_indices = ($_*3 .. $_*3+2);
+                my @vertices =
+                    map { $_vertices->[$_] }
+                    map { $_indices->[$_] }
+                    @v_indices;
+                Triangle->new(
+                    vertices    => \@vertices,
+                    path        => TrianglePath->new($_),
+                    tesselation => 1,
+                );
+            } (0 .. @$_indices/3 - 1);
+        return \@triangles;
+    } );
+
 #has normals      => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
 #has vertices     => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
 #has indices      => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );

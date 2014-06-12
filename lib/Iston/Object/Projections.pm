@@ -95,11 +95,13 @@ method distribute_observation_timings {
             my $interval = reduce {$b - $a}
                 map { $records->[$_]->timestamp }
                 ($vertex_index, $vertex_index + 1);
+            my $triangles = $self->projections_map->{$vertex_index}->{$level};
+            my $time_share = $interval / @$triangles;
             $path->apply( sub {
                 my ($triangle) = @_;
                 my $payload = $triangle->payload;
                 $payload->{total_time} //= 0;
-                $payload->{total_time} += $interval;
+                $payload->{total_time} += $time_share;
             });
         }
     });
