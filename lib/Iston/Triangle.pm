@@ -23,7 +23,7 @@ has vertices => (is => 'rw', required => 1, isa =>
             unless @{$_[0]} == 3;
     }
 );
-has path => (is => 'ro', required => 1);
+has path         => (is => 'ro', required => 1);
 
 has indices      => (is => 'rw', default => sub { [0, 1, 2 ] });
 has normals      => (is => 'rw', default => sub { [] });   # vertices normals
@@ -40,6 +40,7 @@ has shininess => (is => 'rw', default => sub { 80.0 } );
 
 method BUILD {
     $self->scale(0); # means, that it will be scaled "outside" by container
+    $self->path->triangle($self);
 }
 
 method _build_normal {

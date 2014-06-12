@@ -149,10 +149,9 @@ method visualize_projections ($projections) {
         my $triangles = $self->levels_cache->{$level};
         $_->enabled(0) for (@$triangles);
     }
-    my $root_list = $self->levels_cache->{0};
     $projections->walk( sub {
         my ($vertex_index, $level, $path) = @_;
-        $path->apply($root_list, sub {
+        $path->apply(sub {
             my ($triangle, $path) = @_;
             $triangle->enabled(1);
         });

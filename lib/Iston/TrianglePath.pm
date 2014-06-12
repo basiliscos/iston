@@ -20,19 +20,15 @@ sub new {
     return bless $self => $class;
 }
 
+sub triangle {
+    my ($self, $value) = @_;
+    $self->{_triangle} = $value if $value;
+    return $self->{_triangle};
+}
+
 sub apply {
-    my ($self, $root, $action) = @_;
-    my $full_path = $self->_gather_full_path;
-    my $list = $root;
-    my $triangle;
-    my $last_element = @$full_path - 1;
-    for my $i (0 .. $last_element) {
-        my $index = $full_path->[$i];
-        $triangle = $list->[$index];
-        $list = $triangle->subtriangles unless $i == $last_element;
-    }
-    return warn "Can't found triangle at path " . $self unless $triangle;
-    $action->($triangle, $self);
+    my ($self, $action) = @_;
+    $action->($self->triangle);
 }
 
 sub _gather_full_path {

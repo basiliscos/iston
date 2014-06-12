@@ -11,8 +11,8 @@ use aliased qw/Iston::Object::HTM/;
 use aliased qw/Iston::Object::ObservationPath/;
 use aliased qw/Iston::Object::Projections/;
 
-my $ts_idx = 0;
 my $_a2r = sub {
+    my $ts_idx = 0;
     my $angles = shift;
     return [ map  {
         my ($a, $b) = @$_;
@@ -69,9 +69,11 @@ subtest "unique vertex on sphere hit to just 1 trianle" => sub {
     my $projections = Projections->new(
         observation_path => $o,
         htm              => $htm,
-    )->projections_map;
+    );
 
-    is_deeply $projections, {
+    my $projections_map = $projections->projections_map;
+
+    is_deeply $projections_map, {
         0 => {                  # vertex in observation path index
             0 => ["path[0]"],   # level => triangle index
             1 => ["path[0:2]"],

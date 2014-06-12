@@ -87,7 +87,6 @@ method walk ($action) {
 }
 
 method distribute_observation_timings {
-    my $root_list = $self->htm->levels_cache->{0};
     my $records = $self->observation_path->history->records;
     my $last_index = @$records-1;
     $self->walk(  sub {
@@ -96,8 +95,8 @@ method distribute_observation_timings {
             my $interval = reduce {$b - $a}
                 map { $records->[$_]->timestamp }
                 ($vertex_index, $vertex_index + 1);
-            $path->apply($root_list, sub {
-                my ($triangle, $path) = @_;
+            $path->apply( sub {
+                my ($triangle) = @_;
                 my $payload = $triangle->payload;
                 $payload->{total_time} //= 0;
                 $payload->{total_time} += $interval;
@@ -107,12 +106,11 @@ method distribute_observation_timings {
 };
 
 method dump_analisys ($output_fh) {
-    my $root_list = $self->htm->levels_cache->{0};
     my $info = [];
     $self->walk( sub {
         my ($vertex_index, $level, $path) = @_;
-        $path->apply($root_list, sub {
-            my ($triangle, $path) = @_;
+        $path->apply(sub {
+            my ($triangle) = @_;
             my $total_time = $triangle->payload->{total_time};
             $info->[$level]->{$path} = $total_time;
         });
