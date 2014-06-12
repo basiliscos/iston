@@ -5,10 +5,11 @@ use Test::Warnings;
 
 use aliased qw/Iston::History/;
 use aliased qw/Iston::History::Record/;
-use aliased qw/Iston::Object::ObservationPath/;
 use aliased qw/Iston::Vertex/;
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Object::HTM/;
+use aliased qw/Iston::Object::ObservationPath/;
+use aliased qw/Iston::Object::Projections/;
 
 my $ts_idx = 0;
 my $_a2r = sub {
@@ -65,7 +66,10 @@ subtest "unique vertex on sphere hit to just 1 trianle" => sub {
     my $o = ObservationPath->new(history => $h);
     my $htm = HTM->new;
     $htm->level(1);
-    my $projections = $htm->find_projections($o);
+    my $projections = Projections->new(
+        observation_path => $o,
+        htm              => $htm,
+    )->projections_map;
 
     is_deeply $projections, {
         0 => {                  # vertex in observation path index
@@ -87,7 +91,10 @@ subtest "vertex on sphere hit to 2 adjacent trianle" => sub {
     my $o = ObservationPath->new(history => $h);
     my $htm = HTM->new;
     $htm->level(1);
-    my $projections = $htm->find_projections($o);
+    my $projections = Projections->new(
+        observation_path => $o,
+        htm              => $htm,
+    )->projections_map;
 
     is_deeply $projections, {
         0 => {
@@ -109,7 +116,10 @@ subtest "vertex on sphere hit to the vertex of the 4 triangles (north pole)" => 
     my $o = ObservationPath->new(history => $h);
     my $htm = HTM->new;
     $htm->level(1);
-    my $projections = $htm->find_projections($o);
+    my $projections = Projections->new(
+        observation_path => $o,
+        htm              => $htm,
+    )->projections_map;
 
     is_deeply $projections, {
         0 => {
@@ -131,7 +141,10 @@ subtest "vertex on sphere hit to the vertex of the 6 triangles" => sub {
     my $o = ObservationPath->new(history => $h);
     my $htm = HTM->new;
     $htm->level(1);
-    my $projections = $htm->find_projections($o);
+    my $projections = Projections->new(
+        observation_path => $o,
+        htm              => $htm,
+    )->projections_map;
 
     is_deeply $projections, {
         0 => {

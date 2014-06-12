@@ -5,7 +5,6 @@ use 5.12.0;
 
 use Carp;
 use Iston::Vector qw/normal/;
-use Iston::Utils qw/maybe_zero/;
 use List::MoreUtils qw/first_index/;
 use List::Util qw/max min reduce/;
 use Moo;
@@ -143,77 +142,7 @@ method draw {
     }
 };
 
-method find_projections($observation_path) {
-    my $max_level = max keys %{ $self->levels_cache };
-    my $sphere_vertices = $observation_path->vertices;
-    my %examined_triangles_at;
-    for my $vertex_index  ( 0 .. @$sphere_vertices - 1  ) {
-        $examined_triangles_at{0}{$vertex_index} = $self->levels_cache->{0};
-    }
-    my %projections_for;
-    for my $level (0 .. $max_level) {
-        for my $vertex_index  ( 0 .. @$sphere_vertices - 1  ) {
-            my $examined_triangles = $examined_triangles_at{$level}->{$vertex_index};
-            my $vertex_on_sphere = $sphere_vertices->[$vertex_index];
-            my @vertices =
-                map {
-                    my $vertex = $_;
-                    if (defined $vertex) {
-                        $vertex =
-                            Vector->new($_)->length <= 1
-                            ? $_
-                            : undef;
-                    }
-                    $vertex;
-                }
-                map {
-                    my $intersection = $_->intersects_with($vertex_on_sphere);
-                    $intersection;
-                } @$examined_triangles;
-            my @distances =
-                map {
-                    defined $_
-                        ? $_->vector_to($vertex_on_sphere)->length
-                        : undef;
-                } @vertices;
-            @distances =  map { maybe_zero($_) } @distances;
-            my $min_distance = min grep { defined($_) } @distances;
-            @vertices = map {
-                (defined($vertices[$_]) && $distances[$_] == $min_distance)
-                    ? $vertices[$_]
-                    : undef;
-            } (0 .. @vertices - 1);
-            my @triangle_indices =
-                grep { defined $vertices[$_] }
-                (0 .. @vertices-1);
-            my @paths =
-                map  { $examined_triangles->[$_]->path }
-                @triangle_indices;
-            $projections_for{$vertex_index}->{$level} = \@paths;
-            if ($level < $max_level) {
-                $examined_triangles_at{$level+1}->{$vertex_index} = [
-                    map {
-                        @{ $examined_triangles->[$_]->subtriangles }
-                    } @triangle_indices
-                ];
-            }
-        }
-    }
-    return \%projections_for;
-}
-
-method walk_projections ($projections, $action) {
-    my $max_level = max keys %{ $self->levels_cache };
-    while (my ($vertex_index, $levels_path) = each %$projections) {
-        while (my ($level, $triangle_paths) = each %$levels_path) {
-            for my $path (@$triangle_paths) {
-                $action->($vertex_index, $level, $path);
-            }
-        }
-    }
-}
-
-method apply_projections ($projections) {
+method visualize_projections ($projections) {
     my $max_level = max keys %{ $self->levels_cache };
     # disable all triangles
     for my $level (0 .. $max_level) {
@@ -221,7 +150,7 @@ method apply_projections ($projections) {
         $_->enabled(0) for (@$triangles);
     }
     my $root_list = $self->levels_cache->{0};
-    $self->walk_projections($projections, sub {
+    $projections->walk( sub {
         my ($vertex_index, $level, $path) = @_;
         $path->apply($root_list, sub {
             my ($triangle, $path) = @_;
@@ -230,24 +159,5 @@ method apply_projections ($projections) {
     });
 }
 
-method calculate_observation_timings ($projections, $observation_path) {
-    my $root_list = $self->levels_cache->{0};
-    my $records = $observation_path->history->records;
-    my $last_index = @$records-1;
-    $self->walk_projections($projections, sub {
-        my ($vertex_index, $level, $path) = @_;
-        if ($vertex_index < $last_index) {
-            my $interval = reduce {$b - $a}
-                map { $records->[$_]->timestamp }
-                ($vertex_index, $vertex_index + 1);
-            $path->apply($root_list, sub {
-                my ($triangle, $path) = @_;
-                my $payload = $triangle->payload;
-                $payload->{total_time} //= 0;
-                $payload->{total_time} += $interval;
-            });
-        }
-    });
-}
 
 1;
