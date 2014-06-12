@@ -19,12 +19,13 @@ with('Iston::Drawable');
 my $_PI = 2*atan2(1,0);
 my $_G2R = $_PI / 180;
 
-has history     => (is => 'ro', required => 1);
-has scale       => (is => 'rw', default => sub { 1; });
-has vertices    => (is => 'rw');
-has indices     => (is => 'rw');
-has index_at    => (is => 'rw', default => sub{ {} });
-has active_time => (is => 'rw');
+has history            => (is => 'ro', required => 1);
+has scale              => (is => 'rw', default => sub { 1; });
+has vertices           => (is => 'rw');
+has displayed_vertices => (is => 'rw');
+has indices            => (is => 'rw');
+has index_at           => (is => 'rw', default => sub{ {} });
+has active_time        => (is => 'rw');
 
 method BUILD {
     $self->_build_vertices_and_indices;
@@ -62,6 +63,21 @@ method _build_vertices_and_indices {
     }
     $self->vertices(\@vertices);
     $self->indices(\@indices);
+
+    my @displayed_vertices = @vertices;
+    # constuct arraw vertices & indices
+    for my $v_index (0 .. @vertices - 2 ) {
+        my $last_v_index = @displayed_vertices - 1;
+        my @arrow_vertices = $self->arrow_vertices($v_index+1, $v_index);
+        push @displayed_vertices, @arrow_vertices;
+        # should be like (1, 0, 2, 0, 3, 0, 4, 0);
+        my @arrow_indices =
+            map { ($v_index + 1, $_) }
+            map { $last_v_index + 1 + $_}
+            (0 .. @arrow_vertices - 1);
+        push @indices, @arrow_indices;
+    }
+    $self->displayed_vertices(\@displayed_vertices);
 };
 
 method arrow_vertices($index_to, $index_from) {
@@ -78,8 +94,9 @@ method arrow_vertices($index_to, $index_from) {
         [(1-cos($f))*$y*$z+sin($f)*$z, cos($f)+(1-cos($f))*$y**2 ,   (1-cos($f))*$y*$z-sin($f)*$x ],
         [(1-cos($f))*$z*$x-sin($f)*$y, (1-cos($f))*$z*$y+sin($f)*$x, cos($f)+(1-cos($f))*$z**2    ],
     ]);
+    my $normal_distance = 0.5;
     my @normals = map { Vector->new($_) }
-        ([1, 0, 0], [0, 0, -1], [-1, 0, 0], [0, 0, 1]);
+        ([$normal_distance, 0, 0], [0, 0, -$normal_distance], [-$normal_distance, 0, 0], [0, 0, $normal_distance]);
     my $length = $direction->length;
     my @results =
         map {
@@ -104,49 +121,47 @@ method draw {
     glRotatef($self->rotate(2), 0, 0, 1);
 
     my $vertices = OpenGL::Array->new_list( GL_FLOAT,
-        map { @$_ } @{ $self->vertices }
+        map { @$_ } @{ $self->displayed_vertices }
     );
     glEnableClientState(GL_VERTEX_ARRAY);
     glVertexPointer_p(3, $vertices);
 
     my $indices = $self->indices;
     my @passive_indices = @$indices;
+    my @arrow_indices;
 
-
-    # hilight recent active path
+    glVertexPointer_p(3, $vertices);
+    # calculate recent active path
     my $active_time = $self->active_time;
     if (defined $active_time && exists $self->index_at->{$active_time}) {
-        my $last_index = $self->index_at->{$active_time};
-        my $count = $last_index >= 5 ? 5 : $last_index;
-        if ($count) {
-            my $diffusion = OpenGL::Array->new_list(GL_FLOAT, 0.0, 0.0, 0.0, 1.0);
-            my $emission = OpenGL::Array->new_list(GL_FLOAT, 0.0, 0.95, 0.0, 1.0);
-            glMaterialfv_c(GL_FRONT, GL_DIFFUSE, $diffusion->ptr);
-            glMaterialfv_c(GL_FRONT, GL_AMBIENT, $diffusion->ptr);
-            glMaterialfv_c(GL_FRONT, GL_EMISSION,$emission->ptr);
-            my @active_indices = splice(@passive_indices, ($last_index-$count)*2, $count*2);
-            glDrawElements_p(GL_LINES, @active_indices);
-
-            my @arrows = $self->arrow_vertices($last_index, $last_index-1);
-            my $top = $self->vertices->[$last_index];
-            my $arrow_vertices = OpenGL::Array->new_list(
-                GL_FLOAT,
-                map { @$_ } ($top, @arrows)
+        my $vertices_count = @{ $self->vertices };
+        my $vertex_index = $self->index_at->{$active_time};
+        if ($vertex_index < $vertices_count - 1 ) {
+            my $count = 4; # 4 arrow lines
+            @arrow_indices = splice(
+                @passive_indices,
+                ($vertices_count-1)*2 + ($vertex_index * 2 * $count),
+                2 * $count,
             );
-            my @arrow_indices = (1, 0, 2, 0, 3, 0, 4, 0);
-            glVertexPointer_p(3, $arrow_vertices);
-
-            glDrawElements_p(GL_LINES, @arrow_indices);
         }
     }
 
-    glVertexPointer_p(3, $vertices);
     my $diffusion = OpenGL::Array->new_list(GL_FLOAT, 0.0, 0.0, 0.0, 1.0);
     my $emission = OpenGL::Array->new_list(GL_FLOAT, 0.75, 0.0, 0.0, 1.0);
     glMaterialfv_c(GL_FRONT, GL_DIFFUSE,  $diffusion->ptr);
     glMaterialfv_c(GL_FRONT, GL_AMBIENT,  $diffusion->ptr);
     glMaterialfv_c(GL_FRONT, GL_EMISSION, $emission->ptr);
     glDrawElements_p(GL_LINES, @passive_indices);
+
+    # hilight recent active path arrow
+    if (@arrow_indices) {
+        my $diffusion = OpenGL::Array->new_list(GL_FLOAT, 0.0, 0.0, 0.0, 1.0);
+        my $emission = OpenGL::Array->new_list(GL_FLOAT, 0.0, 0.95, 0.0, 1.0);
+        glMaterialfv_c(GL_FRONT, GL_DIFFUSE, $diffusion->ptr);
+        glMaterialfv_c(GL_FRONT, GL_AMBIENT, $diffusion->ptr);
+        glMaterialfv_c(GL_FRONT, GL_EMISSION,$emission->ptr);
+        glDrawElements_p(GL_LINES, @arrow_indices);
+    }
 }
 
 1;
