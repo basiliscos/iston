@@ -20,7 +20,18 @@ sub new {
     return bless $self => $class;
 }
 
-sub _stringify {
+sub triangle {
+    my ($self, $value) = @_;
+    $self->{_triangle} = $value if $value;
+    return $self->{_triangle};
+}
+
+sub apply {
+    my ($self, $action) = @_;
+    $action->($self->triangle);
+}
+
+sub _gather_full_path {
     my $self = shift;
     my @full_path = ($self->{_index});
     my $parent = $self->{_parent};
@@ -29,7 +40,13 @@ sub _stringify {
         $parent = $parent->{_parent};
     }
     @full_path = reverse @full_path;
-    return sprintf('path[%s]', join(':',@full_path));
+    return \@full_path;
+}
+
+sub _stringify {
+    my $self = shift;
+    my $full_path = $self->_gather_full_path;
+    return sprintf('path[%s]', join(':', @$full_path));
 }
 
 1;

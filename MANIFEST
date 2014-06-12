@@ -18,6 +18,7 @@ lib/Iston/Loader.pm
 lib/Iston/Object.pm
 lib/Iston/Object/HTM.pm
 lib/Iston/Object/ObservationPath.pm
+lib/Iston/Object/Projections.pm
 lib/Iston/Triangle.pm
 lib/Iston/TrianglePath.pm
 lib/Iston/Utils.pm
@@ -35,4 +36,4 @@ t/012-history.t
 t/020-obj-mesh.t
 t/021-observation-path.t
 t/030-htm.t
-t/031-htm-and-obs-path.t
+t/031-projections.t

@@ -5,7 +5,6 @@ use 5.12.0;
 
 use Carp;
 use Iston::Vector qw/normal/;
-use Iston::Utils qw/maybe_zero/;
 use List::MoreUtils qw/first_index/;
 use List::Util qw/max min reduce/;
 use Moo;
@@ -45,28 +44,31 @@ my $_indices = [
     1, 5, 2, # 7: south-left
 ];
 
-my $_triangles = [
-    map {
-        my @v_indices = ($_*3 .. $_*3+2);
-        my @vertices =
-            map { $_vertices->[$_] }
-            map { $_indices->[$_] }
-            @v_indices;
-        Triangle->new(
-            vertices    => \@vertices,
-            path        => TrianglePath->new($_),
-            tesselation => 1,
-        );
-    } (0 .. @$_indices/3 - 1)
-];
-
 has level        => (is => 'rw', default => sub { 0  }, trigger => 1 );
 has levels_cache => (is => 'ro', default => sub { {} } );
-has triangles    => (is => 'rw', default => sub { $_triangles} );
+has triangles    => (is => 'rw', default =>
+    sub {
+        my @triangles = 
+            map {
+                my @v_indices = ($_*3 .. $_*3+2);
+                my @vertices =
+                    map { $_vertices->[$_] }
+                    map { $_indices->[$_] }
+                    @v_indices;
+                Triangle->new(
+                    vertices    => \@vertices,
+                    path        => TrianglePath->new($_),
+                    tesselation => 1,
+                );
+            } (0 .. @$_indices/3 - 1);
+        return \@triangles;
+    } );
+
 #has normals      => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
 #has vertices     => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
 #has indices      => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
 
+has scale    => (is => 'rw', default => sub { 1; });
 
 method BUILD {
     $self->levels_cache->{$self->level} = $self->triangles;
@@ -114,18 +116,6 @@ method _trigger_level($level) {
     $self->_calculate_normals;
 }
 
-sub scale {
-    my ($self, $value) = @_;
-    if (defined $value) {
-        for (@{ $self->triangles }) {
-            $_->scale($value);
-        }
-    }
-    else {
-        return $self->triangles->[0]->scale;
-    }
-}
-
 method rotate($axis,$value = undef){
     if (defined $value) {
         for (@{ $self->triangles }) {
@@ -142,76 +132,34 @@ method radius {
 }
 
 method draw {
+    my $scale = $self->scale;
+    glScalef($scale, $scale, $scale);
+    glRotatef($self->rotate(0), 1, 0, 0);
+    glRotatef($self->rotate(1), 0, 1, 0);
+    glRotatef($self->rotate(2), 0, 0, 1);
+
     for (@{ $self->triangles }) {
         next if !$_ or !$_->enabled;
-        glPushMatrix;
-        glPushClientAttrib(GL_CLIENT_ALL_ATTRIB_BITS);
-        glPushAttrib(GL_ALL_ATTRIB_BITS);
         $_->draw;
-        glPopAttrib;
-        glPopClientAttrib;
-        glPopMatrix;
     }
 };
 
-method find_projections($observation_path) {
+method visualize_projections ($projections) {
     my $max_level = max keys %{ $self->levels_cache };
-    my $sphere_vertices = $observation_path->vertices;
-    my %examined_triangles_at;
-    for my $vertex_index  ( 0 .. @$sphere_vertices - 1  ) {
-        $examined_triangles_at{0}{$vertex_index} = $self->levels_cache->{0};
-    }
-    my %projections_for;
+    # disable all triangles
     for my $level (0 .. $max_level) {
-        for my $vertex_index  ( 0 .. @$sphere_vertices - 1  ) {
-            my $examined_triangles = $examined_triangles_at{$level}->{$vertex_index};
-            my $vertex_on_sphere = $sphere_vertices->[$vertex_index];
-            my @vertices =
-                map {
-                    my $vertex = $_;
-                    if (defined $vertex) {
-                        $vertex =
-                            Vector->new($_)->length <= 1
-                            ? $_
-                            : undef;
-                    }
-                    $vertex;
-                }
-                map {
-                    my $intersection = $_->intersects_with($vertex_on_sphere);
-                    $intersection;
-                } @$examined_triangles;
-            my @distances =
-                map {
-                    defined $_
-                        ? $_->vector_to($vertex_on_sphere)->length
-                        : undef;
-                } @vertices;
-            @distances =  map { maybe_zero($_) } @distances;
-            my $min_distance = min grep { defined($_) } @distances;
-            @vertices = map {
-                (defined($vertices[$_]) && $distances[$_] == $min_distance)
-                    ? $vertices[$_]
-                    : undef;
-            } (0 .. @vertices - 1);
-            my @triangle_indices =
-                grep { defined $vertices[$_] }
-                (0 .. @vertices-1);
-            my @paths =
-                map  { $examined_triangles->[$_]->path }
-                @triangle_indices;
-            $projections_for{$vertex_index}->{$level} = \@paths;
-            if ($level < $max_level) {
-                $examined_triangles_at{$level+1}->{$vertex_index} = [
-                    map {
-                        @{ $examined_triangles->[$_]->subtriangles }
-                    } @triangle_indices
-                ];
-            }
-        }
+        my $triangles = $self->levels_cache->{$level};
+        $_->enabled(0) for (@$triangles);
     }
-    return \%projections_for;
+    $projections->walk( sub {
+        my ($vertex_index, $level, $path) = @_;
+        $path->apply(sub {
+            my ($triangle, $path) = @_;
+            $triangle->enabled(1);
+        });
+    });
 }
+
 
 1;
 

@@ -112,10 +112,12 @@ method _triangle_2_lines_indices {
 
 method draw {
     my $scale = $self->scale;
-    glScalef($scale, $scale, $scale);
-    glRotatef($self->rotate(0), 1, 0, 0);
-    glRotatef($self->rotate(1), 0, 1, 0);
-    glRotatef($self->rotate(2), 0, 0, 1);
+    if ($scale) {
+        glScalef($scale, $scale, $scale);
+        glRotatef($self->rotate(0), 1, 0, 0);
+        glRotatef($self->rotate(1), 0, 1, 0);
+        glRotatef($self->rotate(2), 0, 0, 1);
+    }
 
     my $cache = $self->cache;
     my ($p_vertices, $p_normals) =

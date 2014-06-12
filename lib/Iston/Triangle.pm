@@ -23,19 +23,25 @@ has vertices => (is => 'rw', required => 1, isa =>
             unless @{$_[0]} == 3;
     }
 );
-has path => (is => 'ro', required => 1);
+has path         => (is => 'ro', required => 1);
 
 has indices      => (is => 'rw', default => sub { [0, 1, 2 ] });
 has normals      => (is => 'rw', default => sub { [] });   # vertices normals
 has normal       => (is => 'lazy'); # triangle normal
 has subtriangles => (is => 'lazy');
 has tesselation  => (is => 'ro', default => sub { 0  });
+has payload      => (is => 'ro', default => sub { {} });
 
 # material properties
 has diffuse   => (is => 'rw', default => sub { [0.75, 0.75, 0, 1]} );
 has ambient   => (is => 'rw', default => sub { [0.75, 0.75, 0, 1]} );
 has specular  => (is => 'rw', default => sub { [1.0, 1.0, 1.0, 1.0]} );
 has shininess => (is => 'rw', default => sub { 80.0 } );
+
+method BUILD {
+    $self->scale(0); # means, that it will be scaled "outside" by container
+    $self->path->triangle($self);
+}
 
 method _build_normal {
     return Iston::Vector::normal($self->vertices, [0 .. 2]);

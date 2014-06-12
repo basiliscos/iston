@@ -10,6 +10,7 @@ use Path::Tiny;
 use aliased qw/Iston::History/;
 use aliased qw/Iston::Object::HTM/;
 use aliased qw/Iston::Object::ObservationPath/;
+use aliased qw/Iston::Object::Projections/;
 use aliased qw/Iston::Vertex/;
 
 with('Iston::Application');
@@ -39,7 +40,7 @@ sub _build_htm {
     my $r = Vertex->new([0, 0, 0])->vector_to($htm->triangles->[0]->vertices->[0])->length;
     my $scale_to = 1/($r/$self->max_boundary);
     $htm->scale($scale_to); # 2.5
-    $htm->level(0);
+    $htm->level(3);
     return $htm;
 }
 
@@ -47,6 +48,37 @@ sub objects {
     my $self = shift;
     [map { $_ ? $_ : () } ($self->main_object, $self->htm, $self->observation_path) ];
 }
+
+sub _load_object {
+    my ($self, $object_path, $history_path) = @_;
+    my $object = $self->load_object($object_path);
+    $self->main_object($object);
+    my $history = History->new( path => $history_path)->load;
+    $self->history($history);
+
+    my $r1 = ($object->radius) * $object->scale;
+    my $r2 = $self->htm->radius;
+    my $scale_to = $r1/$r2;
+    $self->htm->scale($scale_to*1.01);
+    my $observation_path = ObservationPath->new(history => $history);
+    $observation_path->scale($scale_to*1.01);
+    $self->observation_path($observation_path);
+
+    my $projections = Projections->new(
+        observation_path => $observation_path,
+        htm              => $self->htm,
+    );
+    $projections->distribute_observation_timings;
+    $self->htm->visualize_projections($projections);
+
+    my $analisys_path = "${history_path}-analisys.txt";
+    open my $analisys_fh, ">:encoding(utf8)", $analisys_path
+        or die "Can't open $analisys_path : $!";
+    $projections->dump_analisys($analisys_fh);
+
+    $self->_start_replay;
+}
+
 
 sub _build_menu {
     my $self = shift;
@@ -62,7 +94,7 @@ sub _build_menu {
 
     my @histories =  grep { /\.csv/i } path(".")->children;
     for my $h (@histories) {
-        if($h->basename =~ /history_(\d+)_(.+)\.csv/) {
+        if($h->basename =~ /^history_(\d+)_(.+)\.csv$/) {
             my $model_name = $2;
             if ( exists $history_of{$model_name} ) {
                 push @{ $history_of{$model_name}->{histories} }, $h;
@@ -89,20 +121,7 @@ sub _build_menu {
         my $histories = $me->{histories};
         my $menu_handler = sub {
             my $history_idx = shift;
-            my $object = $self->load_object($me->{path});
-            $self->main_object($object);
-            my $history_path = $histories->[$history_idx];
-            my $history = History->new( path => $history_path)->load;
-            $self->history($history);
-
-            my $r1 = ($object->radius) * $object->scale;
-            my $r2 = $self->htm->radius;
-            my $scale_to = $r1/$r2;
-            $self->htm->scale($scale_to*1.01);
-            my $observation_path = ObservationPath->new(history => $history);
-            $observation_path->scale($scale_to*1.01);
-            $self->observation_path($observation_path);
-            $self->_start_replay;
+            $self->_load_object($me->{path}, $histories->[$history_idx]);
         };
         my $submenu_id = glutCreateMenu($menu_handler);
         for my $h_idx (0 .. @$histories - 1 ){

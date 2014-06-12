@@ -5,13 +5,14 @@ use Test::Warnings;
 
 use aliased qw/Iston::History/;
 use aliased qw/Iston::History::Record/;
-use aliased qw/Iston::Object::ObservationPath/;
 use aliased qw/Iston::Vertex/;
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Object::HTM/;
+use aliased qw/Iston::Object::ObservationPath/;
+use aliased qw/Iston::Object::Projections/;
 
-my $ts_idx = 0;
 my $_a2r = sub {
+    my $ts_idx = 0;
     my $angles = shift;
     return [ map  {
         my ($a, $b) = @$_;
@@ -65,9 +66,14 @@ subtest "unique vertex on sphere hit to just 1 trianle" => sub {
     my $o = ObservationPath->new(history => $h);
     my $htm = HTM->new;
     $htm->level(1);
-    my $projections = $htm->find_projections($o);
+    my $projections = Projections->new(
+        observation_path => $o,
+        htm              => $htm,
+    );
 
-    is_deeply $projections, {
+    my $projections_map = $projections->projections_map;
+
+    is_deeply $projections_map, {
         0 => {                  # vertex in observation path index
             0 => ["path[0]"],   # level => triangle index
             1 => ["path[0:2]"],
@@ -77,6 +83,11 @@ subtest "unique vertex on sphere hit to just 1 trianle" => sub {
             1 => ["path[0:2]"],
         },
     };
+    $projections->distribute_observation_timings;
+    is $projections_map->{0}->{0}->[0]->triangle->payload->{total_time},
+        1, "right time on NF triangle";
+    is $projections_map->{0}->{1}->[0]->triangle->payload->{total_time},
+        1, "right time on NF sub-triangle";
 };
 
 subtest "vertex on sphere hit to 2 adjacent trianle" => sub {
@@ -87,9 +98,14 @@ subtest "vertex on sphere hit to 2 adjacent trianle" => sub {
     my $o = ObservationPath->new(history => $h);
     my $htm = HTM->new;
     $htm->level(1);
-    my $projections = $htm->find_projections($o);
 
-    is_deeply $projections, {
+    my $projections = Projections->new(
+        observation_path => $o,
+        htm              => $htm,
+    );
+    my $projections_map = $projections->projections_map;
+
+    is_deeply $projections_map, {
         0 => {
             0 => [qw/path[0]   path[4]/],
             1 => [qw/path[0:2] path[4:1]/],
@@ -99,6 +115,18 @@ subtest "vertex on sphere hit to 2 adjacent trianle" => sub {
             1 => [qw/path[0:2] path[4:1]/],
         },
     };
+
+    $projections->distribute_observation_timings;
+
+    is $projections_map->{0}->{0}->[0]->triangle->payload->{total_time},
+        0.5, "right time on NF triangle";
+    is $projections_map->{0}->{0}->[1]->triangle->payload->{total_time},
+        0.5, "right time on SF triangle";
+
+    is $projections_map->{0}->{1}->[0]->triangle->payload->{total_time},
+        0.5, "right time on NF subtriangle";
+    is $projections_map->{0}->{1}->[1]->triangle->payload->{total_time},
+        0.5, "right time on SF subtriangle";
 };
 
 subtest "vertex on sphere hit to the vertex of the 4 triangles (north pole)" => sub {
@@ -109,9 +137,15 @@ subtest "vertex on sphere hit to the vertex of the 4 triangles (north pole)" => 
     my $o = ObservationPath->new(history => $h);
     my $htm = HTM->new;
     $htm->level(1);
-    my $projections = $htm->find_projections($o);
 
-    is_deeply $projections, {
+    my $projections = Projections->new(
+        observation_path => $o,
+        htm              => $htm,
+    );
+    my $projections_map = $projections->projections_map;
+
+
+    is_deeply $projections_map, {
         0 => {
             0 => [qw/path[0]/],
             1 => [qw/path[0:3]/],
@@ -121,6 +155,7 @@ subtest "vertex on sphere hit to the vertex of the 4 triangles (north pole)" => 
             1 => [qw/path[0:0] path[1:0] path[2:0] path[3:0]/],
         },
     };
+
 };
 
 subtest "vertex on sphere hit to the vertex of the 6 triangles" => sub {
@@ -131,9 +166,14 @@ subtest "vertex on sphere hit to the vertex of the 6 triangles" => sub {
     my $o = ObservationPath->new(history => $h);
     my $htm = HTM->new;
     $htm->level(1);
-    my $projections = $htm->find_projections($o);
 
-    is_deeply $projections, {
+    my $projections = Projections->new(
+        observation_path => $o,
+        htm              => $htm,
+    );
+    my $projections_map = $projections->projections_map;
+
+    is_deeply $projections_map, {
         0 => {
             0 => [qw/path[0]   path[4]/],
             1 => [qw/path[0:1] path[0:2] path[0:3] path[4:1] path[4:2] path[4:3]/],
@@ -143,6 +183,12 @@ subtest "vertex on sphere hit to the vertex of the 6 triangles" => sub {
             1 => [qw/path[0:3]/],
         },
     };
+
+    $projections->distribute_observation_timings;
+    is $projections_map->{0}->{0}->[0]->triangle->payload->{total_time},
+        0.5, "right time on NF triangle";
+    is $projections_map->{0}->{1}->[1]->triangle->payload->{total_time},
+        1/6, "right time on NF subtriangle";
 };
 
 done_testing;
