@@ -115,7 +115,7 @@ sub _build_menu {
 
     my @histories =  grep { /\.csv/i } path(".")->children;
     for my $h (@histories) {
-        if($h->basename =~ /history_(\d+)_(.+)\.csv/) {
+        if($h->basename =~ /^history_(\d+)_(.+)\.csv$/) {
             my $model_name = $2;
             if ( exists $history_of{$model_name} ) {
                 push @{ $history_of{$model_name}->{histories} }, $h;
