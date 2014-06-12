@@ -11,7 +11,6 @@ use OpenGL qw(:all);
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
-with('Iston::Drawable');
 
 has center   => (is => 'lazy');
 has scale    => (is => 'rw', default => sub { 1; });
@@ -20,13 +19,17 @@ has indices  => (is => 'rw', required => 0);
 has normals  => (is => 'rw', required => 0);
 has mode     => (is => 'rw', default => sub { 'normal' }, trigger => 1);
 has contexts => (is => 'rw', default => sub { {} });
-has cache    => (is => 'rw', default => sub { {} });
+
+has draw_function => (is => 'lazy', clearer => 1);
 
 # material properties
 has diffuse   => (is => 'rw', default => sub { [0.75, 0.75, 0.75, 1]} );
 has ambient   => (is => 'rw', default => sub { [0.75, 0.75, 0.75, 1]} );
 has specular  => (is => 'rw', default => sub { [0.8, 0.8, 0.8, 1.0]} );
 has shininess => (is => 'rw', default => sub { 50.0 } );
+
+
+with('Iston::Drawable');
 
 method _build_center {
     my ($v_size, $n_size) = map { scalar(@{ $self->$_ }) }
@@ -108,18 +111,11 @@ method _triangle_2_lines_indices {
         @r;
     } (0 .. scalar(@$source) / $components-1);
     return \@result;
-}
+};
 
-method draw {
+method _build_draw_function {
     my $scale = $self->scale;
-    if ($scale) {
-        glScalef($scale, $scale, $scale);
-        glRotatef($self->rotate(0), 1, 0, 0);
-        glRotatef($self->rotate(1), 0, 1, 0);
-        glRotatef($self->rotate(2), 0, 0, 1);
-    }
 
-    my $cache = $self->cache;
     my ($p_vertices, $p_normals) =
         map {
             my $v = $self->$_;
@@ -127,23 +123,9 @@ method draw {
             $v;
         } qw/vertices normals/;
     my ($vertices, $normals) =
-        map { $cache->{$_} //= $_as_oga->($_) }
+        map { $_as_oga->($_) }
         ($p_vertices, $p_normals);
     my $components = 3; # number of coordinates
-    glEnableClientState(GL_NORMAL_ARRAY);
-    glNormalPointer_p($normals);
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glVertexPointer_p($components, $vertices);
-
-    # applying material properties to the whole object
-    glMaterialfv_c(GL_FRONT, GL_DIFFUSE,   OpenGL::Array->new_list(
-        GL_FLOAT, @{ $self->diffuse } )->ptr);
-    glMaterialfv_c(GL_FRONT, GL_AMBIENT,   OpenGL::Array->new_list(
-        GL_FLOAT, @{ $self->ambient } )->ptr);
-    glMaterialfv_c(GL_FRONT, GL_SPECULAR,  OpenGL::Array->new_list(
-        GL_FLOAT, @{ $self->specular} )->ptr);
-    glMaterialfv_c(GL_FRONT, GL_SHININESS, OpenGL::Array->new_list(
-        GL_FLOAT, $self->shininess)->ptr);
 
     my $indices = $self->indices;
     my $indices_size = scalar(@$indices);
@@ -151,7 +133,31 @@ method draw {
     my $draw_mode = $mode eq 'normal'
         ? GL_TRIANGLES : GL_LINES;
 
-    glDrawElements_p($draw_mode, @$indices);
+    return sub {
+        if ($scale) {
+            glScalef($scale, $scale, $scale);
+            glRotatef($self->rotate(0), 1, 0, 0);
+            glRotatef($self->rotate(1), 0, 1, 0);
+            glRotatef($self->rotate(2), 0, 0, 1);
+        }
+        glEnableClientState(GL_NORMAL_ARRAY);
+        glNormalPointer_p($normals);
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glVertexPointer_p($components, $vertices);
+
+        # applying material properties to the whole object
+        glMaterialfv_c(GL_FRONT, GL_DIFFUSE,   OpenGL::Array->new_list(
+            GL_FLOAT, @{ $self->diffuse } )->ptr);
+        glMaterialfv_c(GL_FRONT, GL_AMBIENT,   OpenGL::Array->new_list(
+            GL_FLOAT, @{ $self->ambient } )->ptr);
+        glMaterialfv_c(GL_FRONT, GL_SPECULAR,  OpenGL::Array->new_list(
+            GL_FLOAT, @{ $self->specular} )->ptr);
+        glMaterialfv_c(GL_FRONT, GL_SHININESS, OpenGL::Array->new_list(
+            GL_FLOAT, $self->shininess)->ptr);
+
+
+        glDrawElements_p($draw_mode, @$indices);
+    };
 }
 
 1;

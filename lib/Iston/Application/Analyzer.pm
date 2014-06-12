@@ -60,6 +60,8 @@ sub _load_object {
     my $r2 = $self->htm->radius;
     my $scale_to = $r1/$r2;
     $self->htm->scale($scale_to*1.01);
+    $self->htm->clear_draw_function;
+
     my $observation_path = ObservationPath->new(history => $history);
     $observation_path->scale($scale_to*1.01);
     $self->observation_path($observation_path);

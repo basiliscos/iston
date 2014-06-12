@@ -94,7 +94,7 @@ sub _drawGLScene {
         glPushMatrix;
         glPushClientAttrib(GL_CLIENT_ALL_ATTRIB_BITS);
         glPushAttrib(GL_ALL_ATTRIB_BITS);
-        $_->draw;
+        $_->draw_function->();
         glPopAttrib;
         glPopClientAttrib;
         glPopMatrix;
