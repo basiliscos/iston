@@ -39,7 +39,7 @@ sub _build_htm {
     my $r = Vertex->new([0, 0, 0])->vector_to($htm->triangles->[0]->vertices->[0])->length;
     my $scale_to = 1/($r/$self->max_boundary);
     $htm->scale($scale_to); # 2.5
-    $htm->level(0);
+    $htm->level(3);
     return $htm;
 }
 
