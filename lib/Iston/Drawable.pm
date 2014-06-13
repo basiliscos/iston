@@ -17,7 +17,7 @@ sub rotate {
     }
 }
 
-requires qw/draw/;
+requires qw/draw_function/;
 
 1;
 

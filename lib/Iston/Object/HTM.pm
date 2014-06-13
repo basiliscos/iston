@@ -16,9 +16,6 @@ use aliased qw/Iston::TrianglePath/;
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
-#extends 'Iston::Object';
-with('Iston::Drawable');
-
 # OK, let's calculate the defaults;
 my $_PI = 2*atan2(1,0);
 my $_G  = $_PI/180;
@@ -48,7 +45,7 @@ has level        => (is => 'rw', default => sub { 0  }, trigger => 1 );
 has levels_cache => (is => 'ro', default => sub { {} } );
 has triangles    => (is => 'rw', default =>
     sub {
-        my @triangles = 
+        my @triangles =
             map {
                 my @v_indices = ($_*3 .. $_*3+2);
                 my @vertices =
@@ -69,6 +66,10 @@ has triangles    => (is => 'rw', default =>
 #has indices      => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
 
 has scale    => (is => 'rw', default => sub { 1; });
+
+has draw_function => (is => 'lazy', clearer => 1);
+
+with('Iston::Drawable');
 
 method BUILD {
     $self->levels_cache->{$self->level} = $self->triangles;
@@ -114,6 +115,7 @@ method _trigger_level($level) {
     }
     $self->triangles($current_triangles);
     $self->_calculate_normals;
+    $self->clear_draw_function;
 }
 
 method rotate($axis,$value = undef){
@@ -129,20 +131,23 @@ method rotate($axis,$value = undef){
 
 method radius {
     return 1;
-}
-
-method draw {
-    my $scale = $self->scale;
-    glScalef($scale, $scale, $scale);
-    glRotatef($self->rotate(0), 1, 0, 0);
-    glRotatef($self->rotate(1), 0, 1, 0);
-    glRotatef($self->rotate(2), 0, 0, 1);
-
-    for (@{ $self->triangles }) {
-        next if !$_ or !$_->enabled;
-        $_->draw;
-    }
 };
+
+method _build_draw_function {
+    my @triangles =
+        grep { $_ && $_->enabled }
+        @{ $self->triangles };
+    my $scale = $self->scale;
+
+    return sub {
+        glScalef($scale, $scale, $scale);
+        glRotatef($self->rotate(0), 1, 0, 0);
+        glRotatef($self->rotate(1), 0, 1, 0);
+        glRotatef($self->rotate(2), 0, 0, 1);
+
+        $_->draw_function->() for(@triangles);
+    };
+}
 
 method visualize_projections ($projections) {
     my $max_level = max keys %{ $self->levels_cache };

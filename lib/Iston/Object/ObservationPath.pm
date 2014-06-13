@@ -14,8 +14,6 @@ use OpenGL qw(:all);
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
-with('Iston::Drawable');
-
 my $_PI = 2*atan2(1,0);
 my $_G2R = $_PI / 180;
 
@@ -25,7 +23,11 @@ has vertices           => (is => 'rw');
 has displayed_vertices => (is => 'rw');
 has indices            => (is => 'rw');
 has index_at           => (is => 'rw', default => sub{ {} });
-has active_time        => (is => 'rw');
+has active_time        => (is => 'rw', trigger => 1);
+
+has draw_function => (is => 'lazy', clearer => 1);
+
+with('Iston::Drawable');
 
 method BUILD {
     $self->_build_vertices_and_indices;
@@ -113,24 +115,20 @@ method arrow_vertices($index_to, $index_from) {
     return @results;
 }
 
-method draw {
-    my $scale = $self->scale;
-    glScalef($scale, $scale, $scale);
-    glRotatef($self->rotate(0), 1, 0, 0);
-    glRotatef($self->rotate(1), 0, 1, 0);
-    glRotatef($self->rotate(2), 0, 0, 1);
+method _trigger_active_time {
+    $self->clear_draw_function;
+}
+
+method _build_draw_function {
 
     my $vertices = OpenGL::Array->new_list( GL_FLOAT,
         map { @$_ } @{ $self->displayed_vertices }
     );
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glVertexPointer_p(3, $vertices);
 
     my $indices = $self->indices;
     my @passive_indices = @$indices;
     my @arrow_indices;
 
-    glVertexPointer_p(3, $vertices);
     # calculate recent active path
     my $active_time = $self->active_time;
     if (defined $active_time && exists $self->index_at->{$active_time}) {
@@ -148,20 +146,32 @@ method draw {
 
     my $diffusion = OpenGL::Array->new_list(GL_FLOAT, 0.0, 0.0, 0.0, 1.0);
     my $emission = OpenGL::Array->new_list(GL_FLOAT, 0.75, 0.0, 0.0, 1.0);
-    glMaterialfv_c(GL_FRONT, GL_DIFFUSE,  $diffusion->ptr);
-    glMaterialfv_c(GL_FRONT, GL_AMBIENT,  $diffusion->ptr);
-    glMaterialfv_c(GL_FRONT, GL_EMISSION, $emission->ptr);
-    glDrawElements_p(GL_LINES, @passive_indices);
+    my $hilight_emission = OpenGL::Array->new_list(GL_FLOAT, 0.0, 0.95, 0.0, 1.0);
+    
+    return sub {
+        my $scale = $self->scale;
+        glScalef($scale, $scale, $scale);
+        glRotatef($self->rotate(0), 1, 0, 0);
+        glRotatef($self->rotate(1), 0, 1, 0);
+        glRotatef($self->rotate(2), 0, 0, 1);
 
-    # hilight recent active path arrow
-    if (@arrow_indices) {
-        my $diffusion = OpenGL::Array->new_list(GL_FLOAT, 0.0, 0.0, 0.0, 1.0);
-        my $emission = OpenGL::Array->new_list(GL_FLOAT, 0.0, 0.95, 0.0, 1.0);
-        glMaterialfv_c(GL_FRONT, GL_DIFFUSE, $diffusion->ptr);
-        glMaterialfv_c(GL_FRONT, GL_AMBIENT, $diffusion->ptr);
-        glMaterialfv_c(GL_FRONT, GL_EMISSION,$emission->ptr);
-        glDrawElements_p(GL_LINES, @arrow_indices);
-    }
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glVertexPointer_p(3, $vertices);
+
+        glMaterialfv_c(GL_FRONT, GL_DIFFUSE,  $diffusion->ptr);
+        glMaterialfv_c(GL_FRONT, GL_AMBIENT,  $diffusion->ptr);
+        glMaterialfv_c(GL_FRONT, GL_EMISSION, $emission->ptr);
+        glDrawElements_p(GL_LINES, @passive_indices);
+
+        # hilight recent active path arrow
+        if (@arrow_indices) {
+            glMaterialfv_c(GL_FRONT, GL_DIFFUSE,  $diffusion->ptr);
+            glMaterialfv_c(GL_FRONT, GL_AMBIENT,  $diffusion->ptr);
+            glMaterialfv_c(GL_FRONT, GL_EMISSION, $hilight_emission->ptr);
+            glDrawElements_p(GL_LINES, @arrow_indices);
+        }
+    };
+
 }
 
 1;
