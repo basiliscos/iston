@@ -146,7 +146,8 @@ method _build_draw_function {
 
     my $diffusion = OpenGL::Array->new_list(GL_FLOAT, 0.0, 0.0, 0.0, 1.0);
     my $emission = OpenGL::Array->new_list(GL_FLOAT, 0.75, 0.0, 0.0, 1.0);
-
+    my $hilight_emission = OpenGL::Array->new_list(GL_FLOAT, 0.0, 0.95, 0.0, 1.0);
+    
     return sub {
         my $scale = $self->scale;
         glScalef($scale, $scale, $scale);
@@ -164,11 +165,9 @@ method _build_draw_function {
 
         # hilight recent active path arrow
         if (@arrow_indices) {
-            my $diffusion = OpenGL::Array->new_list(GL_FLOAT, 0.0, 0.0, 0.0, 1.0);
-            my $emission = OpenGL::Array->new_list(GL_FLOAT, 0.0, 0.95, 0.0, 1.0);
-            glMaterialfv_c(GL_FRONT, GL_DIFFUSE, $diffusion->ptr);
-            glMaterialfv_c(GL_FRONT, GL_AMBIENT, $diffusion->ptr);
-            glMaterialfv_c(GL_FRONT, GL_EMISSION,$emission->ptr);
+            glMaterialfv_c(GL_FRONT, GL_DIFFUSE,  $diffusion->ptr);
+            glMaterialfv_c(GL_FRONT, GL_AMBIENT,  $diffusion->ptr);
+            glMaterialfv_c(GL_FRONT, GL_EMISSION, $hilight_emission->ptr);
             glDrawElements_p(GL_LINES, @arrow_indices);
         }
     };

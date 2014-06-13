@@ -133,6 +133,9 @@ method _build_draw_function {
     my $draw_mode = $mode eq 'normal'
         ? GL_TRIANGLES : GL_LINES;
 
+    my ($diffuse, $ambient, $specular) =  map {
+        OpenGL::Array->new_list( GL_FLOAT, @$_ )
+      } map { $self->$_ } qw/diffuse ambient specular/;
     return sub {
         if ($scale) {
             glScalef($scale, $scale, $scale);
@@ -146,15 +149,11 @@ method _build_draw_function {
         glVertexPointer_p($components, $vertices);
 
         # applying material properties to the whole object
-        glMaterialfv_c(GL_FRONT, GL_DIFFUSE,   OpenGL::Array->new_list(
-            GL_FLOAT, @{ $self->diffuse } )->ptr);
-        glMaterialfv_c(GL_FRONT, GL_AMBIENT,   OpenGL::Array->new_list(
-            GL_FLOAT, @{ $self->ambient } )->ptr);
-        glMaterialfv_c(GL_FRONT, GL_SPECULAR,  OpenGL::Array->new_list(
-            GL_FLOAT, @{ $self->specular} )->ptr);
+        glMaterialfv_c(GL_FRONT, GL_DIFFUSE, $diffuse->ptr);
+        glMaterialfv_c(GL_FRONT, GL_AMBIENT, $ambient->ptr);
+        glMaterialfv_c(GL_FRONT, GL_SPECULAR, $specular ->ptr);
         glMaterialfv_c(GL_FRONT, GL_SHININESS, OpenGL::Array->new_list(
             GL_FLOAT, $self->shininess)->ptr);
-
 
         glDrawElements_p($draw_mode, @$indices);
     };
