@@ -19,6 +19,7 @@ has main_object       => (is => 'rw');
 has models_path       => (is => 'ro', required => 1);
 has htm               => (is => 'lazy');
 has observation_path  => (is => 'rw');
+has active_record_idx => (is => 'rw');
 has time_ratio        => (is => 'rw', default => sub { 1 });
 has timer             => (is => 'rw');
 has step_function     => (is => 'rw');
@@ -31,6 +32,24 @@ sub BUILD {
     $self->init_app;
     glutSetCursor(GLUT_CURSOR_INHERIT);
     $self->_build_menu;
+    $self->dump_function( sub {
+        my $level = $self->htm->level;
+        my $triangles = scalar(@{ $self->htm->triangles });
+        my @lines = (
+            "HTM level: $level",
+            "HTM triangles: $triangles",
+        );
+        my $observation_path = $self->observation_path;
+        if ($observation_path) {
+            my $view_points = @{ $observation_path->vertices };
+            my $current_point = $self->active_record_idx;
+            my $current_ts = $self->history->records->[$current_point]->timestamp;
+            my $info = sprintf 'view point: %d/%d [%0.4f]',
+                $current_point+1, $view_points, $current_ts;
+            push @lines, $info;
+        }
+        return @lines;
+    });
 }
 
 sub _build_htm {
@@ -180,10 +199,11 @@ sub _exit {
 
 sub _start_replay {
     my $self = shift;
-    my ($last_time, $i, $record, $sleep_time, $history_object);
+    my ($last_time, $record, $sleep_time, $history_object);
     my $initialize = sub {
-        $last_time = $i = 0;
-        $record = $self->history->records->[$i];
+        $last_time = 0;
+        $self->active_record_idx(0);
+        $record = $self->history->records->[$self->active_record_idx];
         $sleep_time = $record->timestamp - $last_time;
         $history_object = $self->history;
     };
@@ -216,7 +236,10 @@ sub _start_replay {
         $self->refresh_world();
 
         $last_time = $record->timestamp;
-        $record = $self->history->records->[++$i];
+        my $idx = $self->active_record_idx;
+        $record = $self->history->records->[++$idx];
+        $idx-- unless($record); # let index always point to the last record
+        $self->active_record_idx($idx);
         $self->step_end_function->();
     };
     $self->step_function($step);

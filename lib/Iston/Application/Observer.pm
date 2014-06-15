@@ -4,6 +4,7 @@ use 5.12.0;
 
 use Moo;
 use OpenGL qw(:all);
+use Path::Tiny;
 use Time::HiRes qw/gettimeofday tv_interval usleep sleep/;
 
 use aliased qw/Iston::History::Record/;
@@ -41,6 +42,10 @@ sub BUILD {
     my ($x, $y) = ($self->width/2, $self->height/2);
     glutWarpPointer($x, $y);
     $self->mouse_position([$x, $y]);
+    $self->dump_function(sub {
+        my $model_file = path($self->object_path)->basename;
+        return ("model: $model_file");
+    });
 
     $self->_log_state;
 };
