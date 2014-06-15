@@ -136,6 +136,7 @@ method _build_draw_function {
     my ($diffuse, $ambient, $specular) =  map {
         OpenGL::Array->new_list( GL_FLOAT, @$_ )
       } map { $self->$_ } qw/diffuse ambient specular/;
+    my $shininess = OpenGL::Array->new_list(GL_FLOAT, $self->shininess);
     return sub {
         if ($scale) {
             glScalef($scale, $scale, $scale);
@@ -152,10 +153,12 @@ method _build_draw_function {
         glMaterialfv_c(GL_FRONT, GL_DIFFUSE, $diffuse->ptr);
         glMaterialfv_c(GL_FRONT, GL_AMBIENT, $ambient->ptr);
         glMaterialfv_c(GL_FRONT, GL_SPECULAR, $specular ->ptr);
-        glMaterialfv_c(GL_FRONT, GL_SHININESS, OpenGL::Array->new_list(
-            GL_FLOAT, $self->shininess)->ptr);
+        glMaterialfv_c(GL_FRONT, GL_SHININESS, $shininess->ptr);
 
         glDrawElements_p($draw_mode, @$indices);
+
+        glDisableClientState(GL_NORMAL_ARRAY);
+        glDisableClientState(GL_VERTEX_ARRAY);
     };
 }
 

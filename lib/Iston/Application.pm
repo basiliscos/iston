@@ -17,6 +17,7 @@ has width           => (is => 'rw');
 has height          => (is => 'rw');
 
 has history         => (is => 'rw');
+has dump_function   => (is => 'rw');
 
 requires qw/key_pressed/;
 requires qw/mouse_movement/;
@@ -28,8 +29,6 @@ sub init_app {
     glutInit;
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
     glEnable(GL_DEPTH_TEST);
-    glEnableClientState(GL_COLOR_ARRAY);
-    glEnableClientState(GL_VERTEX_ARRAY);
     glutCreateWindow("Iston");
     my $draw_callback = sub { $self->_drawGLScene };
     glutDisplayFunc($draw_callback);
@@ -82,9 +81,36 @@ sub _initGL {
     _init_light;
 }
 
+
+sub _render_hud {
+    my $self = shift;
+    my @lines = reverse $self->dump_function->();
+    my @viewport =  glGetIntegerv_p(GL_VIEWPORT);
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix;
+    glLoadIdentity;
+    glOrtho($viewport[0], $viewport[2], $viewport[1], $viewport[3], -1, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity;
+    my ($start_x, $start_y, $step) = (10, 10, 20);
+    my $color = OpenGL::Array->new_list( GL_FLOAT, 0.0, 1.0, 0.0, 1.0 );
+    glMaterialfv_c(GL_FRONT, GL_DIFFUSE, $color->ptr);
+
+    for my $i (0 .. @lines-1) {
+        my $line = $lines[$i];
+        glRasterPos2i($start_x, $start_y + $step*$i);
+        glutBitmapString(GLUT_BITMAP_HELVETICA_18, $line);
+    }
+    glMatrixMode( GL_PROJECTION );
+    glPopMatrix;
+    glMatrixMode( GL_MODELVIEW );
+    glPopMatrix;
+}
+
 sub _drawGLScene {
     my $self = shift;
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    $self->_render_hud if $self->dump_function;
 
     glLoadIdentity;
     glTranslatef(@{ $self->camera_position });
