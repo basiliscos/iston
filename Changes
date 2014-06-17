@@ -1,2 +1,5 @@
 {{$NEXT}}
-	Initial release
+	Add HUD with displaying some relevant information
+	Speedup drawing via closure generation
+	Split HTM into separate triangles
+	
