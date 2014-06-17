@@ -1,4 +1,6 @@
 {{$NEXT}}
+
+0.02      2014-06-17 23:13:20+03:00 Europe/Minsk
 	Add HUD with displaying some relevant information
 	Speedup drawing via closure generation
 	Split HTM into separate triangles
