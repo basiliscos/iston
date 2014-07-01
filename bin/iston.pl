@@ -55,5 +55,11 @@ if($replay_history) {
     );
 }
 
-my $t; $t = AE::timer 0, 0.05, sub { $app->refresh_world; };
+my $t; $t = AE::timer 0, 0.05, sub {
+    $app->refresh_world;
+};
 $app->cv_finish->recv;
+say "bye-bye";
+
+# kill self to avoid problem with pure virtual method called
+#kill 9, $$;
