@@ -149,21 +149,4 @@ method _build_draw_function {
     };
 }
 
-method visualize_projections ($projections) {
-    my $max_level = max keys %{ $self->levels_cache };
-    # disable all triangles
-    for my $level (0 .. $max_level) {
-        my $triangles = $self->levels_cache->{$level};
-        $_->enabled(0) for (@$triangles);
-    }
-    $projections->walk( sub {
-        my ($vertex_index, $level, $path) = @_;
-        $path->apply(sub {
-            my ($triangle, $path) = @_;
-            $triangle->enabled(1);
-        });
-    });
-}
-
-
 1;

@@ -4,6 +4,7 @@ use 5.12.0;
 
 use AntTweakBar qw/:all/;
 use AnyEvent;
+use List::Util qw/max/;
 use Moo;
 use OpenGL qw(:all);
 use Path::Tiny;
@@ -18,16 +19,19 @@ use aliased qw/Iston::Vertex/;
 
 with('Iston::Application');
 
-has main_object       => (is => 'rw');
-has models_path       => (is => 'ro', required => 1);
-has htm               => (is => 'lazy');
-has observation_path  => (is => 'rw');
-has active_record_idx => (is => 'rw');
-has time_ratio        => (is => 'rw', default => sub { 1.0 });
-has timer             => (is => 'rw');
-has step_function     => (is => 'rw');
-has step_end_function => (is => 'rw');
-has _commands         => (is => 'lazy');
+has main_object            => (is => 'rw');
+has models_path            => (is => 'ro', required => 1);
+has htm                    => (is => 'lazy');
+has projections            => (is => 'rw');
+has observation_path       => (is => 'rw');
+has active_record_idx      => (is => 'rw');
+has time_ratio             => (is => 'rw', default => sub { 1.0 });
+has timer                  => (is => 'rw');
+has step_function          => (is => 'rw');
+has step_end_function      => (is => 'rw');
+has _commands              => (is => 'lazy');
+has _htm_visualizers       => (is => 'lazy');
+has _htm_visualizer_index  => (is => 'rw', default => sub { 0 });
 
 sub _build_menu;
 
@@ -75,12 +79,13 @@ sub _load_object {
         htm              => $self->htm,
     );
     $projections->distribute_observation_timings;
-    $self->htm->visualize_projections($projections);
 
     my $analisys_path = "${history_path}-analisys.txt";
     open my $analisys_fh, ">:encoding(utf8)", $analisys_path
         or die "Can't open $analisys_path : $!";
     $projections->dump_analisys($analisys_fh);
+    $self->projections($projections);
+    $self->_try_visualize_htm(2); # durations projection
 
     $self->settings_bar->refresh;
 
@@ -164,6 +169,21 @@ sub _build_menu {
         type       => 'integer',
         cb_read    => sub { scalar(@{ $self->htm->triangles }) },
         definition => " group='HTM' label='triangles' ",
+    );
+    my $htm = $self->htm;
+    my $htm_visualizers = $self->_htm_visualizers;
+    my $htm_visualization = Type->new(
+        "htm_visualization", [
+            map { $htm_visualizers->[$_*2] } (0 .. (@$htm_visualizers-1)/2)
+        ]
+    );
+    $bar->add_variable(
+        mode       => 'rw',
+        name       => "visualization_mode",
+        type       => $htm_visualization,
+        cb_read    => sub { $self->_htm_visualizer_index },
+        cb_write   => sub { $self->_try_visualize_htm($_[0]) },
+        definition => " group='HTM' label='mode' ",
     );
 
     # models group
@@ -329,6 +349,64 @@ sub process_event {
     if ($action) {
         $action->();
     }
+}
+
+sub _try_visualize_htm {
+    my ($self, $visualized_idx ) = @_;
+    my $render = $self->_htm_visualizers->[$visualized_idx * 2 + 1];
+    if ($render->()) {
+        $self->_htm_visualizer_index($visualized_idx);
+        $self->htm->clear_draw_function;
+    }
+}
+
+sub _build__htm_visualizers {
+    my $self = shift;
+    my $htm = $self->htm;
+    my @htm_visualizers = (
+        'sphere' => sub {
+            my $max_level = max keys %{ $htm->levels_cache };
+            for my $level (0 .. $max_level) {
+                my $triangles = $htm->levels_cache->{$level};
+                for my $t (@$triangles){
+                    $t->enabled(1);
+                    $t->mode('normal') unless($t->mode eq 'normal' );
+                }
+            }
+            return 1;
+        },
+        'sphere_mesh' => sub {
+            my $max_level = max keys %{ $htm->levels_cache };
+            for my $level (0 .. $max_level) {
+                my $triangles = $htm->levels_cache->{$level};
+                for my $t (@$triangles){
+                    $t->enabled(1);
+                    $t->mode('mesh') unless($t->mode eq 'mesh');
+                }
+            }
+            return 1;
+        },
+        'duration projections' => sub {
+            my $projections = $self->projections;
+            if($projections) {
+                my $max_level = max keys %{ $htm->levels_cache };
+                for my $level (0 .. $max_level) {
+                    my $triangles = $htm->levels_cache->{$level};
+                    $_->enabled(0) for (@$triangles);
+                }
+                $projections->walk( sub {
+                    my ($vertex_index, $level, $path) = @_;
+                    $path->apply( sub {
+                        my ($t, $path) = @_;
+                        $t->mode('normal') unless($t->mode eq 'normal' );
+                        $t->enabled(1);
+                    });
+                });
+                return 1;
+            }
+        },
+    );
+    return \@htm_visualizers;
 }
 
 sub _build__commands {

@@ -89,16 +89,17 @@ method translate($vector) {
 method _trigger_mode {
     my $mode = $self->mode;
     if ($mode eq 'mesh') {
-       $self->contexts->{normal} = {
-           indices => $self->indices,
-       };
-       $self->indices($self->_triangle_2_lines_indices);
-   }else {
-       $self->contexts->{mesh} = {
-           indices => $self->indices,
-       };
-       $self->indices($self->contexts->{normal}->{indices});
-   }
+        $self->contexts->{normal} = {
+            indices => $self->indices,
+        };
+        $self->indices($self->_triangle_2_lines_indices);
+    } else {
+        $self->contexts->{mesh} = {
+            indices => $self->indices,
+        };
+        $self->indices($self->contexts->{normal}->{indices});
+    }
+    $self->clear_draw_function;
 };
 
 method _triangle_2_lines_indices {
