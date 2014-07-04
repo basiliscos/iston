@@ -72,11 +72,11 @@ subtest "simple case: rotation in the same plane: no aberrations" => sub {
     my $result = ${$out->string_ref};
     is $result, <<RESULT
 vertex_index, aberration
-0, 0
-1, 0
-2, 0
-3, 0
-4, 0
+0, 0.00
+1, 0.00
+2, 0.00
+3, 0.00
+4, 0.00
 RESULT
 };
 
@@ -112,6 +112,19 @@ subtest "vertices duplication check output" => sub {
     my $abb = Aberrations->new( projections => $projections );
     my $values = $abb->values;
     is_deeply $values, [90 * $_G2R, 90 * $_G2R];
+
+    my $out = IO::String->new;
+    $abb->dump_analisys($out);
+    my $result = ${$out->string_ref};
+    is $result, <<RESULT
+vertex_index, aberration
+0, 0.00
+1, 0.00
+2, 0.00
+3, 90.00
+4, 0.00
+5, 90.00
+RESULT
 };
 
 

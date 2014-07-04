@@ -12,6 +12,9 @@ use Moo;
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
+my $_PI = 2*atan2(1,0);
+my $_G2R = $_PI / 180;
+
 has 'projections'    => (is => 'ro', required => 1);
 has 'sphere_vectors' => (is => 'lazy');
 has 'values'         => (is => 'lazy');
@@ -60,9 +63,10 @@ method dump_analisys ($output_fh) {
         my $vector_index = $sphere_index - 1;
         my $value_index  = $vector_index - 1;
         my $value = 0;
-        if ($value_index && $v2s->[$idx-1] != $sphere_index) {
+        if ($value_index >= 0 && $v2s->[$idx-1] != $sphere_index) {
             $value = $values->[$value_index];
         }
+        $value = sprintf('%0.2f', $value / $_G2R);
         say $output_fh "$idx, $value";
     }
 }
