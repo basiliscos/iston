@@ -12,6 +12,7 @@ use SDL::Events qw/:all/;
 
 use aliased qw/AntTweakBar::Type/;
 use aliased qw/Iston::History/;
+use aliased qw/Iston::Analysis::Aberrations/;
 use aliased qw/Iston::Analysis::Projections/;
 use aliased qw/Iston::Object::HTM/;
 use aliased qw/Iston::Object::ObservationPath/;
@@ -23,6 +24,7 @@ has main_object            => (is => 'rw');
 has models_path            => (is => 'ro', required => 1);
 has htm                    => (is => 'lazy');
 has projections            => (is => 'rw');
+has aberrations            => (is => 'rw');
 has observation_path       => (is => 'rw');
 has active_record_idx      => (is => 'rw');
 has time_ratio             => (is => 'rw', default => sub { 1.0 });
@@ -85,6 +87,16 @@ sub _load_object {
         or die "Can't open $analisys_path : $!";
     $projections->dump_analisys($analisys_fh);
     $self->projections($projections);
+
+    my $aberrations = Aberrations->new(
+        projections => $projections
+    );
+    my $aberrations_path = "${history_path}-aberations.csv";
+    open my $aberrations_fh, ">:encoding(utf8)", $aberrations_path
+        or die "Can't open $aberrations_path : $!";
+    $aberrations->dump_analisys($aberrations_fh);
+    $self->aberrations($aberrations);
+
     $self->_try_visualize_htm(2); # durations projection
 
     $self->settings_bar->refresh;
