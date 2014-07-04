@@ -1,4 +1,4 @@
-package Iston::Object::Projections;
+package Iston::Analysis::Projections;
 # Abstract: The projections from ObservationPath points to the HTM's triangles
 
 use 5.12.0;

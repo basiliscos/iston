@@ -11,9 +11,9 @@ use SDL::Events qw/:all/;
 
 use aliased qw/AntTweakBar::Type/;
 use aliased qw/Iston::History/;
+use aliased qw/Iston::Analysis::Projections/;
 use aliased qw/Iston::Object::HTM/;
 use aliased qw/Iston::Object::ObservationPath/;
-use aliased qw/Iston::Object::Projections/;
 use aliased qw/Iston::Vertex/;
 
 with('Iston::Application');
