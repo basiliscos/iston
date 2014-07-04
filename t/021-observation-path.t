@@ -82,14 +82,16 @@ subtest "simple arrow vertices" => sub {
     is $v4->smart_2string, 'vector[2.0000, 0.0000, 1.0000]';
 };
 
-subtest "unique vertices" => sub {
+subtest "sphere vertices: simple case" => sub {
     my $h = History->new;
-    my @angels = ([0,0], [0,0], [0, -90], [0, -90]);
+    my @angels = ([0,0], [0,0], [0, -90], [0, -90], [0, 0]);
     my $records = $_a2r->(\@angels);
     push @{$h->records}, @$records;
     my $o = ObservationPath->new(history => $h);
-    my $unique = $o->unique_vertex_indices;
-    is_deeply $unique, [0, 2];
+    my $unique = $o->sphere_vertex_indices;
+    is_deeply $unique, [0, 2, 4];
+    my $orig_to_uniq = $o->vertex_to_sphere_index;
+    is_deeply $orig_to_uniq, [0, 0, 1, 1, 2];
 };
 
 done_testing;

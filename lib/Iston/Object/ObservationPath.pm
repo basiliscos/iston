@@ -18,14 +18,15 @@ use aliased qw/Iston::Vertex/;
 my $_PI = 2*atan2(1,0);
 my $_G2R = $_PI / 180;
 
-has history               => (is => 'ro', required => 1);
-has scale                 => (is => 'rw', default => sub { 1; });
-has vertices              => (is => 'rw');
-has displayed_vertices    => (is => 'rw');
-has indices               => (is => 'rw');
-has index_at              => (is => 'rw', default => sub{ {} });
-has active_time           => (is => 'rw', trigger => 1);
-has unique_vertex_indices => (is => 'lazy');
+has history                => (is => 'ro', required => 1);
+has scale                  => (is => 'rw', default => sub { 1; });
+has vertices               => (is => 'rw');
+has displayed_vertices     => (is => 'rw');
+has indices                => (is => 'rw');
+has index_at               => (is => 'rw', default => sub{ {} });
+has active_time            => (is => 'rw', trigger => 1);
+has sphere_vertex_indices  => (is => 'rw');
+has vertex_to_sphere_index => (is => 'rw');
 
 has draw_function          => (is => 'lazy', clearer => 1);
 
@@ -33,6 +34,7 @@ with('Iston::Drawable');
 
 method BUILD {
     $self->_build_vertices_and_indices;
+    $self->_build_vertices_on_sphere;
 }
 
 method _build_vertices_and_indices {
@@ -84,18 +86,24 @@ method _build_vertices_and_indices {
     $self->displayed_vertices(\@displayed_vertices);
 };
 
-method _build_unique_vertex_indices {
+
+method _build_vertices_on_sphere {
     my @indices;
     my %visited;
     my $vertices = $self->vertices;
+    my $vertices_on_sphere = [];
     for my $idx (0 .. @$vertices - 1) {
         my $vertex = $vertices->[$idx];
-        if(! exists $visited{$vertex}) {
+        my $considered_unique = !(exists $visited{$vertex})
+            || ($vertices->[$idx-1] ne $vertex);
+        if($considered_unique) {
             push @indices, $idx;
             $visited{$vertex} = 1;
         }
+        $vertices_on_sphere->[$idx] = @indices - 1;
     }
-    return \@indices;
+    $self->sphere_vertex_indices(\@indices);
+    $self->vertex_to_sphere_index($vertices_on_sphere);
 }
 
 method arrow_vertices($index_to, $index_from) {

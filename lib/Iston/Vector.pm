@@ -3,9 +3,10 @@ package Iston::Vector;
 use 5.12.0;
 
 use Carp;
+use Function::Parameters qw(:strict);
 use List::Util qw/reduce/;
 use List::MoreUtils qw/pairwise/;
-use Function::Parameters qw(:strict);
+use Math::Trig;
 
 use overload
     '+'  => '_add',
@@ -133,6 +134,12 @@ sub smart_2string {
 sub is_zero {
     my $self = shift;
     return $self->smart_2string eq 'vector[0.0000, 0.0000, 0.0000]';
+}
+
+sub angle_with {
+    my ($a, $b) = @_;
+    my $cos_a = $a->scalar_multiplication($b) / ($a->length * $b->length);
+    return acos($cos_a);
 }
 
 1;

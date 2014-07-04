@@ -32,6 +32,6 @@ fun rotation_matrix($x, $y, $z, $f) {
         [(1-$cos_f)*$z*$x-$sin_f*$y, (1-$cos_f)*$z*$y+$sin_f*$x, $cos_f+(1-$cos_f)*$z**2    ],
     ]);
     return $rotation;
-}
+};
 
 1;
