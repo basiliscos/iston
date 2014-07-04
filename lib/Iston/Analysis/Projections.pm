@@ -89,7 +89,7 @@ method walk ($action) {
 method distribute_observation_timings {
     my $records = $self->observation_path->history->records;
     my $last_index = @$records-1;
-    $self->walk(  sub {
+    $self->walk( sub {
         my ($vertex_index, $level, $path) = @_;
         if ($vertex_index < $last_index) {
             my $interval = reduce {$b - $a}

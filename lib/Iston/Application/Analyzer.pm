@@ -390,14 +390,33 @@ sub _build__htm_visualizers {
             my $projections = $self->projections;
             if($projections) {
                 my $max_level = max keys %{ $htm->levels_cache };
+                my $max_share_of = {};
                 for my $level (0 .. $max_level) {
                     my $triangles = $htm->levels_cache->{$level};
                     $_->enabled(0) for (@$triangles);
                 }
                 $projections->walk( sub {
                     my ($vertex_index, $level, $path) = @_;
+                    $max_share_of->{$level} //= 0;
                     $path->apply( sub {
                         my ($t, $path) = @_;
+                        my $time_share = $t->payload->{total_time};
+                        $max_share_of->{$level} = $time_share
+                            if $max_share_of->{$level} < $time_share;
+                    })
+                });
+                $projections->walk( sub {
+                    my ($vertex_index, $level, $path) = @_;
+                    $path->apply( sub {
+                        my ($t) = @_;
+                        my $part_of_max =
+                            $t->{payload}->{total_time} / $max_share_of->{$level};
+                        my $diffuse_ambient = [ $part_of_max, $part_of_max, 0, 1 ];
+                        $t->diffuse($diffuse_ambient);
+                        $t->ambient($diffuse_ambient);
+                        $t->specular([0.1, 0.1, 0.1, 0.1]);
+                        $t->shininess(0.8);
+
                         $t->mode('normal') unless($t->mode eq 'normal' );
                         $t->enabled(1);
                     });
