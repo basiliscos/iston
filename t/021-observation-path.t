@@ -12,14 +12,15 @@ my $ts_idx = 0;
 my $_a2r = sub {
     my $angles = shift;
     return [ map  {
-        my ($a, $b) = @$_;
+        my ($a, $b, $z) = @$_;
+        $z //= -7;
         Record->new(
             timestamp     => $ts_idx++,
             x_axis_degree => $a,
             y_axis_degree => $b,
             camera_x      => 0,
             camera_y      => 0,
-            camera_z      => -7,
+            camera_z      => $z,
         );
     } @$angles ] ;
 };
@@ -79,6 +80,16 @@ subtest "simple arrow vertices" => sub {
     is $v2->smart_2string, 'vector[2.0000, 0.0000, -1.0000]';
     is $v3->smart_2string, 'vector[2.0000, 1.0000, 0.0000]';
     is $v4->smart_2string, 'vector[2.0000, 0.0000, 1.0000]';
+};
+
+subtest "unique vertices" => sub {
+    my $h = History->new;
+    my @angels = ([0,0], [0,0], [0, -90], [0, -90]);
+    my $records = $_a2r->(\@angels);
+    push @{$h->records}, @$records;
+    my $o = ObservationPath->new(history => $h);
+    my $unique = $o->unique_vertex_indices;
+    is_deeply $unique, [0, 2];
 };
 
 done_testing;

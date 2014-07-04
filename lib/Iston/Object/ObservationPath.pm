@@ -18,15 +18,16 @@ use aliased qw/Iston::Vertex/;
 my $_PI = 2*atan2(1,0);
 my $_G2R = $_PI / 180;
 
-has history            => (is => 'ro', required => 1);
-has scale              => (is => 'rw', default => sub { 1; });
-has vertices           => (is => 'rw');
-has displayed_vertices => (is => 'rw');
-has indices            => (is => 'rw');
-has index_at           => (is => 'rw', default => sub{ {} });
-has active_time        => (is => 'rw', trigger => 1);
+has history               => (is => 'ro', required => 1);
+has scale                 => (is => 'rw', default => sub { 1; });
+has vertices              => (is => 'rw');
+has displayed_vertices    => (is => 'rw');
+has indices               => (is => 'rw');
+has index_at              => (is => 'rw', default => sub{ {} });
+has active_time           => (is => 'rw', trigger => 1);
+has unique_vertex_indices => (is => 'lazy');
 
-has draw_function => (is => 'lazy', clearer => 1);
+has draw_function          => (is => 'lazy', clearer => 1);
 
 with('Iston::Drawable');
 
@@ -82,6 +83,20 @@ method _build_vertices_and_indices {
     }
     $self->displayed_vertices(\@displayed_vertices);
 };
+
+method _build_unique_vertex_indices {
+    my @indices;
+    my %visited;
+    my $vertices = $self->vertices;
+    for my $idx (0 .. @$vertices - 1) {
+        my $vertex = $vertices->[$idx];
+        if(! exists $visited{$vertex}) {
+            push @indices, $idx;
+            $visited{$vertex} = 1;
+        }
+    }
+    return \@indices;
+}
 
 method arrow_vertices($index_to, $index_from) {
     my ($start, $end) = map { $self->vertices->[$_] } ($index_from, $index_to);
