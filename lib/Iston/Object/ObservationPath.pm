@@ -4,6 +4,7 @@ use 5.12.0;
 use utf8;
 
 use Function::Parameters qw(:strict);
+use Iston::Utils qw/rotation_matrix/;
 use List::Util qw/reduce/;
 use List::MoreUtils qw/pairwise/;
 use Moo;
@@ -90,12 +91,7 @@ method arrow_vertices($index_to, $index_from) {
     my $scalar = reduce { $a + $b } pairwise { $a * $b} @$d_normal, @$n;
     my $f = acos($scalar);
     my $axis = ($n * $d_normal)->normalize;
-    my ($x, $y, $z) = @$axis;
-    my $rotation = Math::MatrixReal->new_from_rows([
-        [cos($f)+(1-cos($f))*$x**2,    (1-cos($f))*$x*$y-sin($f)*$z, (1-cos($f))*$x*$z+sin($f)*$y ],
-        [(1-cos($f))*$y*$z+sin($f)*$z, cos($f)+(1-cos($f))*$y**2 ,   (1-cos($f))*$y*$z-sin($f)*$x ],
-        [(1-cos($f))*$z*$x-sin($f)*$y, (1-cos($f))*$z*$y+sin($f)*$x, cos($f)+(1-cos($f))*$z**2    ],
-    ]);
+    my $rotation = rotation_matrix(@$axis, $f);
     my $normal_distance = 0.5;
     my @normals = map { Vector->new($_) }
         ([$normal_distance, 0, 0], [0, 0, -$normal_distance], [-$normal_distance, 0, 0], [0, 0, $normal_distance]);
@@ -147,7 +143,7 @@ method _build_draw_function {
     my $diffusion = OpenGL::Array->new_list(GL_FLOAT, 0.0, 0.0, 0.0, 1.0);
     my $emission = OpenGL::Array->new_list(GL_FLOAT, 0.75, 0.0, 0.0, 1.0);
     my $hilight_emission = OpenGL::Array->new_list(GL_FLOAT, 0.0, 0.95, 0.0, 1.0);
-    
+
     return sub {
         my $scale = $self->scale;
         glScalef($scale, $scale, $scale);
