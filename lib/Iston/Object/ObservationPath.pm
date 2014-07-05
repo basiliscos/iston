@@ -116,7 +116,10 @@ method arrow_vertices($index_to, $index_from) {
     my $rotation = rotation_matrix(@$axis, $f);
     my $normal_distance = 0.5;
     my @normals = map { Vector->new($_) }
-        ([$normal_distance, 0, 0], [0, 0, -$normal_distance], [-$normal_distance, 0, 0], [0, 0, $normal_distance]);
+        ( [$normal_distance, 0, 0 ],
+          [0, 0, -$normal_distance],
+          [-$normal_distance, 0, 0],
+          [0, 0, $normal_distance ], );
     my $length = $direction->length;
     my @results =
         map {
