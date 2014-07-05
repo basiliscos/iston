@@ -4,6 +4,7 @@ use Test::More;
 use Test::Warnings;
 
 use IO::String;
+use Path::Tiny;
 
 use aliased qw/Iston::History/;
 use aliased qw/Iston::History::Record/;
@@ -127,5 +128,35 @@ vertex_index, aberration
 RESULT
 };
 
+
+# actually we check here that no warning has been emitted
+# due to accidental jump into Complex plane
+subtest "too small values (from file)" => sub {
+    my $tmp_dir = Path::Tiny->tempdir( CLEANUP => 1);
+    my $data =<<DATA;
+timestamp,x_axis_degree,y_axis_degree,camera_x,camera_y,camera_z
+17.621475,16,262,0,0,-7.5
+17.67218,15,262,0,0,-7.5
+17.672505,15,262,0,0,-7.5
+17.722267,14,262,0,0,-7.5
+17.722533,14,262,0,0,-7.5
+DATA
+    my $data_path = path($tmp_dir, "x.csv");
+    $data_path->spew_utf8($data);
+    my $h = History->new(path => $data_path);
+    $h->load;
+    my $o = ObservationPath->new(history => $h);
+    my $htm = HTM->new;
+    $htm->level(3);
+    my $projections = Projections->new(
+        observation_path => $o,
+        htm              => $htm,
+    );
+    my $abb = Aberrations->new( projections => $projections );
+    my $values = $abb->values;
+    my $out = IO::String->new;
+    $abb->dump_analisys($out);
+    ok $out;
+};
 
 done_testing;

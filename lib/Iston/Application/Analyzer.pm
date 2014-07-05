@@ -403,6 +403,7 @@ sub _build__htm_visualizers {
             if($projections) {
                 my $max_level = max keys %{ $htm->levels_cache };
                 my $max_share_of = {};
+                my $min_share_of = {};
                 for my $level (0 .. $max_level) {
                     my $triangles = $htm->levels_cache->{$level};
                     $_->enabled(0) for (@$triangles);
@@ -415,15 +416,25 @@ sub _build__htm_visualizers {
                         my $time_share = $t->payload->{total_time};
                         $max_share_of->{$level} = $time_share
                             if $max_share_of->{$level} < $time_share;
+                        $min_share_of->{$level} = $time_share
+                            if(!exists $min_share_of->{$level} ||
+                            $min_share_of->{$level} > $time_share);
                     })
                 });
                 $projections->walk( sub {
                     my ($vertex_index, $level, $path) = @_;
                     $path->apply( sub {
                         my ($t) = @_;
-                        my $part_of_max =
-                            $t->{payload}->{total_time} / $max_share_of->{$level};
-                        my $diffuse_ambient = [ $part_of_max, $part_of_max, 0, 1 ];
+                        my ($min, $max) = (
+                            $min_share_of->{$level},
+                            $max_share_of->{$level},
+                        );
+                        my $max_distance = $max - $min;
+                        return unless $max_distance;
+                        my $time_share = $t->{payload}->{total_time};
+                        my $share = ($time_share - $min) / $max_distance;
+                        # say "$path share: $share, min: $min, max: $max, level: $level";
+                        my $diffuse_ambient = [ $share, $share, 0, 1 ];
                         $t->diffuse($diffuse_ambient);
                         $t->ambient($diffuse_ambient);
                         $t->specular([0.1, 0.1, 0.1, 0.1]);
@@ -431,6 +442,7 @@ sub _build__htm_visualizers {
 
                         $t->mode('normal') unless($t->mode eq 'normal' );
                         $t->enabled(1);
+                        $t->clear_draw_function;
                     });
                 });
                 return 1;

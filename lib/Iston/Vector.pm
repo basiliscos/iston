@@ -139,6 +139,13 @@ sub is_zero {
 sub angle_with {
     my ($a, $b) = @_;
     my $cos_a = $a->scalar_multiplication($b) / ($a->length * $b->length);
+    # take care of accurracy to do not jump accidently
+    # to complex plane
+    $cos_a = $cos_a > 1
+        ? 1
+        : $cos_a < -1
+        ? -1
+        : $cos_a;
     return acos($cos_a);
 }
 
