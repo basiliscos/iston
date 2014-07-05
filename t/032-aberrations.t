@@ -4,6 +4,7 @@ use Test::More;
 use Test::Warnings;
 
 use IO::String;
+use Math::Trig;
 use Path::Tiny;
 
 use aliased qw/Iston::History/;
@@ -14,9 +15,6 @@ use aliased qw/Iston::Analysis::Projections/;
 use aliased qw/Iston::Object::HTM/;
 use aliased qw/Iston::Object::ObservationPath/;
 use aliased qw/Iston::Analysis::Aberrations/;
-
-my $_PI = 2*atan2(1,0);
-my $_G2R = $_PI / 180;
 
 my $_a2r = sub {
     my $ts_idx = 0;
@@ -95,7 +93,7 @@ subtest "simple case, east pole, north pole" => sub {
     );
     my $abb = Aberrations->new( projections => $projections );
     my $values = $abb->values;
-    is_deeply $values, [90 * $_G2R];
+    is_deeply $values, [deg2rad 90];
 };
 
 subtest "vertices duplication check output" => sub {
@@ -112,7 +110,7 @@ subtest "vertices duplication check output" => sub {
     );
     my $abb = Aberrations->new( projections => $projections );
     my $values = $abb->values;
-    is_deeply $values, [90 * $_G2R, 90 * $_G2R];
+    is_deeply $values, [deg2rad(90), deg2rad(90)];
 
     my $out = IO::String->new;
     $abb->dump_analisys($out);

@@ -7,6 +7,7 @@ use Carp;
 use Iston::Vector qw/normal/;
 use List::MoreUtils qw/first_index/;
 use List::Util qw/max min reduce/;
+use Math::Trig;
 use Moo;
 use Function::Parameters qw(:strict);
 use OpenGL qw(:all);
@@ -17,17 +18,15 @@ use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
 # OK, let's calculate the defaults;
-my $_PI = 2*atan2(1,0);
-my $_G  = $_PI/180;
 my $_R  = 1;
 
 my $_vertices = [
     Vertex->new([0,  $_R, 0]), # top
     Vertex->new([0, -$_R, 0]), # bottom
-    Vertex->new([$_R * sin($_G * 45) , 0, $_R * sin( $_G*45)]),  # front left
-    Vertex->new([$_R * sin($_G * -45), 0, $_R * sin( $_G*45)]),  # front righ
-    Vertex->new([$_R * sin($_G * -45), 0, $_R * sin(-$_G*45)]),  # back right
-    Vertex->new([$_R * sin($_G * 45) , 0, $_R * sin(-$_G*45)]),  # back left
+    Vertex->new([$_R * sin(deg2rad 45) , 0, $_R * sin(deg2rad  45)]),  # front left
+    Vertex->new([$_R * sin(deg2rad -45), 0, $_R * sin(deg2rad  45)]),  # front righ
+    Vertex->new([$_R * sin(deg2rad -45), 0, $_R * sin(deg2rad -45)]),  # back right
+    Vertex->new([$_R * sin(deg2rad 45) , 0, $_R * sin(deg2rad -45)]),  # back left
 ];
 
 my $_indices = [

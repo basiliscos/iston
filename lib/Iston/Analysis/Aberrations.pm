@@ -7,13 +7,11 @@ use Function::Parameters qw(:strict);
 use Iston::Utils qw/rotation_matrix/;
 use List::MoreUtils qw/pairwise/;
 use Math::MatrixReal;
+use Math::Trig;
 use Moo;
 
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
-
-my $_PI = 2*atan2(1,0);
-my $_G2R = $_PI / 180;
 
 has 'projections'    => (is => 'ro', required => 1);
 has 'sphere_vectors' => (is => 'lazy');
@@ -66,7 +64,7 @@ method dump_analisys ($output_fh) {
         if ($value_index >= 0 && $v2s->[$idx-1] != $sphere_index) {
             $value = $values->[$value_index];
         }
-        $value = sprintf('%0.2f', $value / $_G2R);
+        $value = sprintf('%0.2f', rad2deg($value));
         say $output_fh "$idx, $value";
     }
 }

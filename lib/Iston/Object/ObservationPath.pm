@@ -15,9 +15,6 @@ use OpenGL qw(:all);
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
-my $_PI = 2*atan2(1,0);
-my $_G2R = $_PI / 180;
-
 has history                => (is => 'ro', required => 1);
 has scale                  => (is => 'rw', default => sub { 1; });
 has vertices               => (is => 'rw');
@@ -49,15 +46,17 @@ method _build_vertices_and_indices {
             qw/x_axis_degree y_axis_degree timestamp/;
         $x_axis_degree = $dx * -1;
         $y_axis_degree = $dy * -1;
+        my $x_rads = deg2rad($x_axis_degree);
+        my $y_rads = deg2rad($y_axis_degree);
         my $r_a = Math::MatrixReal->new_from_rows([
-            [1, 0,                                 0                 ],
-            [0, cos($x_axis_degree*$_G2R), -sin($x_axis_degree*$_G2R)],
-            [0, sin($x_axis_degree*$_G2R), cos($x_axis_degree*$_G2R) ],
+            [1, 0,            0            ],
+            [0, cos($x_rads), -sin($x_rads)],
+            [0, sin($x_rads), cos($x_rads) ],
         ]);
         my $r_b = Math::MatrixReal->new_from_rows([
-            [cos($y_axis_degree*$_G2R),  0, sin($y_axis_degree*$_G2R)],
-            [0,                       ,  1, 0                        ],
-            [-sin($y_axis_degree*$_G2R), 0, cos($y_axis_degree*$_G2R)],
+            [cos($y_rads),  0, sin($y_rads)],
+            [0,          ,  1, 0           ],
+            [-sin($y_rads), 0, cos($y_rads)],
         ]);
         my $rotation = $r_b * $r_a; # reverse order!
         my $result = $rotation * $current_point;
