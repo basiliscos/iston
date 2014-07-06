@@ -16,6 +16,7 @@ use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
 extends 'Iston::Object';
+with('Iston::Payload');
 
 has vertices => (is => 'rw', required => 1, isa =>
     sub {
@@ -30,7 +31,6 @@ has normals      => (is => 'rw', default => sub { [] });   # vertices normals
 has normal       => (is => 'lazy'); # triangle normal
 has subtriangles => (is => 'lazy');
 has tesselation  => (is => 'ro', default => sub { 0  });
-has payload      => (is => 'ro', default => sub { {} });
 
 # material properties
 has diffuse   => (is => 'rw', default => sub { [0.75, 0.75, 0, 1]} );

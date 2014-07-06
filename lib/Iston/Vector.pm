@@ -8,27 +8,29 @@ use List::Util qw/reduce/;
 use List::MoreUtils qw/pairwise/;
 use Math::Trig;
 
+use Moo;
+
 use overload
-    '+'  => '_add',
-    '-'  => '_sub',
-    '*'  => '_mul',
-#    'eq' => '_equal',
-    '==' => '_equal',
-    '""' => '_stringify',
+    '+'   => '_add',
+    '-'   => '_sub',
+    '*'   => '_mul',
+    '=='  => '_equal',
+    '""'  => '_stringify',
+    '@{}' => '_values',
     fallback => 1,
     ;
 
 use parent qw/Exporter/;
 our @EXPORT_OK = qw/normal/;
 
-sub new {
-    my ($class, $values) = @_;
-    croak "Vector is defined exactly by 3 values"
-        unless @$values == 3;
+with('Iston::Payload');
 
-    my $copy = [@$values];
-    bless $copy => $class;
-};
+has 'values' => (is => 'ro', required => 1);
+
+sub BUILDARGS {
+    my ( $class, $values ) = @_;
+    return { values => $values };
+}
 
 fun normal($vertices, $indices) {
     croak "Normal vector is defined exactly by 3 vertices"
@@ -37,6 +39,10 @@ fun normal($vertices, $indices) {
     my $a = $vertices[0]->vector_to($vertices[1]);
     my $b = $vertices[0]->vector_to($vertices[2]);
     return ($a * $b)->normalize;
+}
+
+sub _values {
+    return shift->values;
 }
 
 sub _mul_vector {
