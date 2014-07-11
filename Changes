@@ -1,7 +1,10 @@
 {{$NEXT}}
 
+0.03      2014-07-11 19:25:07+03:00 Europe/Minsk
+        Migration to SDL and AntTweakBar (instead of HUD); added
+	aberrations calculation support
+
 0.02      2014-06-17 23:13:20+03:00 Europe/Minsk
 	Add HUD with displaying some relevant information
 	Speedup drawing via closure generation
 	Split HTM into separate triangles
-	
