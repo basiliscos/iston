@@ -1,10 +1,13 @@
 package Iston::Application::Observer;
-$Iston::Application::Observer::VERSION = '0.02';
+$Iston::Application::Observer::VERSION = '0.03';
 use 5.12.0;
 
 use Moo;
 use OpenGL qw(:all);
 use Path::Tiny;
+use SDL;
+use SDL::Events;
+use SDL::Mouse;
 use Time::HiRes qw/gettimeofday tv_interval usleep sleep/;
 
 use aliased qw/Iston::History::Record/;
@@ -16,36 +19,20 @@ with('Iston::Application');
 has started_at     => (is => 'ro', default => sub { [gettimeofday]} );
 has object_path    => (is => 'ro', required => 1);
 has main_object    => (is => 'rw');
-has mouse_position => (is => 'rw');
+has _commands      => (is => 'lazy');
 
 sub BUILD {
     my $self = shift;
     $self->init_app;
-    my $object = 
-        # Triangle->new(
-        #     vertices    => [
-        #         Vertex->new([1, 0, 0]),
-        #         Vertex->new([-1, 0, 0]),
-        #         Vertex->new([0, 1, 0]),
-        #     ],
-        #     tesselation => 1,
-        # );
-        $self->load_object($self->object_path);
-    # $object->normals([
-    #     $object->normal,
-    #     $object->normal,
-    #     $object->normal,
-    # ]);
+    $self->settings_bar->set_bar_params(visible => 'false');
+
+    # disable mouse pointer and put it in the center of app
+    SDL::Mouse::show_cursor(SDL_DISABLE);
+    my ($x, $y) = ($self->width/2, $self->height/2);
+    SDL::Mouse::warp_mouse($x, $y);
+    my $object = $self->load_object($self->object_path);
     $self->main_object($object);
     push @{ $self->objects }, $object;
-
-    my ($x, $y) = ($self->width/2, $self->height/2);
-    glutWarpPointer($x, $y);
-    $self->mouse_position([$x, $y]);
-    $self->dump_function(sub {
-        my $model_file = path($self->object_path)->basename;
-        return ("model: $model_file");
-    });
 
     $self->_log_state;
 };
@@ -78,14 +65,13 @@ sub _exit {
     $self->cv_finish->send;
 }
 
-
-sub key_pressed {
-    my ($self, $key) = @_;
-    my $rotate_step = 2;
+sub _build__commands {
+    my $self = shift;
     my $rotation = sub {
         my ($axis, $step) = @_;
         my $subject = $self->main_object;
         return sub {
+            say "rotation";
             my $value = $subject->rotate($axis);
             $value += $step;
             $value %= 360;
@@ -98,62 +84,78 @@ sub key_pressed {
             $self->camera_position->[2] += $value;
         };
     };
-    my $dispatch_table = {
-        'w' => $rotation->(0, -$rotate_step),
-        's' => $rotation->(0, $rotate_step),
-        'a' => $rotation->(1, -$rotate_step),
-        'd' => $rotation->(1, $rotate_step),
-        '+' => $camera_z_move->(0.1),
-        '-' => $camera_z_move->(-0.1),
-        'q' => sub {
-            my $m = glutGetModifiers;
-            $self->_exit if($m & GLUT_ACTIVE_ALT);
-        },
+    my $rotate_step = 2;
+    my $commands = {
+        'rotate_axis_x_ccw'    => $rotation->(0, -$rotate_step),
+        'rotate_axis_x_cw'     => $rotation->(0, $rotate_step),
+        'rotate_axis_y_cw'     => $rotation->(1, -$rotate_step),
+        'rotate_axis_y_ccw'    => $rotation->(1, $rotate_step),
+        'move_camera_forward'  => $camera_z_move->(0.1),
+        'move_camera_backward' => $camera_z_move->(-0.1),
+        'terminate_program'    => sub { $self->_exit },
     };
-    my $key_char = chr($key);
-    my $action = $dispatch_table->{$key_char};
-    $action->() if($action);
-    $self->_log_state;
+    return $commands;
 }
 
-sub mouse_movement {
-    my ($self, $x, $y) = @_;
-
-    # guard the edges
-    my $barrier = 30;
-    my $reset_position = 0;
-    ($reset_position, $x) = (1, $self->width/2)
-        if ($x < $barrier or $self->width - $x < $barrier);
-    ($reset_position, $y) = (1, $self->height/2)
-        if ($y < $barrier or $self->height -$y < $barrier);
-    if ($reset_position) {
-        glutWarpPointer($x, $y);
-        return $self->mouse_position( [$x, $y] );
+sub process_event {
+    my ($self, $event) = @_;
+    # say "processing event...";
+    my $action;
+    if ($event->type == SDL_KEYUP) {
+        my $dispatch_table = {
+            'w' => 'rotate_axis_x_ccw',
+            's' => 'rotate_axis_x_cw',
+            'a' => 'rotate_axis_y_cw',
+            'd' => 'rotate_axis_y_ccw',
+            '+' => 'move_camera_forward',
+            '-' => 'move_camera_backward',
+            'q' => 'terminate_program',
+        };
+        my $key = chr($event->key_sym);
+        my $command = $dispatch_table->{$key};
+        $action = $self->_commands->{$command} if defined $command;
     }
-
-    my $last_position = $self->mouse_position;
-    my ($dX, $dY) = ($last_position->[0] - $x, $last_position->[1] - $y);
-
-    my @rotations = map { $_ * -1} ($dY, $dX);
-    my $rot_x = $self->main_object->rotate(0);
-    for my $axis (0 .. @rotations-1) {
-        my $value = $self->main_object->rotate($axis);
-        $value += $rotations[$axis];
-        $value %= 360;
-        $self->main_object->rotate($axis, $value);
+    elsif ($event->type == SDL_QUIT) {
+        $action = $self->_commands->{'terminate_program'};
     }
-    $self->_log_state;
-    $self->mouse_position( [$x, $y] );
-    glutPostRedisplay;
-}
+    elsif ($event->type == SDL_MOUSEMOTION) {
+        my ($x, $y) = map {$event->$_} qw/motion_x motion_y/;
+        my $warp_event = $x == $self->width/2 && $y == $self->height/2;
+        return if $warp_event;
 
-sub mouse_click {
-    my ($self, $button, $state, $x, $y) = @_;
-    if ($button == 3 or $button == 4) { # scroll event
-        if (!$state != GLUT_UP) {
-            my $step = 0.1 * ( ($button == 3) ? 1: -1);
+        my $barrier = 30;
+        my $reset_position = 0;
+        ($reset_position, $x) = (1, $self->width/2)
+            if ($x < $barrier or $self->width - $x < $barrier);
+        ($reset_position, $y) = (1, $self->height/2)
+            if ($y < $barrier or $self->height -$y < $barrier);
+        if ($reset_position) {
+            return SDL::Mouse::warp_mouse($self->width/2 , $self->height/2 );
+        };
+
+        my ($dX, $dY) = map {$event->$_} qw/motion_xrel motion_yrel/;
+        # say "x = $x, y = $y, dX = $dX, dY = $dY";
+        $action = sub {
+            my @rotations = ($dY, $dX);
+            for my $axis (0 .. @rotations-1) {
+                my $value = $self->main_object->rotate($axis);
+                $value += $rotations[$axis];
+                $value %= 360;
+                $self->main_object->rotate($axis, $value);
+            }
+        };
+    }
+    elsif ($event->type == SDL_MOUSEBUTTONDOWN) {
+        my $button = $event->button_button;
+        if ($button == SDL_BUTTON_WHEELDOWN || $button == SDL_BUTTON_WHEELUP) {
+            # say "mouse wheel?";
+            my $step = 0.1 * ( ($button == SDL_BUTTON_WHEELUP) ? 1: -1);
             $self->camera_position->[2] += $step;
         }
+    }
+    if ($action) {
+        $action->();
+        $self->_log_state;
     }
 }
 
@@ -171,7 +173,7 @@ Iston::Application::Observer
 
 =head1 VERSION
 
-version 0.02
+version 0.03
 
 =head1 AUTHOR
 

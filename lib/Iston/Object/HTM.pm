@@ -1,12 +1,13 @@
 package Iston::Object::HTM;
 # Abstract: Hierarchical Triangular Map
-$Iston::Object::HTM::VERSION = '0.02';
+$Iston::Object::HTM::VERSION = '0.03';
 use 5.12.0;
 
 use Carp;
 use Iston::Vector qw/normal/;
 use List::MoreUtils qw/first_index/;
 use List::Util qw/max min reduce/;
+use Math::Trig;
 use Moo;
 use Function::Parameters qw(:strict);
 use OpenGL qw(:all);
@@ -17,17 +18,15 @@ use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
 # OK, let's calculate the defaults;
-my $_PI = 2*atan2(1,0);
-my $_G  = $_PI/180;
 my $_R  = 1;
 
 my $_vertices = [
     Vertex->new([0,  $_R, 0]), # top
     Vertex->new([0, -$_R, 0]), # bottom
-    Vertex->new([$_R * sin($_G * 45) , 0, $_R * sin( $_G*45)]),  # front left
-    Vertex->new([$_R * sin($_G * -45), 0, $_R * sin( $_G*45)]),  # front righ
-    Vertex->new([$_R * sin($_G * -45), 0, $_R * sin(-$_G*45)]),  # back right
-    Vertex->new([$_R * sin($_G * 45) , 0, $_R * sin(-$_G*45)]),  # back left
+    Vertex->new([$_R * sin(deg2rad 45) , 0, $_R * sin(deg2rad  45)]),  # front left
+    Vertex->new([$_R * sin(deg2rad -45), 0, $_R * sin(deg2rad  45)]),  # front righ
+    Vertex->new([$_R * sin(deg2rad -45), 0, $_R * sin(deg2rad -45)]),  # back right
+    Vertex->new([$_R * sin(deg2rad 45) , 0, $_R * sin(deg2rad -45)]),  # back left
 ];
 
 my $_indices = [
@@ -149,23 +148,6 @@ method _build_draw_function {
     };
 }
 
-method visualize_projections ($projections) {
-    my $max_level = max keys %{ $self->levels_cache };
-    # disable all triangles
-    for my $level (0 .. $max_level) {
-        my $triangles = $self->levels_cache->{$level};
-        $_->enabled(0) for (@$triangles);
-    }
-    $projections->walk( sub {
-        my ($vertex_index, $level, $path) = @_;
-        $path->apply(sub {
-            my ($triangle, $path) = @_;
-            $triangle->enabled(1);
-        });
-    });
-}
-
-
 1;
 
 __END__
@@ -180,7 +162,7 @@ Iston::Object::HTM
 
 =head1 VERSION
 
-version 0.02
+version 0.03
 
 =head1 AUTHOR
 

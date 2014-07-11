@@ -1,3 +1,5 @@
+0.03      2014-07-11 19:25:07+03:00 Europe/Minsk
+
 0.02      2014-06-17 23:13:20+03:00 Europe/Minsk
 	Add HUD with displaying some relevant information
 	Speedup drawing via closure generation

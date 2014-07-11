@@ -1,9 +1,10 @@
 package Iston::Object::ObservationPath;
-$Iston::Object::ObservationPath::VERSION = '0.02';
+$Iston::Object::ObservationPath::VERSION = '0.03';
 use 5.12.0;
 use utf8;
 
 use Function::Parameters qw(:strict);
+use Iston::Utils qw/rotation_matrix/;
 use List::Util qw/reduce/;
 use List::MoreUtils qw/pairwise/;
 use Moo;
@@ -14,23 +15,23 @@ use OpenGL qw(:all);
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
-my $_PI = 2*atan2(1,0);
-my $_G2R = $_PI / 180;
+has history                => (is => 'ro', required => 1);
+has scale                  => (is => 'rw', default => sub { 1; });
+has vertices               => (is => 'rw');
+has displayed_vertices     => (is => 'rw');
+has indices                => (is => 'rw');
+has index_at               => (is => 'rw', default => sub{ {} });
+has active_time            => (is => 'rw', trigger => 1);
+has sphere_vertex_indices  => (is => 'rw');
+has vertex_to_sphere_index => (is => 'rw');
 
-has history            => (is => 'ro', required => 1);
-has scale              => (is => 'rw', default => sub { 1; });
-has vertices           => (is => 'rw');
-has displayed_vertices => (is => 'rw');
-has indices            => (is => 'rw');
-has index_at           => (is => 'rw', default => sub{ {} });
-has active_time        => (is => 'rw', trigger => 1);
-
-has draw_function => (is => 'lazy', clearer => 1);
+has draw_function          => (is => 'lazy', clearer => 1);
 
 with('Iston::Drawable');
 
 method BUILD {
     $self->_build_vertices_and_indices;
+    $self->_build_vertices_on_sphere;
 }
 
 method _build_vertices_and_indices {
@@ -45,15 +46,17 @@ method _build_vertices_and_indices {
             qw/x_axis_degree y_axis_degree timestamp/;
         $x_axis_degree = $dx * -1;
         $y_axis_degree = $dy * -1;
+        my $x_rads = deg2rad($x_axis_degree);
+        my $y_rads = deg2rad($y_axis_degree);
         my $r_a = Math::MatrixReal->new_from_rows([
-            [1, 0,                                 0                 ],
-            [0, cos($x_axis_degree*$_G2R), -sin($x_axis_degree*$_G2R)],
-            [0, sin($x_axis_degree*$_G2R), cos($x_axis_degree*$_G2R) ],
+            [1, 0,            0            ],
+            [0, cos($x_rads), -sin($x_rads)],
+            [0, sin($x_rads), cos($x_rads) ],
         ]);
         my $r_b = Math::MatrixReal->new_from_rows([
-            [cos($y_axis_degree*$_G2R),  0, sin($y_axis_degree*$_G2R)],
-            [0,                       ,  1, 0                        ],
-            [-sin($y_axis_degree*$_G2R), 0, cos($y_axis_degree*$_G2R)],
+            [cos($y_rads),  0, sin($y_rads)],
+            [0,          ,  1, 0           ],
+            [-sin($y_rads), 0, cos($y_rads)],
         ]);
         my $rotation = $r_b * $r_a; # reverse order!
         my $result = $rotation * $current_point;
@@ -82,6 +85,26 @@ method _build_vertices_and_indices {
     $self->displayed_vertices(\@displayed_vertices);
 };
 
+
+method _build_vertices_on_sphere {
+    my @indices;
+    my %visited;
+    my $vertices = $self->vertices;
+    my $vertices_on_sphere = [];
+    for my $idx (0 .. @$vertices - 1) {
+        my $vertex = $vertices->[$idx];
+        my $considered_unique = !(exists $visited{$vertex})
+            || ($vertices->[$idx-1] ne $vertex);
+        if($considered_unique) {
+            push @indices, $idx;
+            $visited{$vertex} = 1;
+        }
+        $vertices_on_sphere->[$idx] = @indices - 1;
+    }
+    $self->sphere_vertex_indices(\@indices);
+    $self->vertex_to_sphere_index($vertices_on_sphere);
+}
+
 method arrow_vertices($index_to, $index_from) {
     my ($start, $end) = map { $self->vertices->[$_] } ($index_from, $index_to);
     my $direction =  $start->vector_to($end);
@@ -90,15 +113,13 @@ method arrow_vertices($index_to, $index_from) {
     my $scalar = reduce { $a + $b } pairwise { $a * $b} @$d_normal, @$n;
     my $f = acos($scalar);
     my $axis = ($n * $d_normal)->normalize;
-    my ($x, $y, $z) = @$axis;
-    my $rotation = Math::MatrixReal->new_from_rows([
-        [cos($f)+(1-cos($f))*$x**2,    (1-cos($f))*$x*$y-sin($f)*$z, (1-cos($f))*$x*$z+sin($f)*$y ],
-        [(1-cos($f))*$y*$z+sin($f)*$z, cos($f)+(1-cos($f))*$y**2 ,   (1-cos($f))*$y*$z-sin($f)*$x ],
-        [(1-cos($f))*$z*$x-sin($f)*$y, (1-cos($f))*$z*$y+sin($f)*$x, cos($f)+(1-cos($f))*$z**2    ],
-    ]);
+    my $rotation = rotation_matrix(@$axis, $f);
     my $normal_distance = 0.5;
     my @normals = map { Vector->new($_) }
-        ([$normal_distance, 0, 0], [0, 0, -$normal_distance], [-$normal_distance, 0, 0], [0, 0, $normal_distance]);
+        ( [$normal_distance, 0, 0 ],
+          [0, 0, -$normal_distance],
+          [-$normal_distance, 0, 0],
+          [0, 0, $normal_distance ], );
     my $length = $direction->length;
     my @results =
         map {
@@ -147,7 +168,7 @@ method _build_draw_function {
     my $diffusion = OpenGL::Array->new_list(GL_FLOAT, 0.0, 0.0, 0.0, 1.0);
     my $emission = OpenGL::Array->new_list(GL_FLOAT, 0.75, 0.0, 0.0, 1.0);
     my $hilight_emission = OpenGL::Array->new_list(GL_FLOAT, 0.0, 0.95, 0.0, 1.0);
-    
+
     return sub {
         my $scale = $self->scale;
         glScalef($scale, $scale, $scale);
@@ -188,7 +209,7 @@ Iston::Object::ObservationPath
 
 =head1 VERSION
 
-version 0.02
+version 0.03
 
 =head1 AUTHOR
 

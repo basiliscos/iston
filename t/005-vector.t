@@ -98,4 +98,20 @@ subtest "normal from vertices" => sub {
     is $v, Vector->new([0, 1, 0]);
 };
 
+subtest "angle with roundings" => sub {
+    my $a = Vector->new([
+        0.00242890552309209,
+        1.49619899803e-17,
+        0.0172825608175412
+    ]);
+    my $b = Vector->new([
+        0.00242890552309215,
+        -7.58941520739853e-19,
+        0.0172825608175416,
+    ]);
+    my $angle = $a->angle_with($b);
+    my $str = sprintf('%0.2f', $angle);
+    ok $str;
+};
+
 done_testing;

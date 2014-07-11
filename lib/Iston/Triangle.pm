@@ -1,5 +1,5 @@
 package Iston::Triangle;
-$Iston::Triangle::VERSION = '0.02';
+$Iston::Triangle::VERSION = '0.03';
 use 5.12.0;
 
 use Carp;
@@ -16,6 +16,7 @@ use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
 extends 'Iston::Object';
+with('Iston::Payload');
 
 has vertices => (is => 'rw', required => 1, isa =>
     sub {
@@ -30,7 +31,6 @@ has normals      => (is => 'rw', default => sub { [] });   # vertices normals
 has normal       => (is => 'lazy'); # triangle normal
 has subtriangles => (is => 'lazy');
 has tesselation  => (is => 'ro', default => sub { 0  });
-has payload      => (is => 'ro', default => sub { {} });
 
 # material properties
 has diffuse   => (is => 'rw', default => sub { [0.75, 0.75, 0, 1]} );
@@ -151,7 +151,7 @@ Iston::Triangle
 
 =head1 VERSION
 
-version 0.02
+version 0.03
 
 =head1 METHODS
 

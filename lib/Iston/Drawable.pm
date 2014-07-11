@@ -1,5 +1,5 @@
 package Iston::Drawable;
-$Iston::Drawable::VERSION = '0.02';
+$Iston::Drawable::VERSION = '0.03';
 use 5.12.0;
 
 use Moo::Role;
@@ -33,7 +33,7 @@ Iston::Drawable
 
 =head1 VERSION
 
-version 0.02
+version 0.03
 
 =head1 AUTHOR
 

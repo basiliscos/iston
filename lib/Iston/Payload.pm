@@ -1,14 +1,9 @@
-package Iston::History::Record;
-$Iston::History::Record::VERSION = '0.03';
-use 5.12.0;
+package Iston::Payload;
+# ABSTRACT: holds hash-ref with additional attirubtes for basic objects
+$Iston::Payload::VERSION = '0.03';
+use Moo::Role;
 
-use Moo;
-
-our @fields = qw/timestamp x_axis_degree y_axis_degree camera_x camera_y camera_z/;
-
-for (@fields) {
-    has $_ => (is => 'ro', required => 1);
-}
+has payload => (is => 'ro', default => sub { {} });
 
 1;
 
@@ -20,7 +15,7 @@ __END__
 
 =head1 NAME
 
-Iston::History::Record
+Iston::Payload - holds hash-ref with additional attirubtes for basic objects
 
 =head1 VERSION
 

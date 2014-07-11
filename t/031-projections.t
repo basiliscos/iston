@@ -7,9 +7,9 @@ use aliased qw/Iston::History/;
 use aliased qw/Iston::History::Record/;
 use aliased qw/Iston::Vertex/;
 use aliased qw/Iston::Vector/;
+use aliased qw/Iston::Analysis::Projections/;
 use aliased qw/Iston::Object::HTM/;
 use aliased qw/Iston::Object::ObservationPath/;
-use aliased qw/Iston::Object::Projections/;
 
 my $_a2r = sub {
     my $ts_idx = 0;

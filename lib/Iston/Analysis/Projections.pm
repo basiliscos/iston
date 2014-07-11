@@ -1,6 +1,6 @@
-package Iston::Object::Projections;
+package Iston::Analysis::Projections;
 # Abstract: The projections from ObservationPath points to the HTM's triangles
-$Iston::Object::Projections::VERSION = '0.02';
+$Iston::Analysis::Projections::VERSION = '0.03';
 use 5.12.0;
 
 use Function::Parameters qw(:strict);
@@ -89,7 +89,7 @@ method walk ($action) {
 method distribute_observation_timings {
     my $records = $self->observation_path->history->records;
     my $last_index = @$records-1;
-    $self->walk(  sub {
+    $self->walk( sub {
         my ($vertex_index, $level, $path) = @_;
         if ($vertex_index < $last_index) {
             my $interval = reduce {$b - $a}
@@ -141,11 +141,11 @@ __END__
 
 =head1 NAME
 
-Iston::Object::Projections
+Iston::Analysis::Projections
 
 =head1 VERSION
 
-version 0.02
+version 0.03
 
 =head1 AUTHOR
 

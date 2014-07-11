@@ -1,10 +1,18 @@
 package Iston::Application;
-$Iston::Application::VERSION = '0.02';
+$Iston::Application::VERSION = '0.03';
 use 5.12.0;
 
+use AntTweakBar qw/:all/;
 use AnyEvent;
 use Moo::Role;
 use OpenGL qw(:all);
+use SDL;
+use SDLx::App;
+use SDL::Joystick;
+use SDL::Mouse;
+use SDL::Video;
+use SDL::Events;
+use SDL::Event;
 
 use aliased qw/Iston::Loader/;
 use aliased qw/Iston::Vector/;
@@ -13,34 +21,48 @@ has camera_position => (is => 'rw', default => sub { [0, 0, -7] });
 has cv_finish       => (is => 'ro', default => sub { AE::cv });
 has max_boundary    => (is => 'ro', default => sub { 3.0 });
 has full_screen     => (is => 'ro', default => sub { 1 });
+has sdl_event       => (is => 'ro', default => sub { SDL::Event->new } );
+has sdl_app         => (is => 'rw');
 has width           => (is => 'rw');
 has height          => (is => 'rw');
+has settings_bar    => (is => 'lazy');
 
 has history         => (is => 'rw');
-has dump_function   => (is => 'rw');
 
-requires qw/key_pressed/;
-requires qw/mouse_movement/;
-requires qw/mouse_click/;
+requires qw/process_event/;
 requires qw/objects/;
 
 sub init_app {
     my $self = shift;
+
+    SDL::init(SDL_INIT_VIDEO);
+
+    my $video_info = SDL::Video::get_video_info();
+    my %display_dimension = $self->full_screen
+        ? (width => $video_info->current_w, height => $video_info->current_h)
+        : (width => 800, height => 600);
+
+    my %app_options = (
+        title => 'Iston',
+        gl    => 1,
+        ($self->full_screen ? (fullscreen => 1) : ()),
+        %display_dimension,
+    );
+    $self->sdl_app( SDLx::App->new(%app_options) );
+
     glutInit;
-    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
     glEnable(GL_DEPTH_TEST);
-    glutCreateWindow("Iston");
-    my $draw_callback = sub { $self->_drawGLScene };
-    glutDisplayFunc($draw_callback);
-    glutIdleFunc($draw_callback);
-    glutKeyboardFunc(sub { $self->key_pressed(@_) });
-    glutSetCursor(GLUT_CURSOR_NONE);
-    glutMouseFunc(sub { $self->mouse_click(@_) });
-    glutPassiveMotionFunc(sub { $self->mouse_movement(@_) });
     glClearColor(0.0, 0.0, 0.0, 0.0);
-    glutFullScreen if $self->full_screen;
     $self->_initGL;
+    AntTweakBar::init(TW_OPENGL);
+    my ($width, $height) = map { $self->sdl_app->$_ } qw/w h/;
+    AntTweakBar::window_size($width, $height);
+
+    # remove all mouse motion events from queue (garbage)
+    my $mouse_motion_mask = SDL_EVENTMASK(SDL_MOUSEMOTION);
+    SDL::Events::peep_events($self->sdl_event, 127, SDL_GETEVENT, $mouse_motion_mask);
 }
+
 
 sub _init_light {
     my $self = shift;
@@ -68,49 +90,25 @@ sub _init_light {
 
 sub _initGL {
     my $self = shift;
-    $self->width(glutGet( $self->full_screen ? GLUT_SCREEN_WIDTH : GLUT_WINDOW_WIDTH) );
-    $self->height(glutGet( $self->full_screen ? GLUT_SCREEN_HEIGHT : GLUT_WINDOW_HEIGHT) );
-    my ($width, $height) = map { $self->$_ } qw/width height/;
+    my ($width, $height) = map { $self->sdl_app->$_ } qw/w h/;
+    $self->width( $width );
+    $self->height( $height );
     say "screen: ${width}x${height} px";
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity;
     gluPerspective(65.0, $width/$height, 1, 100.0);
     glMatrixMode(GL_MODELVIEW);
     glEnable(GL_NORMALIZE);
-    glutWarpPointer($width/2, $height/2);
     _init_light;
 }
 
-
-sub _render_hud {
-    my $self = shift;
-    my @lines = reverse $self->dump_function->();
-    my @viewport =  glGetIntegerv_p(GL_VIEWPORT);
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix;
-    glLoadIdentity;
-    glOrtho($viewport[0], $viewport[2], $viewport[1], $viewport[3], -1, 1);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity;
-    my ($start_x, $start_y, $step) = (10, 10, 20);
-    my $color = OpenGL::Array->new_list( GL_FLOAT, 0.0, 1.0, 0.0, 1.0 );
-    glMaterialfv_c(GL_FRONT, GL_DIFFUSE, $color->ptr);
-
-    for my $i (0 .. @lines-1) {
-        my $line = $lines[$i];
-        glRasterPos2i($start_x, $start_y + $step*$i);
-        glutBitmapString(GLUT_BITMAP_HELVETICA_18, $line);
-    }
-    glMatrixMode( GL_PROJECTION );
-    glPopMatrix;
-    glMatrixMode( GL_MODELVIEW );
-    glPopMatrix;
+sub _build_settings_bar {
+    AntTweakBar->new("Settings");
 }
 
 sub _drawGLScene {
     my $self = shift;
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    $self->_render_hud if $self->dump_function;
 
     glLoadIdentity;
     glTranslatef(@{ $self->camera_position });
@@ -126,14 +124,28 @@ sub _drawGLScene {
         glPopMatrix;
     }
 
-    glFlush;
-    glutSwapBuffers;
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glEnable(GL_NORMALIZE);
+    AntTweakBar::draw;
 }
 
 sub refresh_world {
     my $self = shift;
-    glutMainLoopEvent;
-    glutPostRedisplay;
+    $self->_handle_polls;
+    $self->_drawGLScene;
+    $self->sdl_app->sync;
+}
+
+sub _handle_polls {
+    my $self = shift;
+
+    SDL::Events::pump_events;
+    my $event = $self->sdl_event;
+    while (SDL::Events::poll_event($event)) {
+        $self->process_event($event);
+    }
+    return $event->type != SDL_QUIT;
 }
 
 sub load_object {
@@ -164,7 +176,7 @@ Iston::Application
 
 =head1 VERSION
 
-version 0.02
+version 0.03
 
 =head1 AUTHOR
 
