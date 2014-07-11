@@ -21,32 +21,27 @@ method _build_sphere_vectors {
     my $observation_path = $self->projections->observation_path;
     my $vertices = $observation_path->vertices;
     my $indices = $observation_path->sphere_vertex_indices;
+    my $center = Vertex->new([0, 0, 0]);
     my @vectors = map {
         my @uniq_indices = @{$indices}[$_, $_+1];
         my ($a, $b) = map { $vertices->[$_] } @uniq_indices;
-        $a->vector_to($b);
+        my $v = $a->vector_to($b);
+        my $great_arc_normal = $v * $center->vector_to($a);
+        $v->payload->{starting_vertex } = $a;
+        $v->payload->{great_arc_normal} = $great_arc_normal;
+        $v;
     } (0 .. @$indices - 2);
     return \@vectors;
 };
 
 method _build_values {
     my $observation_path = $self->projections->observation_path;
-    my $vertices = $observation_path->vertices;
-    my $indices = $observation_path->sphere_vertex_indices;
-    my @middle_points = map {
-        my $idx = $indices->[$_];
-        my ($m, $n) = map { $vertices->[$_] } $idx, $idx+1;
-        my $coords = [ pairwise { ($a + $b)/2 } @$m, @$n ];
-        Vertex->new($coords);
-    } (0 .. @$indices - 2);
-    my $center = Vertex->new([0, 0, 0]);
-    my @auxilary_vectors = map { $center->vector_to($_) } @middle_points;
     my $sphere_vectors = $self->sphere_vectors;
-    my @normals = pairwise { $a * $b } @$sphere_vectors, @auxilary_vectors;
     my @normal_degrees = map {
-        my ($n1, $n2) = map { $normals[$_] } $_, $_+1;
+        my ($v1, $v2) = map { $sphere_vectors->[$_] } $_, $_+1;
+        my ($n1, $n2) = map { $_->payload->{great_arc_normal} } $v1, $v2;
         $n1->angle_with($n2);
-    } (0 .. @normals -2 );
+    } (0 .. @$sphere_vectors - 2);
     return \@normal_degrees;
 }
 

@@ -157,4 +157,42 @@ DATA
     ok $out;
 };
 
+TODO: {
+    local $TODO = "the small discrete abberations should be smoothed";
+
+    subtest "false aberrations (from file)" => sub {
+        my $tmp_dir = Path::Tiny->tempdir( CLEANUP => 1);
+        my $data =<<DATA;
+timestamp,x_axis_degree,y_axis_degree,camera_x,camera_y,camera_z
+4.656869,16,357,0,0,-7
+4.706522,17,357,0,0,-7
+4.806400,18,357,0,0,-7
+4.806714,18,356,0,0,-7
+4.856375,19,356,0,0,-7
+5.356476,19,355,0,0,-7
+5.356776,19,354,0,0,-7
+5.406493,18,353,0,0,-7
+5.456197,18,352,0,0,-7
+5.456494,18,351,0,0,-7
+DATA
+        my $data_path = path($tmp_dir, "x.csv");
+        $data_path->spew_utf8($data);
+        my $h = History->new(path => $data_path);
+        $h->load;
+        my $o = ObservationPath->new(history => $h);
+        my $htm = HTM->new;
+        $htm->level(3);
+        my $projections = Projections->new(
+            observation_path => $o,
+            htm              => $htm,
+        );
+        my $abb = Aberrations->new( projections => $projections );
+        my $values = $abb->values;
+        for my $v (@$values) {
+            my $d = rad2deg($v);
+            ok $d < 20, "aberration $d is less then 20";
+        }
+    };
+};
+
 done_testing;
