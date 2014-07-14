@@ -159,6 +159,7 @@ DATA
 
 TODO: {
     local $TODO = "the small discrete abberations should be smoothed";
+    no Test::Warnings;
 
     subtest "false aberrations (from file)" => sub {
         my $tmp_dir = Path::Tiny->tempdir( CLEANUP => 1);
