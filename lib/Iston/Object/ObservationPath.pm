@@ -1,6 +1,6 @@
 package Iston::Object::ObservationPath;
 
-use 5.12.0;
+use 5.16.0;
 use utf8;
 
 use Function::Parameters qw(:strict);
