@@ -36,4 +36,4 @@ requires:
   Smart::Comments: '0'
   Text::CSV: '0'
   aliased: '0'
-version: '0.03'
+version: '0.04'

@@ -1,5 +1,5 @@
 package Iston::Triangle;
-$Iston::Triangle::VERSION = '0.03';
+$Iston::Triangle::VERSION = '0.04';
 use 5.12.0;
 
 use Carp;
@@ -151,7 +151,7 @@ Iston::Triangle
 
 =head1 VERSION
 
-version 0.03
+version 0.04
 
 =head1 METHODS
 

@@ -1,6 +1,6 @@
 package Iston::Analysis::Projections;
 # Abstract: The projections from ObservationPath points to the HTM's triangles
-$Iston::Analysis::Projections::VERSION = '0.03';
+$Iston::Analysis::Projections::VERSION = '0.04';
 use 5.12.0;
 
 use Function::Parameters qw(:strict);
@@ -145,7 +145,7 @@ Iston::Analysis::Projections
 
 =head1 VERSION
 
-version 0.03
+version 0.04
 
 =head1 AUTHOR
 

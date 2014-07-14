@@ -1,5 +1,5 @@
 package Iston::Application::Analyzer;
-$Iston::Application::Analyzer::VERSION = '0.03';
+$Iston::Application::Analyzer::VERSION = '0.04';
 use 5.12.0;
 
 use AntTweakBar qw/:all/;
@@ -522,7 +522,7 @@ Iston::Application::Analyzer
 
 =head1 VERSION
 
-version 0.03
+version 0.04
 
 =head1 AUTHOR
 
