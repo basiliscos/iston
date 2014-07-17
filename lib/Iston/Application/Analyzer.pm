@@ -1,6 +1,6 @@
 package Iston::Application::Analyzer;
 
-use 5.12.0;
+use 5.16.0;
 
 use AntTweakBar qw/:all/;
 use AnyEvent;
@@ -8,6 +8,7 @@ use List::Util qw/max/;
 use Moo;
 use OpenGL qw(:all);
 use Path::Tiny;
+use POSIX qw/strftime/;
 use SDL::Events qw/:all/;
 
 use aliased qw/AntTweakBar::Type/;
@@ -237,7 +238,7 @@ sub _build_menu {
 
     # models group
     my @models =
-        map  { { path => $_ }}
+        map  { { path => $_ } }
         sort { $a cmp $b }
         grep { /\.obj$/i }
         path($self->models_path)->children;
@@ -261,9 +262,13 @@ sub _build_menu {
         ];
         my @history_names = (
             "choose history",
+            map { /^history_(\d+)_(.+)\.csv$/
+                ? strftime('%F %T', localtime($1))
+                : $_
+            }
             map { $_->basename } @{ $_->{histories} },
         );
-        my $history_type = Type->new("history_for" . $_->{path}->basename,
+        my $history_type = Type->new("history_for" . $_->{path},
                                      \@history_names);
         $_->{type} = $history_type;
     }
