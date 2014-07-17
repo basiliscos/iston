@@ -29,6 +29,7 @@ method load {
             unless $h eq $Iston::History::Record::fields[$_];
     }
     while ( my $row = $csv->getline( $fh ) ) {
+        next unless @$row == @$header;
         my %data = map { $header->[$_] => $row->[$_] } (0 .. @$header - 1);
         push @rows, Record->new(%data);
     }
