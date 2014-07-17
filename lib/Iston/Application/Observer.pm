@@ -102,17 +102,18 @@ sub process_event {
     # say "processing event...";
     my $action;
     if ($event->type == SDL_KEYUP) {
+        my $s1 = SDLK_F1;
         my $dispatch_table = {
-            'w' => 'rotate_axis_x_ccw',
-            's' => 'rotate_axis_x_cw',
-            'a' => 'rotate_axis_y_cw',
-            'd' => 'rotate_axis_y_ccw',
-            '+' => 'move_camera_forward',
-            '-' => 'move_camera_backward',
-            'q' => 'terminate_program',
+            SDLK_w,     'rotate_axis_x_ccw',
+            SDLK_s,     'rotate_axis_x_cw',
+            SDLK_a,     'rotate_axis_y_cw',
+            SDLK_d,     'rotate_axis_y_ccw',
+            SDLK_PLUS,  'move_camera_forward',
+            SDLK_MINUS, 'move_camera_backward',
+            SDLK_F4,    'terminate_program',
         };
-        my $key = chr($event->key_sym);
-        my $command = $dispatch_table->{$key};
+        my $key_sym = $event->key_sym;
+        my $command = $dispatch_table->{$key_sym};
         $action = $self->_commands->{$command} if defined $command;
     }
     elsif ($event->type == SDL_QUIT) {
