@@ -140,9 +140,10 @@ timestamp,x_axis_degree,y_axis_degree,camera_x,camera_y,camera_z
 17.722533,14,262,0,0,-7.5
 DATA
     my $data_path = path($tmp_dir, "x.csv");
-    $data_path->spew_utf8($data);
+    $data_path->spew($data);
     my $h = History->new(path => $data_path);
     $h->load;
+    is $h->elements, 5, "5 history records";
     my $o = ObservationPath->new(history => $h);
     my $htm = HTM->new;
     $htm->level(3);
