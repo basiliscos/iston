@@ -138,6 +138,7 @@ timestamp,x_axis_degree,y_axis_degree,camera_x,camera_y,camera_z
 17.672505,15,262,0,0,-7.5
 17.722267,14,262,0,0,-7.5
 17.722533,14,262,0,0,-7.5
+
 DATA
     my $data_path = path($tmp_dir, "x.csv");
     $data_path->spew($data);
