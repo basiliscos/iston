@@ -1,6 +1,6 @@
 package Iston::Application::Analyzer;
 $Iston::Application::Analyzer::VERSION = '0.04';
-use 5.12.0;
+use 5.16.0;
 
 use AntTweakBar qw/:all/;
 use AnyEvent;
@@ -8,6 +8,7 @@ use List::Util qw/max/;
 use Moo;
 use OpenGL qw(:all);
 use Path::Tiny;
+use POSIX qw/strftime/;
 use SDL::Events qw/:all/;
 
 use aliased qw/AntTweakBar::Type/;
@@ -98,12 +99,29 @@ sub _load_object {
     $self->aberrations($aberrations);
 
     $self->_try_visualize_htm(2); # durations projection
+    my $last_point = @{ $observation_path->history->records };
+    $self->settings_bar->set_variable_params(
+        'current_point',
+        max => "$last_point",
+    );
 
     $self->settings_bar->refresh;
 
     $self->_start_replay;
 }
 
+
+sub _pause_unpause {
+    my ($self, $value) = @_;
+    $self->timer($value);
+    my $bar = $self->settings_bar;
+    if($value) {
+        $self->step_end_function->();
+        $bar->set_variable_params('current_point', readonly => 'true');
+    }else {
+        $bar->set_variable_params('current_point', readonly => 'false')
+    }
+}
 
 sub _build_menu {
     my $self = shift;
@@ -140,6 +158,14 @@ sub _build_menu {
     # Replay history group
     $bar->add_variable(
         mode       => 'rw',
+        name       => "autoplay",
+        type       => 'bool',
+        cb_read    => sub { $self->timer },
+        cb_write   => sub { $self->_pause_unpause(shift) },
+        definition => " label='Autoplay' group='Replay History' ",
+    );
+    $bar->add_variable(
+        mode       => 'rw',
         name       => "time_ratio",
         type       => 'number',
         cb_read    => sub { $self->time_ratio },
@@ -147,8 +173,20 @@ sub _build_menu {
         definition => " group='Replay History' label='Time ratio' min=0.1 max=10.0 step=0.01 ",
     );
     $bar->add_variable(
-        mode       => 'ro',
+        mode       => 'rw',
         name       => "current_point",
+        type       => 'integer',
+        cb_read    => sub { ($self->active_record_idx // 0) + 1 },
+        cb_write   => sub {
+            my $value = shift;
+            $self->active_record_idx($value-1);
+            $self->_rotate_active;
+        },
+        definition => " group='Replay History' label='Current point' min=1 step=1 readonly=true ",
+    );
+    $bar->add_variable(
+        mode       => 'ro',
+        name       => "current_point_info",
         type       => 'string',
         cb_read    => sub {
             my $observation_path = $self->observation_path;
@@ -162,7 +200,7 @@ sub _build_menu {
             }
             return $result;
         },
-        definition => " group='Replay History' label='Current point' ",
+        definition => " group='Replay History' label='Point info' ",
     );
 
     # HTM group
@@ -200,7 +238,7 @@ sub _build_menu {
 
     # models group
     my @models =
-        map  { { path => $_ }}
+        map  { { path => $_ } }
         sort { $a cmp $b }
         grep { /\.obj$/i }
         path($self->models_path)->children;
@@ -224,9 +262,13 @@ sub _build_menu {
         ];
         my @history_names = (
             "choose history",
+            map { /^history_(\d+)_(.+)\.csv$/
+                ? strftime('%F %T', localtime($1))
+                : $_
+            }
             map { $_->basename } @{ $_->{histories} },
         );
-        my $history_type = Type->new("history_for" . $_->{path}->basename,
+        my $history_type = Type->new("history_for" . $_->{path},
                                      \@history_names);
         $_->{type} = $history_type;
     }
@@ -275,6 +317,24 @@ sub _exit {
     $self->cv_finish->send;
 }
 
+sub _rotate_active {
+    my $self = shift;
+    my $idx = $self->active_record_idx;
+    my $record = $self->history->records->[$idx];
+    my ($x_axis_degree, $y_axis_degree) = map { $record->$_ }
+        qw/x_axis_degree y_axis_degree/;
+    for (@{ $self->objects }) {
+        $_->rotate(0, $x_axis_degree);
+        $_->rotate(1, $y_axis_degree);
+    }
+    $self->camera_position([
+        map { $record->$_ } qw/camera_x camera_y camera_z/
+    ]);
+    $self->observation_path->active_time($record->timestamp);
+    $self->settings_bar->refresh;
+    $self->refresh_world;
+}
+
 sub _start_replay {
     my $self = shift;
     my ($last_time, $record, $sleep_time, $history_object);
@@ -301,19 +361,7 @@ sub _start_replay {
     $self->step_end_function($step_end_function);
     my $step = sub {
         return if($history_object != $self->history or !defined($record));
-        my ($x_axis_degree, $y_axis_degree) = map { $record->$_ }
-            qw/x_axis_degree y_axis_degree/;
-        for (@{ $self->objects }) {
-            $_->rotate(0, $x_axis_degree);
-            $_->rotate(1, $y_axis_degree);
-        }
-        $self->camera_position([
-            map { $record->$_ } qw/camera_x camera_y camera_z/
-        ]);
-        $self->observation_path->active_time($record->timestamp);
-        $self->settings_bar->refresh;
-        $self->refresh_world;
-
+        $self->_rotate_active;
         $last_time = $record->timestamp;
         my $idx = $self->active_record_idx;
         $record = $self->history->records->[++$idx];
