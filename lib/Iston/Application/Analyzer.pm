@@ -14,6 +14,7 @@ use SDL::Events qw/:all/;
 use aliased qw/AntTweakBar::Type/;
 use aliased qw/Iston::History/;
 use aliased qw/Iston::Analysis::Aberrations/;
+use aliased qw/Iston::Analysis::AngularVelocity/;
 use aliased qw/Iston::Analysis::Projections/;
 use aliased qw/Iston::Object::HTM/;
 use aliased qw/Iston::Object::ObservationPath/;
@@ -97,6 +98,13 @@ sub _load_object {
     my $aberrations_fh = $aberrations_path->filehandle('>');
     $aberrations->dump_analisys($aberrations_fh);
     $self->aberrations($aberrations);
+
+    my $angular_velocity = AngularVelocity->new(
+        observation_path => $observation_path,
+    );
+    my $angular_velocity_fh = path($analisys_dir, "anglual-velocity.csv")
+        ->filehandle('>');
+    $angular_velocity->dump_analisys($angular_velocity_fh);
 
     $self->_try_visualize_htm(2); # durations projection
     my $last_point = @{ $observation_path->history->records };
