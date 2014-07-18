@@ -6,6 +6,7 @@ use 5.12.0;
 use Function::Parameters qw(:strict);
 use Iston::Utils qw/rotation_matrix/;
 use List::MoreUtils qw/pairwise/;
+use List::Util qw/reduce/;
 use Math::MatrixReal;
 use Math::Trig;
 use Moo;
@@ -27,7 +28,8 @@ method _build_sphere_vectors {
         my ($a, $b) = map { $vertices->[$_] } @uniq_indices;
         my $v = $a->vector_to($b);
         my $great_arc_normal = $v * $center->vector_to($a);
-        $v->payload->{starting_vertex } = $a;
+        $v->payload->{start_vertex    } = $a;
+        $v->payload->{end_vertex      } = $b;
         $v->payload->{great_arc_normal} = $great_arc_normal;
         $v;
     } (0 .. @$indices - 2);
@@ -40,7 +42,20 @@ method _build_values {
     my @normal_degrees = map {
         my ($v1, $v2) = map { $sphere_vectors->[$_] } $_, $_+1;
         my ($n1, $n2) = map { $_->payload->{great_arc_normal} } $v1, $v2;
-        $n1->angle_with($n2);
+        my $angle = $n1->angle_with($n2);
+        if ($angle) {
+            my $sign =
+                reduce {$a + $b}
+                map {
+                    my $idx = $_;
+                    my ($c, $c0) =
+                        map { $_->payload->{end_vertex}->[$idx] }
+                        ($v2, $v1);
+                    $n1->[$_]*($c-$c0);
+                } (0 .. 2);
+            $angle *= ($sign > 0) ? 1 : -1;
+        }
+        $angle;
     } (0 .. @$sphere_vectors - 2);
     return \@normal_degrees;
 }

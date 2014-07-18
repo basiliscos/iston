@@ -79,7 +79,7 @@ vertex_index, aberration
 RESULT
 };
 
-subtest "simple case, east pole, north pole" => sub {
+subtest "simple case, east pole, north pole (positive)" => sub {
     my $h = History->new;
     my @angels = ([0, 0], [0, -90], [-90, -90]);
     my $records = $_a2r->(\@angels);
@@ -95,6 +95,24 @@ subtest "simple case, east pole, north pole" => sub {
     my $values = $abb->values;
     is_deeply $values, [deg2rad 90];
 };
+
+subtest "simple case, east pole, south pole (negative)" => sub {
+    my $h = History->new;
+    my @angels = ([0, 0], [0, -90], [90, -90]);
+    my $records = $_a2r->(\@angels);
+    push @{$h->records}, @$records;
+    my $o = ObservationPath->new(history => $h);
+    my $htm = HTM->new;
+    $htm->level(1);
+    my $projections = Projections->new(
+        observation_path => $o,
+        htm              => $htm,
+    );
+    my $abb = Aberrations->new( projections => $projections );
+    my $values = $abb->values;
+    is_deeply $values, [deg2rad -90];
+};
+
 
 subtest "vertices duplication check output" => sub {
     my $h = History->new;
@@ -175,7 +193,7 @@ timestamp,x_axis_degree,y_axis_degree,camera_x,camera_y,camera_z
 5.356776,19,354,0,0,-7
 5.406493,18,353,0,0,-7
 5.456197,18,352,0,0,-7
-5.456494,18,351,0,0,-7
+5.456494,17,352,0,0,-7
 DATA
         my $data_path = path($tmp_dir, "x.csv");
         $data_path->spew_utf8($data);
@@ -190,9 +208,13 @@ DATA
         );
         my $abb = Aberrations->new( projections => $projections );
         my $values = $abb->values;
-        for my $v (@$values) {
-            my $d = rad2deg($v);
-            ok $d < 20, "aberration $d is less then 20";
+        my $sign_f = sub{ $_[0] > 0 ? 1 : $_[0] == 0 ? 0 : -1 };
+        my $s1 = $sign_f->($values->[0]);
+        for my $idx (1 .. @$values-1) {
+            my $v = $values->[$idx];
+            my $s2 = $sign_f->($v);
+            is $s2 * -1, $s1, "aberration sing has changed";
+            $s1 = $s2;
         }
     };
 };
