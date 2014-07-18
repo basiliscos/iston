@@ -83,18 +83,18 @@ sub _load_object {
     );
     $projections->distribute_observation_timings;
 
-    my $analisys_path = "${history_path}-analisys.txt";
-    open my $analisys_fh, ">:encoding(utf8)", $analisys_path
-        or die "Can't open $analisys_path : $!";
-    $projections->dump_analisys($analisys_fh);
+    my $analisys_dir = path("${history_path}-analysis");
+    $analisys_dir->mkpath;
+    my $timings_projections_path = path($analisys_dir, "timing-projections.txt");
+    my $tpp_fh = $timings_projections_path->filehandle('>');
+    $projections->dump_analisys($tpp_fh);
     $self->projections($projections);
 
     my $aberrations = Aberrations->new(
         projections => $projections
     );
-    my $aberrations_path = "${history_path}-aberations.csv";
-    open my $aberrations_fh, ">:encoding(utf8)", $aberrations_path
-        or die "Can't open $aberrations_path : $!";
+    my $aberrations_path = path($analisys_dir, "aberrations.csv");
+    my $aberrations_fh = $aberrations_path->filehandle('>');
     $aberrations->dump_analisys($aberrations_fh);
     $self->aberrations($aberrations);
 
