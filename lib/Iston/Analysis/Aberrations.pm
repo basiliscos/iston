@@ -14,12 +14,12 @@ use Moo;
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
-has 'projections'    => (is => 'ro', required => 1);
-has 'sphere_vectors' => (is => 'lazy');
-has 'values'         => (is => 'lazy');
+has 'observation_path' => (is => 'ro', required => 1);
+has 'sphere_vectors'   => (is => 'lazy');
+has 'values'           => (is => 'lazy');
 
 method _build_sphere_vectors {
-    my $observation_path = $self->projections->observation_path;
+    my $observation_path = $self->observation_path;
     my $vertices = $observation_path->vertices;
     my $indices = $observation_path->sphere_vertex_indices;
     my $center = Vertex->new([0, 0, 0]);
@@ -37,7 +37,7 @@ method _build_sphere_vectors {
 };
 
 method _build_values {
-    my $observation_path = $self->projections->observation_path;
+    my $observation_path = $self->observation_path;
     my $sphere_vectors = $self->sphere_vectors;
     my @normal_degrees = map {
         my ($v1, $v2) = map { $sphere_vectors->[$_] } $_, $_+1;
@@ -61,7 +61,7 @@ method _build_values {
 }
 
 method dump_analisys ($output_fh) {
-    my $observation_path = $self->projections->observation_path;
+    my $observation_path = $self->observation_path;
     my $vertices = $observation_path->vertices;
     my $v2s = $observation_path->vertex_to_sphere_index;
     my $values = $self->values;

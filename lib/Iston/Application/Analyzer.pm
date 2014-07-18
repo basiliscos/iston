@@ -92,7 +92,7 @@ sub _load_object {
     $self->projections($projections);
 
     my $aberrations = Aberrations->new(
-        projections => $projections
+        observation_path => $observation_path
     );
     my $aberrations_path = path($analisys_dir, "aberrations.csv");
     my $aberrations_fh = $aberrations_path->filehandle('>');
