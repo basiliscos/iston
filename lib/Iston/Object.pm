@@ -7,6 +7,7 @@ use Moo;
 use List::Util qw/max/;
 use Function::Parameters qw(:strict);
 use OpenGL qw(:all);
+use Scalar::Util qw/refaddr/;
 
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
@@ -138,13 +139,7 @@ method _build_draw_function {
         OpenGL::Array->new_list( GL_FLOAT, @$_ )
       } map { $self->$_ } qw/diffuse ambient specular/;
     my $shininess = OpenGL::Array->new_list(GL_FLOAT, $self->shininess);
-    return sub {
-        if ($scale) {
-            glScalef($scale, $scale, $scale);
-            glRotatef($self->rotate(0), 1, 0, 0);
-            glRotatef($self->rotate(1), 0, 1, 0);
-            glRotatef($self->rotate(2), 0, 0, 1);
-        }
+    my $draw_function = sub {
         glEnableClientState(GL_NORMAL_ARRAY);
         glNormalPointer_p($normals);
         glEnableClientState(GL_VERTEX_ARRAY);
@@ -160,6 +155,24 @@ method _build_draw_function {
 
         glDisableClientState(GL_NORMAL_ARRAY);
         glDisableClientState(GL_VERTEX_ARRAY);
+    };
+    if ($self->display_list) {
+        my $id = refaddr($self);
+        glNewList($id, GL_COMPILE);
+        $draw_function->();
+        glEndList;
+        $draw_function = sub {
+            glCallList($id);
+        };
+    }
+    return sub {
+        if ($scale) {
+            glScalef($scale, $scale, $scale);
+            glRotatef($self->rotate(0), 1, 0, 0);
+            glRotatef($self->rotate(1), 0, 1, 0);
+            glRotatef($self->rotate(2), 0, 0, 1);
+        }
+        $draw_function->();
     };
 }
 

@@ -65,9 +65,10 @@ method load {
     @vertices_normals = map { $_ // Vector->new([0, 0, 0]) } @vertices_normals;
 
     my $object = Object->new(
-        vertices => \@vertices,
-        indices  => \@indices,
-        normals  => \@vertices_normals,
+        vertices     => \@vertices,
+        indices      => \@indices,
+        normals      => \@vertices_normals,
+        display_list => 1,
     );
     my $center = $object->center;
     my $to_center = [ map { $_ * -1 } @$center ];

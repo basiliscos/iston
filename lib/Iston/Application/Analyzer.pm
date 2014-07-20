@@ -4,6 +4,7 @@ use 5.16.0;
 
 use AntTweakBar qw/:all/;
 use AnyEvent;
+use Iston;
 use List::Util qw/max/;
 use Moo;
 use OpenGL qw(:all);
@@ -271,7 +272,7 @@ sub _build_menu {
         my @history_names = (
             "choose history",
             map { /^history_(\d+)_(.+)\.csv$/
-                ? strftime('%F %T', localtime($1))
+                ? strftime('%F %T', localtime($1)) . " ($1)"
                 : $_
             }
             map { $_->basename } @{ $_->{histories} },

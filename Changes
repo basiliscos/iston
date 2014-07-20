@@ -1,4 +1,5 @@
 {{$NEXT}}
+        Added aberrations and angular speed analisys
 
 0.03      2014-07-11 19:25:07+03:00 Europe/Minsk
         Migration to SDL and AntTweakBar (instead of HUD); added
