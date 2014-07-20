@@ -11,8 +11,6 @@ use aliased qw/Iston::History/;
 use aliased qw/Iston::History::Record/;
 use aliased qw/Iston::Vertex/;
 use aliased qw/Iston::Vector/;
-use aliased qw/Iston::Analysis::Projections/;
-use aliased qw/Iston::Object::HTM/;
 use aliased qw/Iston::Object::ObservationPath/;
 use aliased qw/Iston::Analysis::Aberrations/;
 
@@ -38,13 +36,7 @@ subtest "sphere vertices creation" => sub {
     my $records = $_a2r->(\@angels);
     push @{$h->records}, @$records;
     my $o = ObservationPath->new(history => $h);
-    my $htm = HTM->new;
-    $htm->level(1);
-    my $projections = Projections->new(
-        observation_path => $o,
-        htm              => $htm,
-    );
-    my $abb = Aberrations->new( projections => $projections );
+    my $abb = Aberrations->new( observation_path => $o );
     my $sphere_vectors = $abb->sphere_vectors;
     is scalar(@$sphere_vectors), 1;
     is $sphere_vectors->[0], "vector[1.0000, 0.0000, -1.0000]";
@@ -56,13 +48,7 @@ subtest "simple case: rotation in the same plane: no aberrations" => sub {
     my $records = $_a2r->(\@angels);
     push @{$h->records}, @$records;
     my $o = ObservationPath->new(history => $h);
-    my $htm = HTM->new;
-    $htm->level(1);
-    my $projections = Projections->new(
-        observation_path => $o,
-        htm              => $htm,
-    );
-    my $abb = Aberrations->new( projections => $projections );
+    my $abb = Aberrations->new( observation_path => $o );
     my $values = $abb->values;
     is_deeply $values, [0, 0, 0];
 
@@ -85,13 +71,7 @@ subtest "simple case, east pole, north pole (positive)" => sub {
     my $records = $_a2r->(\@angels);
     push @{$h->records}, @$records;
     my $o = ObservationPath->new(history => $h);
-    my $htm = HTM->new;
-    $htm->level(1);
-    my $projections = Projections->new(
-        observation_path => $o,
-        htm              => $htm,
-    );
-    my $abb = Aberrations->new( projections => $projections );
+    my $abb = Aberrations->new( observation_path => $o );
     my $values = $abb->values;
     is_deeply $values, [deg2rad 90];
 };
@@ -102,13 +82,7 @@ subtest "simple case, east pole, south pole (negative)" => sub {
     my $records = $_a2r->(\@angels);
     push @{$h->records}, @$records;
     my $o = ObservationPath->new(history => $h);
-    my $htm = HTM->new;
-    $htm->level(1);
-    my $projections = Projections->new(
-        observation_path => $o,
-        htm              => $htm,
-    );
-    my $abb = Aberrations->new( projections => $projections );
+    my $abb = Aberrations->new( observation_path => $o );
     my $values = $abb->values;
     is_deeply $values, [deg2rad -90];
 };
@@ -120,13 +94,7 @@ subtest "vertices duplication check output" => sub {
     my $records = $_a2r->(\@angels);
     push @{$h->records}, @$records;
     my $o = ObservationPath->new(history => $h);
-    my $htm = HTM->new;
-    $htm->level(1);
-    my $projections = Projections->new(
-        observation_path => $o,
-        htm              => $htm,
-    );
-    my $abb = Aberrations->new( projections => $projections );
+    my $abb = Aberrations->new( observation_path => $o );
     my $values = $abb->values;
     is_deeply $values, [deg2rad(90), deg2rad(90)];
 
@@ -164,13 +132,7 @@ DATA
     $h->load;
     is $h->elements, 5, "5 history records";
     my $o = ObservationPath->new(history => $h);
-    my $htm = HTM->new;
-    $htm->level(3);
-    my $projections = Projections->new(
-        observation_path => $o,
-        htm              => $htm,
-    );
-    my $abb = Aberrations->new( projections => $projections );
+    my $abb = Aberrations->new( observation_path => $o );
     my $values = $abb->values;
     my $out = IO::String->new;
     $abb->dump_analisys($out);
@@ -200,13 +162,7 @@ DATA
         my $h = History->new(path => $data_path);
         $h->load;
         my $o = ObservationPath->new(history => $h);
-        my $htm = HTM->new;
-        $htm->level(3);
-        my $projections = Projections->new(
-            observation_path => $o,
-            htm              => $htm,
-        );
-        my $abb = Aberrations->new( projections => $projections );
+        my $abb = Aberrations->new( observation_path => $o );
         my $values = $abb->values;
         my $sign_f = sub{ $_[0] > 0 ? 1 : $_[0] == 0 ? 0 : -1 };
         my $s1 = $sign_f->($values->[0]);

@@ -1,13 +1,10 @@
-package Iston::Analysis::Aberrations;
-# Abstract: Tracks the (angle) direction changes of the observation path
-$Iston::Analysis::Aberrations::VERSION = '0.04';
+package Iston::Analysis::AngularVelocity;
+# Abstract: Tracks the value of angular velocity.
+$Iston::Analysis::AngularVelocity::VERSION = '0.04';
 use 5.12.0;
 
 use Function::Parameters qw(:strict);
-use Iston::Utils qw/rotation_matrix/;
-use List::MoreUtils qw/pairwise/;
 use List::Util qw/reduce/;
-use Math::MatrixReal;
 use Math::Trig;
 use Moo;
 
@@ -15,10 +12,9 @@ use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
 has 'observation_path' => (is => 'ro', required => 1);
-has 'sphere_vectors'   => (is => 'lazy');
 has 'values'           => (is => 'lazy');
 
-method _build_sphere_vectors {
+method _build_values {
     my $observation_path = $self->observation_path;
     my $vertices = $observation_path->vertices;
     my $indices = $observation_path->sphere_vertex_indices;
@@ -27,37 +23,29 @@ method _build_sphere_vectors {
         my @uniq_indices = @{$indices}[$_, $_+1];
         my ($a, $b) = map { $vertices->[$_] } @uniq_indices;
         my $v = $a->vector_to($b);
-        my $great_arc_normal = $v * $center->vector_to($a);
-        $v->payload->{start_vertex    } = $a;
-        $v->payload->{end_vertex      } = $b;
-        $v->payload->{great_arc_normal} = $great_arc_normal;
+        $v->payload->{start_vertex} = $a;
+        $v->payload->{end_vertex  } = $b;
         $v;
     } (0 .. @$indices - 2);
-    return \@vectors;
-};
-
-method _build_values {
-    my $observation_path = $self->observation_path;
-    my $sphere_vectors = $self->sphere_vectors;
-    my @normal_degrees = map {
-        my ($v1, $v2) = map { $sphere_vectors->[$_] } $_, $_+1;
-        my ($n1, $n2) = map { $_->payload->{great_arc_normal} } $v1, $v2;
-        my $angle = $n1->angle_with($n2);
-        if ($angle) {
-            my $sign =
-                reduce {$a + $b}
-                map {
-                    my $idx = $_;
-                    my ($c, $c0) =
-                        map { $_->payload->{end_vertex}->[$idx] }
-                        ($v2, $v1);
-                    $n1->[$_]*($c-$c0);
-                } (0 .. 2);
-            $angle *= ($sign > 0) ? 1 : -1;
-        }
+    my @angles = map {
+        my $v = $_;
+        my ($a, $b) =
+            map { Vector->new($_) }
+            map { $v->payload->{$_} }
+            qw/start_vertex end_vertex/;
+        my $angle = $a->angle_with($b);
         $angle;
-    } (0 .. @$sphere_vectors - 2);
-    return \@normal_degrees;
+    } @vectors;
+    my @velocities = map {
+        my $idx = $_;
+        my $angle = $angles[$idx];
+        my ($t1, $t2) =
+            map { $observation_path->history->records->[$_]->timestamp }
+            ($idx, $idx+1);
+        my $diff = $t2-$t1;
+        my $v = $diff? $angle/$diff : 0;
+    } (0 .. @angles-1);
+    return \@velocities;
 }
 
 method dump_analisys ($output_fh) {
@@ -65,11 +53,10 @@ method dump_analisys ($output_fh) {
     my $vertices = $observation_path->vertices;
     my $v2s = $observation_path->vertex_to_sphere_index;
     my $values = $self->values;
-    say $output_fh "vertex_index, aberration";
+    say $output_fh "vertex_index, velocity(degree/sec)";
     for my $idx (0 .. @$vertices -1) {
         my $sphere_index = $v2s->[$idx];
-        my $vector_index = $sphere_index - 1;
-        my $value_index  = $vector_index - 1;
+        my $value_index  = $sphere_index-1;
         my $value = 0;
         if ($value_index >= 0 && $v2s->[$idx-1] != $sphere_index) {
             $value = $values->[$value_index];
@@ -89,7 +76,7 @@ __END__
 
 =head1 NAME
 
-Iston::Analysis::Aberrations
+Iston::Analysis::AngularVelocity
 
 =head1 VERSION
 

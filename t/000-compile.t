@@ -4,13 +4,14 @@ use warnings;
 
 # this test was generated with Dist::Zilla::Plugin::Test::Compile 2.043
 
-use Test::More  tests => 20 + ($ENV{AUTHOR_TESTING} ? 1 : 0);
+use Test::More  tests => 21 + ($ENV{AUTHOR_TESTING} ? 1 : 0);
 
 
 
 my @module_files = (
     'Iston.pm',
     'Iston/Analysis/Aberrations.pm',
+    'Iston/Analysis/AngularVelocity.pm',
     'Iston/Analysis/Projections.pm',
     'Iston/Application.pm',
     'Iston/Application/Analyzer.pm',

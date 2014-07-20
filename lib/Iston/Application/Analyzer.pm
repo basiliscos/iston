@@ -4,6 +4,7 @@ use 5.16.0;
 
 use AntTweakBar qw/:all/;
 use AnyEvent;
+use Iston;
 use List::Util qw/max/;
 use Moo;
 use OpenGL qw(:all);
@@ -14,6 +15,7 @@ use SDL::Events qw/:all/;
 use aliased qw/AntTweakBar::Type/;
 use aliased qw/Iston::History/;
 use aliased qw/Iston::Analysis::Aberrations/;
+use aliased qw/Iston::Analysis::AngularVelocity/;
 use aliased qw/Iston::Analysis::Projections/;
 use aliased qw/Iston::Object::HTM/;
 use aliased qw/Iston::Object::ObservationPath/;
@@ -83,20 +85,27 @@ sub _load_object {
     );
     $projections->distribute_observation_timings;
 
-    my $analisys_path = "${history_path}-analisys.txt";
-    open my $analisys_fh, ">:encoding(utf8)", $analisys_path
-        or die "Can't open $analisys_path : $!";
-    $projections->dump_analisys($analisys_fh);
+    my $analisys_dir = path("${history_path}-analysis");
+    $analisys_dir->mkpath;
+    my $timings_projections_path = path($analisys_dir, "timing-projections.txt");
+    my $tpp_fh = $timings_projections_path->filehandle('>');
+    $projections->dump_analisys($tpp_fh);
     $self->projections($projections);
 
     my $aberrations = Aberrations->new(
-        projections => $projections
+        observation_path => $observation_path
     );
-    my $aberrations_path = "${history_path}-aberations.csv";
-    open my $aberrations_fh, ">:encoding(utf8)", $aberrations_path
-        or die "Can't open $aberrations_path : $!";
+    my $aberrations_path = path($analisys_dir, "aberrations.csv");
+    my $aberrations_fh = $aberrations_path->filehandle('>');
     $aberrations->dump_analisys($aberrations_fh);
     $self->aberrations($aberrations);
+
+    my $angular_velocity = AngularVelocity->new(
+        observation_path => $observation_path,
+    );
+    my $angular_velocity_fh = path($analisys_dir, "anglual-velocity.csv")
+        ->filehandle('>');
+    $angular_velocity->dump_analisys($angular_velocity_fh);
 
     $self->_try_visualize_htm(2); # durations projection
     my $last_point = @{ $observation_path->history->records };
@@ -263,7 +272,7 @@ sub _build_menu {
         my @history_names = (
             "choose history",
             map { /^history_(\d+)_(.+)\.csv$/
-                ? strftime('%F %T', localtime($1))
+                ? strftime('%F %T', localtime($1)) . " ($1)"
                 : $_
             }
             map { $_->basename } @{ $_->{histories} },

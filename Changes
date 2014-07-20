@@ -1,4 +1,5 @@
-0.04      2014-07-18 13:18:18+03:00 Europe/Minsk
+0.04      2014-07-21 02:12:18+03:00 Europe/Minsk
+        Added aberrations and angular speed analisys
 
 0.03      2014-07-11 19:25:07+03:00 Europe/Minsk
         Migration to SDL and AntTweakBar (instead of HUD); added

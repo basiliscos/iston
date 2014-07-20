@@ -33,6 +33,7 @@ requires:
   OpenGL: '0'
   Path::Tiny: '0.049'
   SDL: '0'
+  Scalar::Util: '0'
   Smart::Comments: '0'
   Text::CSV: '0'
   aliased: '0'

@@ -11,6 +11,7 @@ use Math::Trig;
 use Moo;
 use Function::Parameters qw(:strict);
 use OpenGL qw(:all);
+use Scalar::Util qw/refaddr/;
 
 use aliased qw/Iston::Triangle/;
 use aliased qw/Iston::TrianglePath/;
@@ -138,13 +139,18 @@ method _build_draw_function {
         @{ $self->triangles };
     my $scale = $self->scale;
 
+    my $id = refaddr($self);
+    glNewList($id, GL_COMPILE);
+    $_->draw_function->() for(@triangles);
+    glEndList;
+
     return sub {
         glScalef($scale, $scale, $scale);
         glRotatef($self->rotate(0), 1, 0, 0);
         glRotatef($self->rotate(1), 0, 1, 0);
         glRotatef($self->rotate(2), 0, 0, 1);
 
-        $_->draw_function->() for(@triangles);
+        glCallList($id);
     };
 }
 

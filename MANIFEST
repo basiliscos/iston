@@ -11,6 +11,7 @@ launch-monkey.bat
 launch-replay.bat
 lib/Iston.pm
 lib/Iston/Analysis/Aberrations.pm
+lib/Iston/Analysis/AngularVelocity.pm
 lib/Iston/Analysis/Projections.pm
 lib/Iston/Application.pm
 lib/Iston/Application/Analyzer.pm
@@ -43,3 +44,4 @@ t/021-observation-path.t
 t/030-htm.t
 t/031-projections.t
 t/032-aberrations.t
+t/033-angular-velocity.t
