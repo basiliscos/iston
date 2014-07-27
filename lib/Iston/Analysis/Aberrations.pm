@@ -15,30 +15,10 @@ use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
 has 'observation_path' => (is => 'ro', required => 1);
-has 'sphere_vectors'   => (is => 'lazy');
 has 'values'           => (is => 'lazy');
 
-method _build_sphere_vectors {
-    my $observation_path = $self->observation_path;
-    my $vertices = $observation_path->vertices;
-    my $indices = $observation_path->sphere_vertex_indices;
-    my $center = Vertex->new([0, 0, 0]);
-    my @vectors = map {
-        my @uniq_indices = @{$indices}[$_, $_+1];
-        my ($a, $b) = map { $vertices->[$_] } @uniq_indices;
-        my $v = $a->vector_to($b);
-        my $great_arc_normal = $v * $center->vector_to($a);
-        $v->payload->{start_vertex    } = $a;
-        $v->payload->{end_vertex      } = $b;
-        $v->payload->{great_arc_normal} = $great_arc_normal;
-        $v;
-    } (0 .. @$indices - 2);
-    return \@vectors;
-};
-
 method _build_values {
-    my $observation_path = $self->observation_path;
-    my $sphere_vectors = $self->sphere_vectors;
+    my $sphere_vectors = $self->observation_path->sphere_vectors;
     my @normal_degrees = map {
         my ($v1, $v2) = map { $sphere_vectors->[$_] } $_, $_+1;
         my ($n1, $n2) = map { $_->payload->{great_arc_normal} } $v1, $v2;

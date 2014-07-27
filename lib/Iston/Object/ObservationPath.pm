@@ -25,6 +25,7 @@ has indices                => (is => 'rw');
 has index_at               => (is => 'rw', default => sub{ {} });
 has active_time            => (is => 'rw', trigger => 1);
 has sphere_vertex_indices  => (is => 'rw');
+has sphere_vectors         => (is => 'lazy');
 has vertex_to_sphere_index => (is => 'rw');
 
 has draw_function          => (is => 'lazy', clearer => 1);
@@ -136,6 +137,23 @@ method arrow_vertices($index_to, $index_from) {
             my $result_vector = Vector->new( [map { $r->element($_, 1) } (1 .. 3) ] );
         } @normals;
     return @results;
+}
+
+method _build_sphere_vectors {
+    my $vertices = $self->vertices;
+    my $indices = $self->sphere_vertex_indices;
+    my $center = Vertex->new([0, 0, 0]);
+    my @vectors = map {
+        my @uniq_indices = @{$indices}[$_, $_+1];
+        my ($a, $b) = map { $vertices->[$_] } @uniq_indices;
+        my $v = $a->vector_to($b);
+        my $great_arc_normal = $v * $center->vector_to($a);
+        $v->payload->{start_vertex    } = $a;
+        $v->payload->{end_vertex      } = $b;
+        $v->payload->{great_arc_normal} = $great_arc_normal;
+        $v;
+    } (0 .. @$indices - 2);
+    return \@vectors;
 }
 
 method _trigger_active_time {

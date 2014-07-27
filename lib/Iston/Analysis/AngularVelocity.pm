@@ -16,17 +16,7 @@ has 'values'           => (is => 'lazy');
 
 method _build_values {
     my $observation_path = $self->observation_path;
-    my $vertices = $observation_path->vertices;
-    my $indices = $observation_path->sphere_vertex_indices;
-    my $center = Vertex->new([0, 0, 0]);
-    my @vectors = map {
-        my @uniq_indices = @{$indices}[$_, $_+1];
-        my ($a, $b) = map { $vertices->[$_] } @uniq_indices;
-        my $v = $a->vector_to($b);
-        $v->payload->{start_vertex} = $a;
-        $v->payload->{end_vertex  } = $b;
-        $v;
-    } (0 .. @$indices - 2);
+    my $vectors = $observation_path->sphere_vectors;
     my @angles = map {
         my $v = $_;
         my ($a, $b) =
@@ -35,7 +25,7 @@ method _build_values {
             qw/start_vertex end_vertex/;
         my $angle = $a->angle_with($b);
         $angle;
-    } @vectors;
+    } @$vectors;
     my @velocities = map {
         my $idx = $_;
         my $angle = $angles[$idx];
