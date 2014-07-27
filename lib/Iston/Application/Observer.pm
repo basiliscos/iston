@@ -68,14 +68,15 @@ sub _exit {
 sub _build__commands {
     my $self = shift;
     my $rotation = sub {
-        my ($axis, $step) = @_;
+        my (%step_for) = @_; # key: axis, value: degree
         my $subject = $self->main_object;
         return sub {
-            say "rotation";
-            my $value = $subject->rotate($axis);
-            $value += $step;
-            $value %= 360;
-            $subject->rotate($axis, $value);
+            while(my ($axis, $step) = each(%step_for)){
+                my $value = $subject->rotate($axis);
+                $value += $step;
+                $value %= 360;
+                $subject->rotate($axis, $value);
+            }
         }
     };
     my $camera_z_move = sub {
@@ -86,10 +87,14 @@ sub _build__commands {
     };
     my $rotate_step = 2;
     my $commands = {
-        'rotate_axis_x_ccw'    => $rotation->(0, -$rotate_step),
-        'rotate_axis_x_cw'     => $rotation->(0, $rotate_step),
-        'rotate_axis_y_cw'     => $rotation->(1, -$rotate_step),
-        'rotate_axis_y_ccw'    => $rotation->(1, $rotate_step),
+        'rotate_N'    => $rotation->(0, -$rotate_step),
+        'rotate_S'    => $rotation->(0, $rotate_step),
+        'rotate_W'    => $rotation->(1, -$rotate_step),
+        'rotate_E'    => $rotation->(1, $rotate_step),
+        'rotate_NW'   => $rotation->(0, -$rotate_step, 1, -$rotate_step),
+        'rotate_NE'   => $rotation->(0, -$rotate_step, 1, $rotate_step),
+        'rotate_SW'   => $rotation->(0, $rotate_step, 1, -$rotate_step),
+        'rotate_SE'   => $rotation->(0, $rotate_step, 1, $rotate_step),
         'move_camera_forward'  => $camera_z_move->(0.1),
         'move_camera_backward' => $camera_z_move->(-0.1),
         'terminate_program'    => sub { $self->_exit },
@@ -104,10 +109,25 @@ sub process_event {
     if ($event->type == SDL_KEYUP) {
         my $s1 = SDLK_F1;
         my $dispatch_table = {
-            SDLK_w,     'rotate_axis_x_ccw',
-            SDLK_s,     'rotate_axis_x_cw',
-            SDLK_a,     'rotate_axis_y_cw',
-            SDLK_d,     'rotate_axis_y_ccw',
+            SDLK_w,     'rotate_N',
+            SDLK_s,     'rotate_S',
+            SDLK_a,     'rotate_W',
+            SDLK_d,     'rotate_E',
+
+            SDLK_UP,    'rotate_N',
+            SDLK_DOWN,  'rotate_S',
+            SDLK_LEFT,  'rotate_W',
+            SDLK_RIGHT, 'rotate_E',
+
+            SDLK_KP8,   'rotate_N',
+            SDLK_KP2,   'rotate_S',
+            SDLK_KP4,   'rotate_W',
+            SDLK_KP6,   'rotate_E',
+            SDLK_KP7,   'rotate_NW',
+            SDLK_KP9,   'rotate_NE',
+            SDLK_KP3,   'rotate_SE',
+            SDLK_KP1,   'rotate_SW',
+
             SDLK_PLUS,  'move_camera_forward',
             SDLK_MINUS, 'move_camera_backward',
             SDLK_F4,    'terminate_program',
