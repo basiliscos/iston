@@ -2,13 +2,15 @@ package Iston::Utils;
 
 use 5.12.0;
 
+use Guard;
 use Function::Parameters qw(:strict);
 use Math::MatrixReal;
 use Math::Trig;
+use OpenGL qw(:all);
 
 use parent qw/Exporter/;
 
-our @EXPORT = qw/maybe_zero rotation_matrix/;
+our @EXPORT = qw/maybe_zero rotation_matrix generate_list_id/;
 
 my $_accuracy_format = '%0.6f';
 my $_accuracy_zero   = sprintf($_accuracy_format, 0);
@@ -33,5 +35,15 @@ fun rotation_matrix($x, $y, $z, $f) {
     ]);
     return $rotation;
 };
+
+fun generate_list_id {
+    my $id = glGenLists(1);
+    my $cleaner = guard {
+        say "deleting list $id";
+        glDeleteLists($id, 1);
+        say "list $id has been deleted";
+    };
+    return ($id, $cleaner);
+}
 
 1;
