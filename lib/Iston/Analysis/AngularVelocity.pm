@@ -16,7 +16,7 @@ has 'values'           => (is => 'lazy');
 
 method _build_values {
     my $observation_path = $self->observation_path;
-    my $vectors = $observation_path->sphere_vectors;
+    my $vectors = $observation_path->sphere_vectors->vectors;
     my @angles = map {
         my $v = $_;
         my ($a, $b) =

@@ -31,9 +31,6 @@ subtest "simple 2 point path" => sub {
     my $records = $_a2r->(\@angels);
     push @{$h->records}, @$records;
     my $o = ObservationPath->new(history => $h);
-    ok @{$o->indices} >= 2, "indices count >= vertices count";
-    is $o->indices->[0], 0;
-    is $o->indices->[1], 1;
 
     is @{$o->vertices}, 2;
     is $o->vertices->[0], "vertex[0.0000000, 0.0000000, 1.0000000]";
@@ -63,9 +60,6 @@ subtest "simple arrow vertices" => sub {
     my $records = $_a2r->(\@angels);
     push @{$h->records}, @$records;
     my $o = ObservationPath->new(history => $h);
-    ok @{$o->indices} >= 2, "indices count >= vertices count";
-    is $o->indices->[0], 0;
-    is $o->indices->[1], 1;
 
     is @{$o->vertices}, 2;
     # for simplification
@@ -100,7 +94,7 @@ subtest "sphere vectors creation" => sub {
     my $records = $_a2r->(\@angels);
     push @{$h->records}, @$records;
     my $o = ObservationPath->new(history => $h);
-    my $sphere_vectors = $o->sphere_vectors;
+    my $sphere_vectors = $o->sphere_vectors->vectors;
     is scalar(@$sphere_vectors), 1;
     is $sphere_vectors->[0], "vector[1.0000, 0.0000, -1.0000]";
 };
