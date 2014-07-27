@@ -136,7 +136,7 @@ method _build_current_sphere_vector {
     if (defined $vertex_index && $vertex_index > 0) {
         my $v2s = $self->vertex_to_sphere_index;
         my $vertices_count = @{ $self->vertices };
-        my @indices = map { $v2s->[$_] } ($vertex_index-1, $vertex_index);
+        my @indices = ($vertex_index-1, $vertex_index);
         if ($indices[0] != $indices[1]) {
             return SphereVectors->new(
                 vertices       => $self->vertices,

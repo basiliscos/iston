@@ -4,6 +4,7 @@ $Iston::Object::HTM::VERSION = '0.04';
 use 5.12.0;
 
 use Carp;
+use Iston::Utils qw/generate_list_id/;
 use Iston::Vector qw/normal/;
 use List::MoreUtils qw/first_index/;
 use List::Util qw/max min reduce/;
@@ -11,7 +12,6 @@ use Math::Trig;
 use Moo;
 use Function::Parameters qw(:strict);
 use OpenGL qw(:all);
-use Scalar::Util qw/refaddr/;
 
 use aliased qw/Iston::Triangle/;
 use aliased qw/Iston::TrianglePath/;
@@ -139,12 +139,13 @@ method _build_draw_function {
         @{ $self->triangles };
     my $scale = $self->scale;
 
-    my $id = refaddr($self);
+    my ($id, $cleaner) = generate_list_id;
     glNewList($id, GL_COMPILE);
     $_->draw_function->() for(@triangles);
     glEndList;
 
     return sub {
+        my $cleaner_ref = \$cleaner;
         glScalef($scale, $scale, $scale);
         glRotatef($self->rotate(0), 1, 0, 0);
         glRotatef($self->rotate(1), 0, 1, 0);

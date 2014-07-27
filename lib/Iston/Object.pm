@@ -1,13 +1,13 @@
 package Iston::Object;
 $Iston::Object::VERSION = '0.04';
-use 5.12.0;
+use 5.16.0;
 
 use Carp;
+use Iston::Utils qw/generate_list_id/;
 use Moo;
 use List::Util qw/max/;
 use Function::Parameters qw(:strict);
 use OpenGL qw(:all);
-use Scalar::Util qw/refaddr/;
 
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
@@ -157,11 +157,12 @@ method _build_draw_function {
         glDisableClientState(GL_VERTEX_ARRAY);
     };
     if ($self->display_list) {
-        my $id = refaddr($self);
+        my ($id, $cleaner) = generate_list_id;
         glNewList($id, GL_COMPILE);
         $draw_function->();
         glEndList;
         $draw_function = sub {
+            my $cleaner_ref = \$cleaner;
             glCallList($id);
         };
     }

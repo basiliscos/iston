@@ -3,14 +3,13 @@ $Iston::Object::SphereVectors::VERSION = '0.04';
 use 5.16.0;
 
 use Function::Parameters qw(:strict);
-use Iston::Utils qw/rotation_matrix/;
+use Iston::Utils qw/rotation_matrix generate_list_id/;
 use List::Util qw/reduce/;
 use List::MoreUtils qw/pairwise/;
 use Moo;
 use Math::MatrixReal;
 use Math::Trig;
 use OpenGL qw(:all);
-use Scalar::Util qw/refaddr/;
 
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
@@ -110,13 +109,16 @@ method _build_draw_function {
         glDrawElements_p(GL_LINES, @indices);
     };
 
-    my $id = refaddr($self);
-    glNewList($id, GL_COMPILE);
-    $draw_function->();
-    glEndList;
-    $draw_function = sub {
-        glCallList($id);
-    };
+    if (@$vertex_indices > 15) {
+        my ($id, $cleaner) = generate_list_id;
+        glNewList($id, GL_COMPILE);
+        $draw_function->();
+        glEndList;
+        $draw_function = sub {
+            my $cleaner_ref = \$cleaner;
+            glCallList($id);
+        };
+    }
 
     return $draw_function;
 };
