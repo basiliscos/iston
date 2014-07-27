@@ -18,7 +18,7 @@ has 'observation_path' => (is => 'ro', required => 1);
 has 'values'           => (is => 'lazy');
 
 method _build_values {
-    my $sphere_vectors = $self->observation_path->sphere_vectors;
+    my $sphere_vectors = $self->observation_path->sphere_vectors->vectors;
     my @normal_degrees = map {
         my ($v1, $v2) = map { $sphere_vectors->[$_] } $_, $_+1;
         my ($n1, $n2) = map { $_->payload->{great_arc_normal} } $v1, $v2;
