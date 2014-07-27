@@ -30,18 +30,6 @@ my $_a2r = sub {
     } @$angles ] ;
 };
 
-subtest "sphere vertices creation" => sub {
-    my $h = History->new;
-    my @angels = ([0, 0], [0, 0], [0, -90] );
-    my $records = $_a2r->(\@angels);
-    push @{$h->records}, @$records;
-    my $o = ObservationPath->new(history => $h);
-    my $abb = Aberrations->new( observation_path => $o );
-    my $sphere_vectors = $abb->sphere_vectors;
-    is scalar(@$sphere_vectors), 1;
-    is $sphere_vectors->[0], "vector[1.0000, 0.0000, -1.0000]";
-};
-
 subtest "simple case: rotation in the same plane: no aberrations" => sub {
     my $h = History->new;
     my @angels = ([0, 0], [0, -90], [0, -180], [0, -270], [0, 0]);
