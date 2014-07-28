@@ -37,6 +37,7 @@ has step_end_function      => (is => 'rw');
 has _commands              => (is => 'lazy');
 has _htm_visualizers       => (is => 'lazy');
 has _htm_visualizer_index  => (is => 'rw', default => sub { 0 });
+has _analysis_dumper       => (is => 'rw', default => sub { sub{ } });
 
 sub _build_menu;
 
@@ -84,28 +85,30 @@ sub _load_object {
         htm              => $self->htm,
     );
     $projections->distribute_observation_timings;
-
-    my $analisys_dir = path("${history_path}-analysis");
-    $analisys_dir->mkpath;
-    my $timings_projections_path = path($analisys_dir, "timing-projections.txt");
-    my $tpp_fh = $timings_projections_path->filehandle('>');
-    $projections->dump_analisys($tpp_fh);
     $self->projections($projections);
-
     my $aberrations = Aberrations->new(
         observation_path => $observation_path
     );
-    my $aberrations_path = path($analisys_dir, "aberrations.csv");
-    my $aberrations_fh = $aberrations_path->filehandle('>');
-    $aberrations->dump_analisys($aberrations_fh);
-    $self->aberrations($aberrations);
-
     my $angular_velocity = AngularVelocity->new(
         observation_path => $observation_path,
     );
-    my $angular_velocity_fh = path($analisys_dir, "anglual-velocity.csv")
-        ->filehandle('>');
-    $angular_velocity->dump_analisys($angular_velocity_fh);
+
+    my $dumper = sub {
+        my $analisys_dir = path("${history_path}-analysis");
+        $analisys_dir->mkpath;
+        my $timings_projections_path = path($analisys_dir, "timing-projections.txt");
+        my $tpp_fh = $timings_projections_path->filehandle('>');
+        $projections->dump_analisys($tpp_fh);
+
+        my $aberrations_path = path($analisys_dir, "aberrations.csv");
+        my $aberrations_fh = $aberrations_path->filehandle('>');
+        $aberrations->dump_analisys($aberrations_fh);
+        $self->aberrations($aberrations);
+        my $angular_velocity_fh = path($analisys_dir, "anglual-velocity.csv")
+            ->filehandle('>');
+        $angular_velocity->dump_analisys($angular_velocity_fh);
+    };
+    $self->_analysis_dumper($dumper);
 
     $self->_try_visualize_htm(2); # durations projection
     my $last_point = @{ $observation_path->history->records };
@@ -115,7 +118,6 @@ sub _load_object {
     );
 
     $self->settings_bar->refresh;
-
     $self->_start_replay;
 }
 
@@ -272,7 +274,7 @@ sub _build_menu {
         my @history_names = (
             "choose history",
             map { /^history_(\d+)_(.+)\.csv$/
-                ? strftime('%F %T', localtime($1)) . " ($1)"
+                ? strftime('%Y-%m-%d %H:%M:%S', localtime($1)) . " ($1)"
                 : $_
             }
             map { $_->basename } @{ $_->{histories} },
@@ -317,6 +319,11 @@ sub _build_menu {
             $already_has_history = 1;
         },
         definition => " group='Model' ",
+    );
+    $bar->add_button(
+        name       => "dump",
+        cb         => sub { $self->_analysis_dumper->() },
+        definition => "label='write results'",
     );
 }
 
