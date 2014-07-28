@@ -272,7 +272,7 @@ sub _build_menu {
         my @history_names = (
             "choose history",
             map { /^history_(\d+)_(.+)\.csv$/
-                ? strftime('%F %T', localtime($1)) . " ($1)"
+                ? strftime('%Y-%m-%d %H:%M:%S', localtime($1)) . " ($1)"
                 : $_
             }
             map { $_->basename } @{ $_->{histories} },
