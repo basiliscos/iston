@@ -8,6 +8,7 @@ use Moo;
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
+has 'vertices'       => (is => 'ro', required => 1);
 has 'vectors'        => (is => 'lazy');
 has 'vertex_indices' => (is => 'ro', required => 1);
 

@@ -14,12 +14,12 @@ use OpenGL qw(:all);
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
-has 'vertices'       => (is => 'ro', required => 1);
 has 'hilight_color'  => (is => 'ro', required => 1);
 has 'draw_function'  => (is => 'lazy', clearer => 1);
 
 requires('vectors');
 requires('vertex_indices');
+requires('vertices');
 with('Iston::Drawable');
 
 method arrow_vertices($index_to, $index_from) {
