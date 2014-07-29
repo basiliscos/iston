@@ -169,19 +169,19 @@ sub _build_menu {
     # Replay history group
     $bar->add_variable(
         mode       => 'rw',
-        name       => "autoplay",
-        type       => 'bool',
-        cb_read    => sub { $self->timer },
-        cb_write   => sub { $self->_pause_unpause(shift) },
-        definition => " label='Autoplay' group='Replay History' ",
-    );
-    $bar->add_variable(
-        mode       => 'rw',
         name       => "time_ratio",
         type       => 'number',
         cb_read    => sub { $self->time_ratio },
         cb_write   => sub { $self->time_ratio(shift) },
         definition => " group='Replay History' label='Time ratio' min=0.1 max=10.0 step=0.01 ",
+    );
+    $bar->add_variable(
+        mode       => 'rw',
+        name       => "autoplay",
+        type       => 'bool',
+        cb_read    => sub { $self->timer },
+        cb_write   => sub { $self->_pause_unpause(shift) },
+        definition => " label='Autoplay' group='Replay History' key=SPACE ",
     );
     $bar->add_variable(
         mode       => 'rw',
@@ -246,6 +246,7 @@ sub _build_menu {
         cb_write   => sub { $self->_try_visualize_htm($_[0]) },
         definition => " group='HTM' label='mode' ",
     );
+    $bar->set_variable_params('HTM', opened => 'false');
 
     # models group
     my @models =
@@ -549,14 +550,6 @@ sub _build__commands {
             $self->htm->level($level + $level_delta);
         };
     };
-    my $pause_unpause = sub {
-        if($self->timer) {
-            $self->timer(0);
-        }else {
-            $self->timer(1);
-            $self->step_end_function->();
-        }
-    };
     my $commands = {
         'rotate_axis_x_ccw'    => $rotation->(0, -$rotate_step),
         'rotate_axis_x_cw'     => $rotation->(0, $rotate_step),
@@ -567,7 +560,6 @@ sub _build__commands {
         'increase_htm_details' => $detalize->(1),
         'decrease_htm_details' => $detalize->(-1),
         'terminate_program'    => sub { $self->_exit },
-        'pause_unpause'        => $pause_unpause,
     };
     return $commands;
 };
