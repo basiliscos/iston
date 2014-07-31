@@ -6,6 +6,7 @@ use AntTweakBar qw/:all/;
 use AnyEvent;
 use Iston;
 use List::Util qw/max/;
+use Math::Trig;
 use Moo;
 use OpenGL qw(:all);
 use Path::Tiny;
@@ -19,6 +20,8 @@ use aliased qw/Iston::Analysis::AngularVelocity/;
 use aliased qw/Iston::Analysis::Projections/;
 use aliased qw/Iston::Object::HTM/;
 use aliased qw/Iston::Object::ObservationPath/;
+use aliased qw/Iston::Object::SphereVectors::GeneralizedVectors/;
+use aliased qw/Iston::Object::SphereVectors::VectorizedVertices/;
 use aliased qw/Iston::Vertex/;
 
 with('Iston::Application');
@@ -38,6 +41,7 @@ has _commands              => (is => 'lazy');
 has _htm_visualizers       => (is => 'lazy');
 has _htm_visualizer_index  => (is => 'rw', default => sub { 0 });
 has _analysis_dumper       => (is => 'rw', default => sub { sub{ } });
+has _source_sphere_vectors => (is => 'rw');
 
 sub _build_menu;
 
@@ -78,7 +82,14 @@ sub _load_object {
 
     my $observation_path = ObservationPath->new(history => $history);
     $observation_path->scale($scale_to*1.01);
+    my $sphere_vectors = VectorizedVertices->new(
+        vertices       => $observation_path->vertices,
+        vertex_indices => $observation_path->sphere_vertex_indices,
+        hilight_color  => [0.75, 0.0, 0.0, 1.0], # does not matter
+    );
+    $observation_path->sphere_vectors($sphere_vectors);
     $self->observation_path($observation_path);
+    $self->_source_sphere_vectors($sphere_vectors);
 
     my $projections = Projections->new(
         observation_path => $observation_path,
@@ -86,14 +97,15 @@ sub _load_object {
     );
     $projections->distribute_observation_timings;
     $self->projections($projections);
-    my $aberrations = Aberrations->new(
-        observation_path => $observation_path
-    );
-    my $angular_velocity = AngularVelocity->new(
-        observation_path => $observation_path,
-    );
 
     my $dumper = sub {
+        my $aberrations = Aberrations->new(
+            sphere_vectors => $observation_path->sphere_vectors,
+        );
+        my $angular_velocity = AngularVelocity->new(
+            observation_path => $observation_path,
+            sphere_vectors   => $self->_source_sphere_vectors,
+        );
         my $analisys_dir = path("${history_path}-analysis");
         $analisys_dir->mkpath;
         my $timings_projections_path = path($analisys_dir, "timing-projections.txt");
@@ -102,7 +114,7 @@ sub _load_object {
 
         my $aberrations_path = path($analisys_dir, "aberrations.csv");
         my $aberrations_fh = $aberrations_path->filehandle('>');
-        $aberrations->dump_analisys($aberrations_fh);
+        $aberrations->dump_analisys($aberrations_fh, $observation_path);
         $self->aberrations($aberrations);
         my $angular_velocity_fh = path($analisys_dir, "anglual-velocity.csv")
             ->filehandle('>');
@@ -143,13 +155,20 @@ sub _build_menu {
 
     # visibility group
     my @items = (
-        main_object      => 'Object',
-        htm              => 'HTM',
-        observation_path => 'Observation path',
+        main_object      => { label => 'Object' },
+        htm              => { label => 'HTM', key => 'h'},
+        observation_path => { label => 'Observation path'},
     );
     for my $idx (0 .. @items/2-1) {
         my $object_name = $items[$idx*2];
-        my $label       = $items[$idx*2 + 1];
+        my $data        = $items[$idx*2 + 1];
+        my $label       = $data->{label};
+        my $key         = $data->{key} ;
+        my $definition  = {
+            group => 'Visibility',
+            label => $label,
+            ($key ? (key => $key) : () ),
+        };
         $bar->add_variable(
             mode       => 'rw',
             name       => "vis_$object_name",
@@ -162,19 +181,11 @@ sub _build_menu {
                 my $object = $self->$object_name;
                 $object->enabled(shift) if $object;
             },
-            definition => " group='Visibility' label='$label' ",
+            definition => $definition,
         );
     }
 
     # Replay history group
-    $bar->add_variable(
-        mode       => 'rw',
-        name       => "autoplay",
-        type       => 'bool',
-        cb_read    => sub { $self->timer },
-        cb_write   => sub { $self->_pause_unpause(shift) },
-        definition => " label='Autoplay' group='Replay History' ",
-    );
     $bar->add_variable(
         mode       => 'rw',
         name       => "time_ratio",
@@ -182,6 +193,14 @@ sub _build_menu {
         cb_read    => sub { $self->time_ratio },
         cb_write   => sub { $self->time_ratio(shift) },
         definition => " group='Replay History' label='Time ratio' min=0.1 max=10.0 step=0.01 ",
+    );
+    $bar->add_variable(
+        mode       => 'rw',
+        name       => "autoplay",
+        type       => 'bool',
+        cb_read    => sub { $self->timer },
+        cb_write   => sub { $self->_pause_unpause(shift) },
+        definition => " label='Autoplay' group='Replay History' key=SPACE ",
     );
     $bar->add_variable(
         mode       => 'rw',
@@ -246,6 +265,7 @@ sub _build_menu {
         cb_write   => sub { $self->_try_visualize_htm($_[0]) },
         definition => " group='HTM' label='mode' ",
     );
+    $bar->set_variable_params('HTM', opened => 'false');
 
     # models group
     my @models =
@@ -320,6 +340,32 @@ sub _build_menu {
         },
         definition => " group='Model' ",
     );
+
+    my $angular_distance = 0;
+    $bar->add_variable(
+        mode       => 'rw',
+        name       => "generalization_distance",
+        type       => "number",
+        cb_read    => sub { $angular_distance },
+        cb_write   => sub {
+            $angular_distance = shift;
+            my $sv = $angular_distance
+                ? GeneralizedVectors->new(
+                    distance       => deg2rad($angular_distance),
+                    source_vectors => $self->_source_sphere_vectors->vectors,
+                    hilight_color  => [0.75, 0.0, 0.75, 0.0]
+                )
+                : $self->_source_sphere_vectors;
+            $self->observation_path->sphere_vectors($sv);
+        },
+        definition => {
+            min   => '0',
+            max   => '360',
+            label => 'distance'
+        },
+    );
+
+    # dump analisys button
     $bar->add_button(
         name       => "dump",
         cb         => sub { $self->_analysis_dumper->() },
@@ -549,14 +595,6 @@ sub _build__commands {
             $self->htm->level($level + $level_delta);
         };
     };
-    my $pause_unpause = sub {
-        if($self->timer) {
-            $self->timer(0);
-        }else {
-            $self->timer(1);
-            $self->step_end_function->();
-        }
-    };
     my $commands = {
         'rotate_axis_x_ccw'    => $rotation->(0, -$rotate_step),
         'rotate_axis_x_cw'     => $rotation->(0, $rotate_step),
@@ -567,7 +605,6 @@ sub _build__commands {
         'increase_htm_details' => $detalize->(1),
         'decrease_htm_details' => $detalize->(-1),
         'terminate_program'    => sub { $self->_exit },
-        'pause_unpause'        => $pause_unpause,
     };
     return $commands;
 };

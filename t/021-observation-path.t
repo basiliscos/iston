@@ -88,15 +88,4 @@ subtest "sphere vertices: simple case" => sub {
     is_deeply $orig_to_uniq, [0, 0, 1, 1, 2];
 };
 
-subtest "sphere vectors creation" => sub {
-    my $h = History->new;
-    my @angels = ([0, 0], [0, 0], [0, -90] );
-    my $records = $_a2r->(\@angels);
-    push @{$h->records}, @$records;
-    my $o = ObservationPath->new(history => $h);
-    my $sphere_vectors = $o->sphere_vectors->vectors;
-    is scalar(@$sphere_vectors), 1;
-    is $sphere_vectors->[0], "vector[1.0000, 0.0000, -1.0000]";
-};
-
 done_testing;

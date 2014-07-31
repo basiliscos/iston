@@ -16,7 +16,7 @@ use OpenGL qw(:all);
 
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
-use aliased qw/Iston::Object::SphereVectors/;
+use aliased qw/Iston::Object::SphereVectors::VectorizedVertices/;
 
 has history                => (is => 'ro', required => 1);
 has scale                  => (is => 'rw', default => sub { 1; });
@@ -24,7 +24,7 @@ has vertices               => (is => 'rw');
 has index_at               => (is => 'rw', default => sub{ {} });
 has active_time            => (is => 'rw', trigger => 1);
 has sphere_vertex_indices  => (is => 'rw');
-has sphere_vectors         => (is => 'lazy');
+has sphere_vectors         => (is => 'rw');
 has current_sphere_vector  => (is => 'lazy', clearer => 1);
 has vertex_to_sphere_index => (is => 'rw');
 
@@ -121,14 +121,6 @@ method arrow_vertices($index_to, $index_from) {
     return @results;
 }
 
-method _build_sphere_vectors {
-    return SphereVectors->new(
-        vertices       => $self->vertices,
-        vertex_indices => $self->sphere_vertex_indices,
-        hilight_color  => [0.75, 0.0, 0.0, 1.0],
-    );
-};
-
 method _build_current_sphere_vector {
     my $active_time = $self->active_time;
     return unless defined $active_time;
@@ -138,7 +130,7 @@ method _build_current_sphere_vector {
         my $vertices_count = @{ $self->vertices };
         my @indices = ($vertex_index-1, $vertex_index);
         if ($indices[0] != $indices[1]) {
-            return SphereVectors->new(
+            return VectorizedVertices->new(
                 vertices       => $self->vertices,
                 vertex_indices => \@indices,
                 hilight_color  => [0.0, 0.95, 0.0, 1.0],
