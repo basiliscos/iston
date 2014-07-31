@@ -59,7 +59,7 @@ subtest "sphere vectors :: generalized vectors on equator" => sub {
         hilight_color  => [0.0, 0.0, 0.0, 0.0], # does not matter
     )->vectors;
     is scalar(@$sphere_vectors), 1;
-    is $sphere_vectors->[0], "vector[0.0000, 0.0000, -1.0000]";
+    is $sphere_vectors->[0], "vector[-1.0000, 0.0000, -1.0000]";
 };
 
 subtest "sphere vectors :: no generalized vectors" => sub {

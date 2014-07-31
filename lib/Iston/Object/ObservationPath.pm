@@ -24,7 +24,7 @@ has vertices               => (is => 'rw');
 has index_at               => (is => 'rw', default => sub{ {} });
 has active_time            => (is => 'rw', trigger => 1);
 has sphere_vertex_indices  => (is => 'rw');
-has sphere_vectors         => (is => 'lazy');
+has sphere_vectors         => (is => 'rw');
 has current_sphere_vector  => (is => 'lazy', clearer => 1);
 has vertex_to_sphere_index => (is => 'rw');
 
@@ -120,14 +120,6 @@ method arrow_vertices($index_to, $index_from) {
         } @normals;
     return @results;
 }
-
-method _build_sphere_vectors {
-    return VectorizedVertices->new(
-        vertices       => $self->vertices,
-        vertex_indices => $self->sphere_vertex_indices,
-        hilight_color  => [0.75, 0.0, 0.0, 1.0],
-    );
-};
 
 method _build_current_sphere_vector {
     my $active_time = $self->active_time;

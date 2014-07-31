@@ -12,6 +12,7 @@ use aliased qw/Iston::History::Record/;
 use aliased qw/Iston::Vertex/;
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Object::ObservationPath/;
+use aliased qw/Iston::Object::SphereVectors::VectorizedVertices/;
 use aliased qw/Iston::Analysis::Aberrations/;
 
 my $_a2r = sub {
@@ -36,12 +37,17 @@ subtest "simple case: rotation in the same plane: no aberrations" => sub {
     my $records = $_a2r->(\@angels);
     push @{$h->records}, @$records;
     my $o = ObservationPath->new(history => $h);
-    my $abb = Aberrations->new( observation_path => $o );
+    my $sv = VectorizedVertices->new(
+        vertices       => $o->vertices,
+        vertex_indices => $o->sphere_vertex_indices,
+        hilight_color  => [0.75, 0.0, 0.0, 1.0], # does not matter
+    );
+    my $abb = Aberrations->new( sphere_vectors => $sv);
     my $values = $abb->values;
     is_deeply $values, [0, 0, 0];
 
     my $out = IO::String->new;
-    $abb->dump_analisys($out);
+    $abb->dump_analisys($out, $o);
     my $result = ${$out->string_ref};
     is $result, <<RESULT
 vertex_index, aberration
@@ -59,7 +65,12 @@ subtest "simple case, east pole, north pole (positive)" => sub {
     my $records = $_a2r->(\@angels);
     push @{$h->records}, @$records;
     my $o = ObservationPath->new(history => $h);
-    my $abb = Aberrations->new( observation_path => $o );
+    my $sv = VectorizedVertices->new(
+        vertices       => $o->vertices,
+        vertex_indices => $o->sphere_vertex_indices,
+        hilight_color  => [0.75, 0.0, 0.0, 1.0], # does not matter
+    );
+    my $abb = Aberrations->new( sphere_vectors => $sv);
     my $values = $abb->values;
     is_deeply $values, [deg2rad 90];
 };
@@ -70,7 +81,12 @@ subtest "simple case, east pole, south pole (negative)" => sub {
     my $records = $_a2r->(\@angels);
     push @{$h->records}, @$records;
     my $o = ObservationPath->new(history => $h);
-    my $abb = Aberrations->new( observation_path => $o );
+    my $sv = VectorizedVertices->new(
+        vertices       => $o->vertices,
+        vertex_indices => $o->sphere_vertex_indices,
+        hilight_color  => [0.75, 0.0, 0.0, 1.0], # does not matter
+    );
+    my $abb = Aberrations->new( sphere_vectors => $sv);
     my $values = $abb->values;
     is_deeply $values, [deg2rad -90];
 };
@@ -82,12 +98,17 @@ subtest "vertices duplication check output" => sub {
     my $records = $_a2r->(\@angels);
     push @{$h->records}, @$records;
     my $o = ObservationPath->new(history => $h);
-    my $abb = Aberrations->new( observation_path => $o );
+    my $sv = VectorizedVertices->new(
+        vertices       => $o->vertices,
+        vertex_indices => $o->sphere_vertex_indices,
+        hilight_color  => [0.75, 0.0, 0.0, 1.0], # does not matter
+    );
+    my $abb = Aberrations->new( sphere_vectors => $sv);
     my $values = $abb->values;
     is_deeply $values, [deg2rad(90), deg2rad(90)];
 
     my $out = IO::String->new;
-    $abb->dump_analisys($out);
+    $abb->dump_analisys($out, $o);
     my $result = ${$out->string_ref};
     is $result, <<RESULT
 vertex_index, aberration
@@ -120,10 +141,15 @@ DATA
     $h->load;
     is $h->elements, 5, "5 history records";
     my $o = ObservationPath->new(history => $h);
-    my $abb = Aberrations->new( observation_path => $o );
+    my $sv = VectorizedVertices->new(
+        vertices       => $o->vertices,
+        vertex_indices => $o->sphere_vertex_indices,
+        hilight_color  => [0.75, 0.0, 0.0, 1.0], # does not matter
+    );
+    my $abb = Aberrations->new( sphere_vectors => $sv);
     my $values = $abb->values;
     my $out = IO::String->new;
-    $abb->dump_analisys($out);
+    $abb->dump_analisys($out, $o);
     ok $out;
 };
 
@@ -150,7 +176,12 @@ DATA
         my $h = History->new(path => $data_path);
         $h->load;
         my $o = ObservationPath->new(history => $h);
-        my $abb = Aberrations->new( observation_path => $o );
+        my $sv = VectorizedVertices->new(
+            vertices       => $o->vertices,
+            vertex_indices => $o->sphere_vertex_indices,
+            hilight_color  => [0.75, 0.0, 0.0, 1.0], # does not matter
+        );
+        my $abb = Aberrations->new( sphere_vectors => $sv);
         my $values = $abb->values;
         my $sign_f = sub{ $_[0] > 0 ? 1 : $_[0] == 0 ? 0 : -1 };
         my $s1 = $sign_f->($values->[0]);

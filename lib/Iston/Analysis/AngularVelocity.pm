@@ -12,11 +12,12 @@ use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
 has 'observation_path' => (is => 'ro', required => 1);
+has 'sphere_vectors'   => (is => 'ro', required => 1);
 has 'values'           => (is => 'lazy');
 
 method _build_values {
     my $observation_path = $self->observation_path;
-    my $vectors = $observation_path->sphere_vectors->vectors;
+    my $vectors = $self->sphere_vectors->vectors;
     my @angles = map {
         my $v = $_;
         my ($a, $b) =

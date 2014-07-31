@@ -14,6 +14,7 @@ use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Analysis::Projections/;
 use aliased qw/Iston::Object::HTM/;
 use aliased qw/Iston::Object::ObservationPath/;
+use aliased qw/Iston::Object::SphereVectors::VectorizedVertices/;
 use aliased qw/Iston::Analysis::AngularVelocity/;
 
 my $_a2r = sub {
@@ -38,7 +39,15 @@ subtest "simple case: rotation in the same plane" => sub {
     my $records = $_a2r->(\@angels);
     push @{$h->records}, @$records;
     my $o = ObservationPath->new(history => $h);
-    my $av = AngularVelocity->new( observation_path => $o );
+    my $sv = VectorizedVertices->new(
+        vertices       => $o->vertices,
+        vertex_indices => $o->sphere_vertex_indices,
+        hilight_color  => [0.75, 0.0, 0.0, 1.0], # does not matter
+    );
+    my $av = AngularVelocity->new(
+        sphere_vectors   => $sv,
+        observation_path => $o,
+    );
     my $values = $av->values;
     is_deeply $values, [map { deg2rad($_) } 90, 90, 90, 90];
 
@@ -61,7 +70,15 @@ subtest "simple case, east pole, north pole" => sub {
     my $records = $_a2r->(\@angels);
     push @{$h->records}, @$records;
     my $o = ObservationPath->new(history => $h);
-    my $av = AngularVelocity->new( observation_path => $o );
+    my $sv = VectorizedVertices->new(
+        vertices       => $o->vertices,
+        vertex_indices => $o->sphere_vertex_indices,
+        hilight_color  => [0.75, 0.0, 0.0, 1.0], # does not matter
+    );
+    my $av = AngularVelocity->new(
+        sphere_vectors   => $sv,
+        observation_path => $o,
+    );
     my $values = $av->values;
     is_deeply $values, [map { deg2rad($_) } 90, 90];
 
@@ -82,7 +99,15 @@ subtest "simple case, east pole, north pole (duplications check)" => sub {
     my $records = $_a2r->(\@angels);
     push @{$h->records}, @$records;
     my $o = ObservationPath->new(history => $h);
-    my $av = AngularVelocity->new( observation_path => $o );
+    my $sv = VectorizedVertices->new(
+        vertices       => $o->vertices,
+        vertex_indices => $o->sphere_vertex_indices,
+        hilight_color  => [0.75, 0.0, 0.0, 1.0], # does not matter
+    );
+    my $av = AngularVelocity->new(
+        sphere_vectors   => $sv,
+        observation_path => $o,
+    );
     my $values = $av->values;
     is_deeply $values, [map { deg2rad($_) } 90, 90];
 

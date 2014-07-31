@@ -14,11 +14,11 @@ use Moo;
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
-has 'observation_path' => (is => 'ro', required => 1);
-has 'values'           => (is => 'lazy');
+has 'sphere_vectors' => (is => 'ro', required => 1);
+has 'values'         => (is => 'lazy');
 
 method _build_values {
-    my $sphere_vectors = $self->observation_path->sphere_vectors->vectors;
+    my $sphere_vectors = $self->sphere_vectors->vectors;
     my @normal_degrees = map {
         my ($v1, $v2) = map { $sphere_vectors->[$_] } $_, $_+1;
         my ($n1, $n2) = map { $_->payload->{great_arc_normal} } $v1, $v2;
@@ -40,8 +40,7 @@ method _build_values {
     return \@normal_degrees;
 }
 
-method dump_analisys ($output_fh) {
-    my $observation_path = $self->observation_path;
+method dump_analisys ($output_fh, $observation_path) {
     my $vertices = $observation_path->vertices;
     my $v2s = $observation_path->vertex_to_sphere_index;
     my $values = $self->values;
