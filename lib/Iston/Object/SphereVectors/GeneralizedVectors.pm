@@ -39,10 +39,12 @@ method _build_vectors {
         next if $i <= $last_index;
         $last_index = $i;
         my $start = $source_vectors->[$i];
+        my $last_length = 0;
         for my $j ($i+1 .. @$source_vectors-1) {
-            my $distance = _max_distance($source_vectors, $i, $j);
-            if($distance <= $self->distance){
+            my ($distance, $length) = _max_distance($source_vectors, $i, $j);
+            if(($distance <= $self->distance) && $length > $last_length){
                 $last_index = $j;
+                $last_length = $length;
             }
             else {
                 last;
@@ -69,18 +71,22 @@ fun _max_distance($vectors, $start_idx, $end_idx) {
     my $a = $vectors->[$start_idx]->payload->{start_vertex};
     my $b = $vectors->[$end_idx]->payload->{end_vertex};
     my $great_arc_normal = $a->vector_to($b) * $_center->vector_to($a);
-    my $distance = max( map {
-        my $v = $vectors->[$_];
-        my ($d1, $d2) =
-            map { abs($_halfpi - $_) }
-            map { $_->angle_with($great_arc_normal) }
-            map {
-                $_center->vector_to($_)
-            }
-            ($v->payload->{start_vertex}, $v->payload->{end_vertex});
-        ($d1, $d2);
-    } ($start_idx .. $end_idx) );
-    return $distance;
+    my @center_vectors = (
+        $_center->vector_to($a),
+        map {
+            my $v = $vectors->[$_];
+            $_center->vector_to($v->payload->{end_vertex});
+        } ($start_idx .. $end_idx)
+    );
+    my @distances =
+        map { abs($_halfpi - $_) }
+        map {
+            $_->angle_with($great_arc_normal)
+        } @center_vectors;
+    my $distance = max(@distances);
+    my ($first, $last) = @center_vectors[0, @center_vectors-1];
+    my $angular_length = $first->angle_with($last);
+    return ($distance, $angular_length);
 }
 
 method _build_vertices {
