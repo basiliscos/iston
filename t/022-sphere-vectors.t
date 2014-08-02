@@ -84,4 +84,44 @@ subtest "sphere vectors :: no generalized vectors" => sub {
 };
 
 
+subtest "sphere vectors :: no generalization on change direction to 90 degress " => sub {
+    my $h = History->new;
+    my @angels = ([0, 0], [0, 45], [0, 90], [1, 90] );
+    my $records = $_a2r->(\@angels);
+    push @{$h->records}, @$records;
+    my $o = ObservationPath->new(history => $h);
+    my $sphere_vectors_original = VectorizedVertices->new(
+        vertices       => $o->vertices,
+        vertex_indices => $o->sphere_vertex_indices,
+        hilight_color  => [0.0, 0.0, 0.0, 0.0], # does not matter
+    )->vectors;
+    my $sphere_vectors = GeneralizedVectors->new(
+        distance       => 2,
+        source_vectors => $sphere_vectors_original,
+        hilight_color  => [0.0, 0.0, 0.0, 0.0], # does not matter
+    )->vectors;
+    is scalar(@$sphere_vectors), 2;
+    is $sphere_vectors->[0], "vector[-1.0000, 0.0000, -1.0000]";
+};
+
+subtest "sphere vectors :: no generalization on step back " => sub {
+    my $h = History->new;
+    my @angels = ([0, 0], [0, 45], [0, 90], [0, 80] );
+    my $records = $_a2r->(\@angels);
+    push @{$h->records}, @$records;
+    my $o = ObservationPath->new(history => $h);
+    my $sphere_vectors_original = VectorizedVertices->new(
+        vertices       => $o->vertices,
+        vertex_indices => $o->sphere_vertex_indices,
+        hilight_color  => [0.0, 0.0, 0.0, 0.0], # does not matter
+    )->vectors;
+    my $sphere_vectors = GeneralizedVectors->new(
+        distance       => 2,
+        source_vectors => $sphere_vectors_original,
+        hilight_color  => [0.0, 0.0, 0.0, 0.0], # does not matter
+    )->vectors;
+    is scalar(@$sphere_vectors), 2;
+    is $sphere_vectors->[0], "vector[-1.0000, 0.0000, -1.0000]";
+};
+
 done_testing;
