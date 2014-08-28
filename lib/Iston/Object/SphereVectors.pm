@@ -14,6 +14,7 @@ requires('vectors');
 requires('vertex_indices');
 requires('vertices');
 requires('draw_function');
+requires('vertex_to_vector_function');
 
 with('Iston::Drawable');
 

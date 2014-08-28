@@ -14,10 +14,11 @@ use OpenGL qw(:all);
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
-has 'vertices'       => (is => 'ro', required => 1);
-has 'vectors'        => (is => 'lazy');
-has 'vertex_indices' => (is => 'ro', required => 1);
-has 'draw_function'  => (is => 'lazy');
+has 'vertices'                  => (is => 'ro', required => 1);
+has 'vectors'                   => (is => 'lazy');
+has 'vertex_indices'            => (is => 'ro', required => 1);
+has 'draw_function'             => (is => 'lazy');
+has 'vertex_to_vector_function' => (is => 'lazy');
 
 with('Iston::Object::SphereVectors');
 
@@ -32,11 +33,37 @@ method _build_vectors {
         my $great_arc_normal = $v * $center->vector_to($a);
         $v->payload->{start_vertex    } = $a;
         $v->payload->{end_vertex      } = $b;
+        $v->payload->{start_vertex_idx} = $uniq_indices[0];
+        $v->payload->{end_vertex_idx  } = $uniq_indices[-1];
         $v->payload->{great_arc_normal} = $great_arc_normal;
         $v;
     } (0 .. @$indices - 2);
     return \@vectors;
 };
+
+method _build_vertex_to_vector_function {
+    my $vectors = $self->vectors;
+    my @values = map {
+            my $vector_idx = $_;
+            my $payload = $vectors->[$vector_idx]->payload;
+            my @values = map {
+                ($_ => $vector_idx)
+            } ($payload->{start_vertex_idx} .. $payload->{end_vertex_idx});
+            @values;
+        } (0 .. @$vectors-1);
+    my $index_of = {};
+    for my $idx (0 .. @values/2-1) {
+        my ($k, $v) = map { $values[$_] } ($idx*2, $idx*2+1);
+        $index_of->{$k} //= $v;
+    }
+    my $last_vector_idx = @$vectors - 1;
+    my $mapper = sub {
+        my $idx = shift;
+        my $value = $idx >= 0 ? $index_of->{$idx} // $last_vector_idx : undef;
+        return $value;
+    };
+    return $mapper;
+}
 
 method arrow_vertices($index_to, $index_from) {
     my ($start, $end) = map { $self->vertices->[$_] } ($index_from, $index_to);
