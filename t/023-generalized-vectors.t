@@ -27,7 +27,7 @@ my $_a2r = sub {
     } @$angles ] ;
 };
 
-subtest "sphere vectors :: generalized vectors on equator" => sub {
+subtest "generalized vectors on equator" => sub {
     my $h = History->new;
     my @angels = ([0, 0], [0, 10], [0, 45], [0, 90] );
     my $records = $_a2r->(\@angels);
@@ -52,7 +52,7 @@ subtest "sphere vectors :: generalized vectors on equator" => sub {
     }
 };
 
-subtest "sphere vectors :: no generalized vectors" => sub {
+subtest "no generalized vectors" => sub {
     my $h = History->new;
     my @angels = ([0, 0], [0, 90], [90, 90] );
     my $records = $_a2r->(\@angels);
@@ -73,7 +73,7 @@ subtest "sphere vectors :: no generalized vectors" => sub {
     is $sphere_vectors->[1], "vector[1.0000, 1.0000, -0.0000]";
 };
 
-subtest "sphere vectors :: no generalization on change direction to 90 degress " => sub {
+subtest "no generalization on change direction to 90 degress " => sub {
     my $h = History->new;
     my @angels = ([0, 0], [0, 45], [0, 90], [1, 90] );
     my $records = $_a2r->(\@angels);
@@ -93,9 +93,9 @@ subtest "sphere vectors :: no generalization on change direction to 90 degress "
     is $sphere_vectors->[0], "vector[-1.0000, 0.0000, -1.0000]";
 };
 
-subtest "sphere vectors :: no generalization on step back " => sub {
+subtest "no generalization on step back, duplication check " => sub {
     my $h = History->new;
-    my @angels = ([0, 0], [0, 45], [0, 90], [0, 80] );
+    my @angels = ([0, 0], [0, 45], [0, 90], [0, 80], [0, 80] );
     my $records = $_a2r->(\@angels);
     push @{$h->records}, @$records;
     my $o = ObservationPath->new(history => $h);
@@ -104,13 +104,19 @@ subtest "sphere vectors :: no generalization on step back " => sub {
         vertex_indices => $o->sphere_vertex_indices,
         hilight_color  => [0.0, 0.0, 0.0, 0.0], # does not matter
     );
-    my $sphere_vectors = GeneralizedVectors->new(
+    my $gv = GeneralizedVectors->new(
         distance       => 2,
         source_vectors => $sphere_vectors_original,
         hilight_color  => [0.0, 0.0, 0.0, 0.0], # does not matter
-    )->vectors;
-    is scalar(@$sphere_vectors), 2;
-    is $sphere_vectors->[0], "vector[-1.0000, 0.0000, -1.0000]";
+    );
+    is scalar(@{$gv->vectors}), 2;
+    is $gv->vectors->[0], "vector[-1.0000, 0.0000, -1.0000]";
+    my $mapper = $gv->vertex_to_vector_function;
+    is $mapper->(0), 0, "vertex 0 maps to vector 0";
+    is $mapper->(1), 0, "vertex 1 maps to vector 0";
+    is $mapper->(2), 0, "vertex 2 maps to vector 0";
+    is $mapper->(3), 1, "vertex 3 maps to vector 1";
+    is $mapper->(4), 1, "vertex 4 maps to vector 1";
 };
 
 done_testing;

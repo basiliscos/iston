@@ -26,7 +26,7 @@ my $_a2r = sub {
     } @$angles ] ;
 };
 
-subtest "sphere vectors :: vectorized vertices" => sub {
+subtest "vectorized vertices" => sub {
     my $h = History->new;
     my @angels = ([0, 0], [0, 0], [0, -90] );
     my $records = $_a2r->(\@angels);
@@ -46,7 +46,7 @@ subtest "sphere vectors :: vectorized vertices" => sub {
     }
 };
 
-subtest "sphere vectors :: duplications elimination check" => sub {
+subtest "duplications elimination check" => sub {
     my $h = History->new;
     my @angels = ([0, 0], [0, 0], [0, -90], [-90, -90], [-90, -90], [0, 0]);
     my $records = $_a2r->(\@angels);
@@ -65,6 +65,26 @@ subtest "sphere vectors :: duplications elimination check" => sub {
     is $mapper->(3), 1, "vertex 3 maps to vector 1";
     is $mapper->(4), 2, "vertex 4 maps to vector 2"; # may be 1?
     is $mapper->(5), 2, "vertex 5 maps to vector 2";
+};
+
+subtest "duplications on the end check" => sub {
+    my $h = History->new;
+    my @angels = ([0, 0], [0, -90], [0, 0], [0, 0], [0, 0]);
+    my $records = $_a2r->(\@angels);
+    push @{$h->records}, @$records;
+    my $o = ObservationPath->new(history => $h);
+    my $sv = VectorizedVertices->new(
+        vertices       => $o->vertices,
+        vertex_indices => $o->sphere_vertex_indices,
+        hilight_color  => [0.0, 0.0, 0.0, 0.0], # does not matter
+    );
+    is scalar(@{$sv->vectors}), 2;
+    my $mapper = $sv->vertex_to_vector_function;
+    is $mapper->(0), 0;
+    is $mapper->(1), 0;
+    is $mapper->(2), 1;
+    is $mapper->(3), 1;
+    is $mapper->(4), 1;
 };
 
 done_testing;

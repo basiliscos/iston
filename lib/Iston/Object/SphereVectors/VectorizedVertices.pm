@@ -56,9 +56,11 @@ method _build_vertex_to_vector_function {
         my ($k, $v) = map { $values[$_] } ($idx*2, $idx*2+1);
         $index_of->{$k} //= $v;
     }
+    my $last_vector_idx = @$vectors - 1;
     my $mapper = sub {
         my $idx = shift;
-        return $index_of->{$idx};
+        my $value = $idx >= 0 ? $index_of->{$idx} // $last_vector_idx : undef;
+        return $value;
     };
     return $mapper;
 }
