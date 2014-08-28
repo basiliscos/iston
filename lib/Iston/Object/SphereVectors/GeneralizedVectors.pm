@@ -15,12 +15,15 @@ use OpenGL qw(:all);
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
-has 'source_vectors' => (is => 'ro', required => 1);
-has 'distance'       => (is => 'ro', required => 1);
-has 'vectors'        => (is => 'lazy');
-has 'vertices'       => (is => 'lazy');
-has 'vertex_indices' => (is => 'lazy');
-has 'draw_function'  => (is => 'lazy');
+has 'source_vectors'            => (is => 'ro', required => 1);
+has 'distance'                  => (is => 'ro', required => 1);
+has 'vectors'                   => (is => 'lazy');
+has 'vertices'                  => (is => 'lazy');
+has 'vertex_indices'            => (is => 'lazy');
+has 'draw_function'             => (is => 'lazy');
+has 'vertex_to_vector_function' => (is => 'lazy');
+has '_source_to_generalized'    => (is => 'rw');
+
 
 with('Iston::Object::SphereVectors');
 
@@ -32,9 +35,10 @@ my $_vizualization_step = deg2rad(0.5);
 
 method _build_vectors {
     # Ramer-Douglas-Peucker algorithm applied to the sphere's great arc
-    my $source_vectors = $self->source_vectors;
+    my $source_vectors = $self->source_vectors->vectors;
     my @vectors;
     my $last_index = -1;
+    my $source_to_generalized = {};
     for my $i (0 .. @$source_vectors-1) {
         next if $i <= $last_index;
         $last_index = $i;
@@ -50,20 +54,26 @@ method _build_vectors {
                 last;
             };
         }
-        if ($last_index > $i) {
-            my $a = $start->payload->{start_vertex};
-            my $b = $source_vectors->[$last_index]->payload->{end_vertex};
-            my $v = $a->vector_to($b);
-            my $great_arc_normal = $v * $_center->vector_to($a);
-            $v->payload->{start_vertex    } = $a;
-            $v->payload->{end_vertex      } = $b;
-            $v->payload->{great_arc_normal} = $great_arc_normal;
-            push @vectors, $v;
-        }
-        else {
-            push @vectors, $start;
+        my ($v, $idx) = do {
+            if ($last_index > $i) {
+                my $a = $start->payload->{start_vertex};
+                my $b = $source_vectors->[$last_index]->payload->{end_vertex};
+                my $v = $a->vector_to($b);
+                my $great_arc_normal = $v * $_center->vector_to($a);
+                $v->payload->{start_vertex    } = $a;
+                $v->payload->{end_vertex      } = $b;
+                $v->payload->{great_arc_normal} = $great_arc_normal;
+                ($v, $last_index);
+            } else {
+                ($start, $i);
+            }
+        };
+        my $length = push @vectors, $v;
+        for ($i .. $idx) {
+            $source_to_generalized->{$_} = $length-1;
         }
     }
+    $self->_source_to_generalized($source_to_generalized);
     return \@vectors;
 };
 
@@ -87,6 +97,18 @@ fun _max_distance($vectors, $start_idx, $end_idx) {
     my ($first, $last) = @center_vectors[0, @center_vectors-1];
     my $angular_length = $first->angle_with($last);
     return ($distance, $angular_length);
+}
+
+method _build_vertex_to_vector_function {
+    my $s2g = $self->_source_to_generalized;
+    my $source_mapper = $self->source_vectors->vertex_to_vector_function();
+    my $mapper = sub {
+        my $idx = shift;
+        my $source_idx = $source_mapper->($idx);
+        my $g_idx = $s2g->{$source_idx};
+        return $g_idx;
+    };
+    return $mapper;
 }
 
 method _build_vertices {

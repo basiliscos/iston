@@ -44,13 +44,14 @@ method dump_analisys ($output_fh, $observation_path) {
     my $vertices = $observation_path->vertices;
     my $v2s = $observation_path->vertex_to_sphere_index;
     my $values = $self->values;
+    my $mapper = $self->sphere_vectors->vertex_to_vector_function;
     say $output_fh "vertex_index, aberration";
     for my $idx (0 .. @$vertices -1) {
         my $sphere_index = $v2s->[$idx];
-        my $vector_index = $sphere_index - 1;
+        my $vector_index = $mapper->($idx) // 0; # $sphere_index - 1;
         my $value_index  = $vector_index - 1;
         my $value = 0;
-        if ($value_index >= 0 && $v2s->[$idx-1] != $sphere_index) {
+        if ($vector_index > 0 && $v2s->[$idx-1] != $sphere_index) {
             $value = $values->[$value_index];
         }
         $value = sprintf('%0.2f', rad2deg($value));

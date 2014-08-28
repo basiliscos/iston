@@ -352,7 +352,7 @@ sub _build_menu {
             my $sv = $angular_distance
                 ? GeneralizedVectors->new(
                     distance       => deg2rad($angular_distance),
-                    source_vectors => $self->_source_sphere_vectors->vectors,
+                    source_vectors => $self->_source_sphere_vectors,
                     hilight_color  => [0.75, 0.0, 0.75, 0.0]
                 )
                 : $self->_source_sphere_vectors;
