@@ -1,5 +1,5 @@
 package Iston::History::Record;
-$Iston::History::Record::VERSION = '0.04';
+$Iston::History::Record::VERSION = '0.05';
 use 5.12.0;
 
 use Moo;
@@ -24,7 +24,7 @@ Iston::History::Record
 
 =head1 VERSION
 
-version 0.04
+version 0.05
 
 =head1 AUTHOR
 

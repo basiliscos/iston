@@ -1,5 +1,5 @@
 package Iston::History;
-$Iston::History::VERSION = '0.04';
+$Iston::History::VERSION = '0.05';
 use 5.12.0;
 
 use Function::Parameters qw(:strict);
@@ -76,7 +76,7 @@ Iston::History
 
 =head1 VERSION
 
-version 0.04
+version 0.05
 
 =head1 AUTHOR
 

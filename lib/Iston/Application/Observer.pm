@@ -1,5 +1,5 @@
 package Iston::Application::Observer;
-$Iston::Application::Observer::VERSION = '0.04';
+$Iston::Application::Observer::VERSION = '0.05';
 use 5.12.0;
 
 use Moo;
@@ -194,7 +194,7 @@ Iston::Application::Observer
 
 =head1 VERSION
 
-version 0.04
+version 0.05
 
 =head1 AUTHOR
 

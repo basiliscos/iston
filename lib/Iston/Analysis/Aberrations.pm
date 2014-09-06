@@ -1,6 +1,6 @@
 package Iston::Analysis::Aberrations;
 # Abstract: Tracks the (angle) direction changes of the observation path
-$Iston::Analysis::Aberrations::VERSION = '0.04';
+$Iston::Analysis::Aberrations::VERSION = '0.05';
 use 5.12.0;
 
 use Function::Parameters qw(:strict);
@@ -73,7 +73,7 @@ Iston::Analysis::Aberrations
 
 =head1 VERSION
 
-version 0.04
+version 0.05
 
 =head1 AUTHOR
 
