@@ -95,7 +95,7 @@ method load {
                 ($n, $t) = ($n_new, $t_new);
                 push @vertices_normals, $normals[$n];
                 push @vertices_mappings, $uv_mappings[$t] if(defined $t);
-                push @final_vertices, $vertices[$source_idx];
+                push @final_vertices, Vertex->new($vertices[$source_idx]); # use copy!
                 my $new_index = @final_vertices - 1;
                 $processed_vertex{$key_string} = $new_index;
             }
