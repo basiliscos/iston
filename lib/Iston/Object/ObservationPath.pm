@@ -7,10 +7,10 @@ use utf8;
 
 use Function::Parameters qw(:strict);
 use Iston::Utils qw/rotation_matrix/;
+use Iston::Matrix;
 use List::Util qw/reduce/;
 use List::MoreUtils qw/pairwise/;
 use Moo;
-use Math::MatrixReal;
 use Math::Trig;
 use OpenGL qw(:all);
 
@@ -39,7 +39,7 @@ method BUILD {
 
 method _build_vertices_and_indices {
     my $history = $self->history;
-    my $current_point =  Math::MatrixReal->new_from_cols([ [0, 0, 1] ]);
+    my $current_point =  Iston::Matrix->new_from_cols([ [0, 0, 1] ]);
     my ($x_axis_degree, $y_axis_degree) = (0, 0);
     my @vertices;
     for my $i (0 .. $history->elements-1) {
@@ -50,12 +50,12 @@ method _build_vertices_and_indices {
         $y_axis_degree = $dy * -1;
         my $x_rads = deg2rad($x_axis_degree);
         my $y_rads = deg2rad($y_axis_degree);
-        my $r_a = Math::MatrixReal->new_from_rows([
+        my $r_a = Iston::Matrix->new_from_rows([
             [1, 0,            0            ],
             [0, cos($x_rads), -sin($x_rads)],
             [0, sin($x_rads), cos($x_rads) ],
         ]);
-        my $r_b = Math::MatrixReal->new_from_rows([
+        my $r_b = Iston::Matrix->new_from_rows([
             [cos($y_rads),  0, sin($y_rads)],
             [0,          ,  1, 0           ],
             [-sin($y_rads), 0, cos($y_rads)],
@@ -115,7 +115,7 @@ method arrow_vertices($index_to, $index_from) {
         }
         map { $_ * $length }
         map {
-            my $r = $rotation * Math::MatrixReal->new_from_cols([ [@$_] ]);
+            my $r = $rotation * Iston::Matrix->new_from_cols([ [@$_] ]);
             my $result_vector = Vector->new( [map { $r->element($_, 1) } (1 .. 3) ] );
         } @normals;
     return @results;

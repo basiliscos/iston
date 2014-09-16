@@ -3,7 +3,8 @@ package Iston::Object;
 use 5.16.0;
 
 use Carp;
-use Iston::Utils qw/generate_list_id/;
+use Iston::Matrix;
+use Iston::Utils qw/generate_list_id identity/;
 use Moo;
 use List::Util qw/max/;
 use Function::Parameters qw(:strict);
@@ -15,7 +16,7 @@ use aliased qw/Iston::Vertex/;
 
 
 has center       => (is => 'lazy');
-has scale        => (is => 'rw', default => sub { 1; });
+has scale        => (is => 'rw', default => sub { 1; }, trigger => 1);
 has vertices     => (is => 'rw', required => 0);
 has indices      => (is => 'rw', required => 0);
 has normals      => (is => 'rw', required => 0);
@@ -27,6 +28,12 @@ has contexts     => (is => 'rw', default => sub { {} });
 has texture_id    => (is => 'lazy');
 has draw_function => (is => 'lazy', clearer => 1);
 
+# matrices
+has model          => (is => 'rw', trigger => sub{ shift->clear_model_oga }, default => sub { identity; });
+has model_scale    => (is => 'rw', trigger => sub{ shift->clear_model_oga }, default => sub { identity; });
+has model_rotation => (is => 'rw', trigger => sub{ shift->clear_model_oga }, default => sub { identity; });
+has model_oga      => (is => 'lazy', clearer => 1);
+
 # material properties
 has diffuse   => (is => 'rw', default => sub { [0.75, 0.75, 0.75, 1]} );
 has ambient   => (is => 'rw', default => sub { [0.75, 0.75, 0.75, 1]} );
@@ -35,6 +42,34 @@ has shininess => (is => 'rw', default => sub { 50.0 } );
 
 
 with('Iston::Drawable');
+
+method _trigger_rotation($values) {
+    my $m = identity;
+    for my $idx (0 .. @$values-1) {
+        my $angle = $values->[$idx];
+        if($angle) {
+            my @axis_components = (0) x scalar(@$values);
+            $axis_components[$idx] = 1;
+            my $axis = Vector->new(\@axis_components);
+            $m *= Iston::Utils::rotate($angle, $axis);
+        }
+    }
+    $self->model_rotation($m);
+}
+
+method _trigger_scale($value) {
+    $self->model_scale(Iston::Utils::scale($value));
+}
+
+sub _build_model_oga {
+    my $self = shift;
+    my $scale    = $self->model_scale;
+    my $rotation = $self->model_rotation;
+    my $model = $self->model;
+    my $matrix = $model * $rotation * $scale;
+    $matrix = ~$matrix;
+    return OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list);
+}
 
 method _build_center {
     my ($v_size, $n_size) = map { scalar(@{ $self->$_ }) }
@@ -154,7 +189,7 @@ method _build_draw_function {
     my ($vbo_vertices, $vbo_normals) = glGenBuffersARB_p(2);
     $vertices->bind($vbo_vertices);
     glBufferDataARB_p(GL_ARRAY_BUFFER_ARB, $vertices, GL_STATIC_DRAW_ARB);
-    
+
     my $indices = $self->indices;
     my $indices_size = scalar(@$indices);
     my $mode = $self->mode;
@@ -163,11 +198,11 @@ method _build_draw_function {
 
 
     #$indices = [@{$indices}[0 .. 9] ];
-    
-    my ($diffuse, $ambient, $specular) =  map {
-        OpenGL::Array->new_list( GL_FLOAT, @$_ )
-      } map { $self->$_ } qw/diffuse ambient specular/;
-    my $shininess = OpenGL::Array->new_list(GL_FLOAT, $self->shininess);
+
+    # my ($diffuse, $ambient, $specular) =  map {
+    #     OpenGL::Array->new_list( GL_FLOAT, @$_ )
+    #   } map { $self->$_ } qw/diffuse ambient specular/;
+    # my $shininess = OpenGL::Array->new_list(GL_FLOAT, $self->shininess);
     my $draw_function = sub {
         my $shader = shift;
         # glEnableClientState(GL_NORMAL_ARRAY);
@@ -185,6 +220,8 @@ method _build_draw_function {
 
         # glDisableClientState(GL_NORMAL_ARRAY);
         # glDisableClientState(GL_VERTEX_ARRAY);
+
+        $shader->SetMatrix(model => $self->model_oga);
 
         my $texture_id = $self->texture_id;
         if (defined $texture_id) {

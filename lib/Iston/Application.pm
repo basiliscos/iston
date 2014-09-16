@@ -4,6 +4,9 @@ use 5.12.0;
 
 use AntTweakBar qw/:all/;
 use AnyEvent;
+use Function::Parameters qw(:strict);
+use Iston::Matrix;
+use Iston::Utils qw/perspective look_at/;
 use Moo::Role;
 use OpenGL qw(:all);
 use OpenGL::Shader;
@@ -28,8 +31,14 @@ has sdl_app         => (is => 'rw');
 has width           => (is => 'rw');
 has height          => (is => 'rw');
 has settings_bar    => (is => 'lazy');
-
 has history         => (is => 'rw');
+
+# matrices
+has view            => (is => 'rw', trigger => 1);
+has projection      => (is => 'rw', trigger => 1);
+
+has view_oga        => (is => 'rw');
+has projection_oga  => (is => 'rw');
 
 requires qw/process_event/;
 requires qw/objects/;
@@ -56,7 +65,16 @@ sub init_app {
     glEnable(GL_DEPTH_TEST);
     glClearColor(0.0, 0.0, 0.0, 0.0);
     $self->_initGL;
-    $self->_init_shaders;
+    $self->_init_shaders('object');
+    $self->object_shader->Enable;
+    $self->view( look_at(
+            Vector->new([0.0, 2.0, 0.0]),
+            Vector->new([0.0, 0.0, -4.0]),
+            Vector->new([0.0, 1.0, 0.0]),
+    ));
+    $self->projection(
+        perspective(45.0, 1.0 * $self->width/$self->height, 0.1, 10.0)
+    );
     AntTweakBar::init(TW_OPENGL);
     my ($width, $height) = map { $self->sdl_app->$_ } qw/w h/;
     AntTweakBar::window_size($width, $height);
@@ -67,18 +85,35 @@ sub init_app {
 }
 
 
-sub _init_shaders {
-    my $self = shift;
+method _init_shaders($name) {
     my $shader = OpenGL::Shader->new('GLSL');
     say "Shader ", $shader->GetType, " version: ", $shader->GetVersion;
     my @shader_files = (
-        "share/shaders/object.fragment.glsl",
-        "share/shaders/object.vertex.glsl"
+        "share/shaders/$name.fragment.glsl",
+        "share/shaders/$name.vertex.glsl"
     );
     my $info = $shader->LoadFiles(@shader_files);
-    die ("shaders loading: $info") if $info;
+    die ("shaders $name loading: $info") if $info;
     $self->object_shader($shader);
     $self->_update_mvp;
+}
+
+method _trigger_view($matrix) {
+    $matrix = ~$matrix;
+    say "upating view with\n", $matrix;
+    say "list: \n", join(', ', $matrix->as_list);
+    $self->object_shader->SetMatrix(
+        view => OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list)
+    );
+}
+
+method _trigger_projection($matrix) {
+    $matrix = ~$matrix;
+    say "upating projection with\n", $matrix;
+    say "list: \n", join(', ', $matrix->as_list);
+    $self->object_shader->SetMatrix(
+        projection => OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list)
+    );
 }
 
 sub _update_mvp {

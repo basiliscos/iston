@@ -3,11 +3,11 @@ package Iston::Object::SphereVectors::VectorizedVertices;
 use 5.16.0;
 
 use Function::Parameters qw(:strict);
+use Iston::Matrix;
 use Iston::Utils qw/rotation_matrix generate_list_id/;
 use List::Util qw/reduce/;
 use List::MoreUtils qw/pairwise/;
 use Moo;
-use Math::MatrixReal;
 use Math::Trig;
 use OpenGL qw(:all);
 
@@ -90,7 +90,7 @@ method arrow_vertices($index_to, $index_from) {
         }
         map { $_ * $length }
         map {
-            my $r = $rotation * Math::MatrixReal->new_from_cols([ [@$_] ]);
+            my $r = $rotation * Matrix->new_from_cols([ [@$_] ]);
             my $result_vector = Vector->new( [map { $r->element($_, 1) } (1 .. 3) ] );
         } @normals;
     return @results;

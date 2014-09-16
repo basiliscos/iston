@@ -3,9 +3,10 @@ package Iston::Loader;
 use 5.12.0;
 
 use Carp;
+use Function::Parameters qw(:strict);
+use Iston::Utils qw/translate/;
 use List::MoreUtils qw/any uniq/;
 use List::Util qw/reduce/;
-use Function::Parameters qw(:strict);
 use Moo;
 use Path::Tiny;
 use Smart::Comments -ENV;
@@ -118,7 +119,8 @@ method load {
     );
     my $center = $object->center;
     my $to_center = [ map { $_ * -1 } @$center ];
-    $object->translate($to_center);
+    $object->model($object->model * translate(Vector->new([0, 0, -4]) ));
+    #$object->translate($to_center);
 
     return $object;
 };
