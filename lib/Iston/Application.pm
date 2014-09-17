@@ -6,7 +6,7 @@ use AntTweakBar qw/:all/;
 use AnyEvent;
 use Function::Parameters qw(:strict);
 use Iston::Matrix;
-use Iston::Utils qw/perspective look_at/;
+use Iston::Utils qw/perspective look_at translate identity/;
 use Moo::Role;
 use OpenGL qw(:all);
 use OpenGL::Shader;
@@ -21,7 +21,7 @@ use SDL::Event;
 use aliased qw/Iston::Loader/;
 use aliased qw/Iston::Vector/;
 
-has camera_position => (is => 'rw', default => sub { [0, 0, -7] });
+has camera_position => (is => 'rw', trigger => 1);
 has object_shader   => (is => 'rw');
 has cv_finish       => (is => 'ro', default => sub { AE::cv });
 has max_boundary    => (is => 'ro', default => sub { 3.0 });
@@ -34,7 +34,7 @@ has settings_bar    => (is => 'lazy');
 has history         => (is => 'rw');
 
 # matrices
-has view            => (is => 'rw', trigger => 1);
+has view            => (is => 'rw', trigger => 1, default => sub { identity } );
 has projection      => (is => 'rw', trigger => 1);
 
 has view_oga        => (is => 'rw');
@@ -67,9 +67,10 @@ sub init_app {
     $self->_initGL;
     $self->_init_shaders('object');
     $self->object_shader->Enable;
+    $self->camera_position([0, 0, -7]);
     $self->view( look_at(
             Vector->new([0.0, 2.0, 0.0]),
-            Vector->new([0.0, 0.0, -4.0]),
+            $self->camera_position,
             Vector->new([0.0, 1.0, 0.0]),
     ));
     $self->projection(
@@ -95,10 +96,20 @@ method _init_shaders($name) {
     my $info = $shader->LoadFiles(@shader_files);
     die ("shaders $name loading: $info") if $info;
     $self->object_shader($shader);
-    $self->_update_mvp;
 }
 
 method _trigger_view($matrix) {
+    $self->_update_view;
+}
+
+method _trigger_camera_position {
+    $self->_update_view;
+}
+
+method _update_view {
+    my $translate = translate($self->camera_position);
+    my $view = $self->view;
+    my $matrix = $view * $translate;
     $matrix = ~$matrix;
     say "upating view with\n", $matrix;
     say "list: \n", join(', ', $matrix->as_list);
@@ -114,18 +125,6 @@ method _trigger_projection($matrix) {
     $self->object_shader->SetMatrix(
         projection => OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list)
     );
-}
-
-sub _update_mvp {
-    my $self = shift;
-    my @list = (
-        1.16432199995035, 0.4008355302605, 0.456248213590866, 0.447213595499958,
-        0, 1.603342121042, -0.456248213590866, -0.447213595499958,
-        0.672221620094739, -0.694267503889998, -0.790245086801917, -0.774596669241483,
-        0, 0, 4.36046193388846, 4.47213595499958
-    );
-    my $mvp_oga = OpenGL::Array->new_list(GL_FLOAT, @list);
-    $self->object_shader->SetMatrix("mvp", $mvp_oga);
 }
 
 sub _init_light {
@@ -178,7 +177,6 @@ sub _drawGLScene {
     #glTranslatef(@{ $self->camera_position });
 
     $self->object_shader->Enable;
-    $self->_update_mvp;
     for(@{ $self->objects }) {
         next if !$_ or !$_->enabled;
         #glPushMatrix;
