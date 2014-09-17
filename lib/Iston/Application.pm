@@ -74,7 +74,7 @@ sub init_app {
     #         Vector->new([0.0, 1.0, 0.0]),
     # ));
     $self->projection(
-        perspective(45.0, 1.0 * $self->width/$self->height, 0.1, 10.0)
+        perspective(45.0, 1.0 * $self->width/$self->height, 0.1, 30.0)
     );
     AntTweakBar::init(TW_OPENGL);
     my ($width, $height) = map { $self->sdl_app->$_ } qw/w h/;
@@ -111,8 +111,8 @@ method _update_view {
     my $view = $self->view;
     my $matrix = $view * $translate;
     $matrix = ~$matrix;
-    say "upating view with\n", $matrix;
-    say "list: \n", join(', ', $matrix->as_list);
+    #say "upating view with\n", $matrix;
+    #say "list: \n", join(', ', $matrix->as_list);
     $self->object_shader->SetMatrix(
         view => OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list)
     );
@@ -120,35 +120,11 @@ method _update_view {
 
 method _trigger_projection($matrix) {
     $matrix = ~$matrix;
-    say "upating projection with\n", $matrix;
-    say "list: \n", join(', ', $matrix->as_list);
+    #say "upating projection with\n", $matrix;
+    #say "list: \n", join(', ', $matrix->as_list);
     $self->object_shader->SetMatrix(
         projection => OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list)
     );
-}
-
-sub _init_light {
-    my $self = shift;
-    glShadeModel (GL_SMOOTH);
-
-    # Initialize material property, light source, lighting model,
-    # and depth buffer.
-    my @mat_specular = ( 1.0, 1.0, 1.0, 1.0 );
-    #my @mat_diffuse  = ( 0.1, 0.4, 0.8, 1.0 );
-    my @light_position = ( 20.0, 20.0, 20.0, 0.0 );
-
-    #glMaterialfv_s(GL_FRONT, GL_DIFFUSE, pack("f4",@mat_diffuse));
-    glMaterialfv_c(GL_FRONT, GL_SPECULAR, OpenGL::Array->new_list(
-        GL_FLOAT, @mat_specular)->ptr);
-    glMaterialfv_c(GL_FRONT, GL_SHININESS, OpenGL::Array->new_list(
-        GL_FLOAT, 120.0)->ptr);
-    glLightfv_c(GL_LIGHT0, GL_POSITION, OpenGL::Array->new_list(
-        GL_FLOAT, @light_position)->ptr);
-
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-    glDepthFunc(GL_LESS);
-    glEnable(GL_DEPTH_TEST);
 }
 
 sub _initGL {
@@ -157,12 +133,8 @@ sub _initGL {
     $self->width( $width );
     $self->height( $height );
     say "screen: ${width}x${height} px";
-    glMatrixMode(GL_PROJECTION);
-    # glLoadIdentity;
-    # gluPerspective(65.0, $width/$height, 1, 100.0);
-    # glMatrixMode(GL_MODELVIEW);
-    # glEnable(GL_NORMALIZE);
-    # _init_light;
+    #glMatrixMode(GL_PROJECTION);
+    glShadeModel(GL_SMOOTH);
 }
 
 sub _build_settings_bar {
@@ -173,24 +145,11 @@ sub _drawGLScene {
     my $self = shift;
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    #glLoadIdentity;
-    #glTranslatef(@{ $self->camera_position });
-
     $self->object_shader->Enable;
     for(@{ $self->objects }) {
         next if !$_ or !$_->enabled;
-        #glPushMatrix;
-        #glPushClientAttrib(GL_CLIENT_ALL_ATTRIB_BITS);
-        #glPushAttrib(GL_ALL_ATTRIB_BITS);
         $_->draw_function->($self->object_shader);
-        #glPopAttrib;
-        #glPopClientAttrib;
-        #glPopMatrix;
     }
-
-    #glEnable(GL_DEPTH_TEST);
-    #glDisable(GL_CULL_FACE);
-    #glEnable(GL_NORMALIZE);
     AntTweakBar::draw;
     glFlush;
 }
