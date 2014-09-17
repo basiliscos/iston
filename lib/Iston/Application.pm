@@ -68,11 +68,11 @@ sub init_app {
     $self->_init_shaders('object');
     $self->object_shader->Enable;
     $self->camera_position([0, 0, -7]);
-    $self->view( look_at(
-            Vector->new([0.0, 2.0, 0.0]),
-            $self->camera_position,
-            Vector->new([0.0, 1.0, 0.0]),
-    ));
+    # $self->view( look_at(
+    #         Vector->new([0.0, 2.0, 0.0]),
+    #         $self->camera_position,
+    #         Vector->new([0.0, 1.0, 0.0]),
+    # ));
     $self->projection(
         perspective(45.0, 1.0 * $self->width/$self->height, 0.1, 10.0)
     );

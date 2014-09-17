@@ -83,6 +83,7 @@ sub _build__commands {
         my $value = shift;
         return sub {
             $self->camera_position->[2] += $value;
+            $self->_update_view;
         };
     };
     my $rotate_step = 2;
@@ -172,6 +173,7 @@ sub process_event {
             # say "mouse wheel?";
             my $step = 0.1 * ( ($button == SDL_BUTTON_WHEELUP) ? 1: -1);
             $self->camera_position->[2] += $step;
+            $self->_update_view;
         }
     }
     if ($action) {
