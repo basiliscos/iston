@@ -102,13 +102,15 @@ fun look_at($eye, $at, $up){
     ]);
 }
 
+my $_identity = Iston::Matrix->new_from_rows([
+    [1, 0, 0, 0],
+    [0, 1, 0, 0],
+    [0, 0, 1, 0],
+    [0, 0, 0, 1],
+]);
+
 fun identity {
-    return Iston::Matrix->new_from_rows([
-        [1, 0, 0, 0],
-        [0, 1, 0, 0],
-        [0, 0, 1, 0],
-        [0, 0, 0, 1],
-    ]);
+    return $_identity;
 }
 
 1;
