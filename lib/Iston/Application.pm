@@ -66,7 +66,7 @@ sub init_app {
     glClearColor(0.0, 0.0, 0.0, 0.0);
     $self->_initGL;
     $self->_init_shaders('object');
-    $self->object_shader->Enable;
+    #$self->object_shader->Enable;
     $self->camera_position([0, 0, -7]);
     # $self->view( look_at(
     #         Vector->new([0.0, 2.0, 0.0]),
@@ -113,18 +113,22 @@ method _update_view {
     $matrix = ~$matrix;
     #say "upating view with\n", $matrix;
     #say "list: \n", join(', ', $matrix->as_list);
+    $self->object_shader->Enable;
     $self->object_shader->SetMatrix(
         view => OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list)
     );
+    $self->object_shader->Disable;
 }
 
 method _trigger_projection($matrix) {
     $matrix = ~$matrix;
     #say "upating projection with\n", $matrix;
     #say "list: \n", join(', ', $matrix->as_list);
+    $self->object_shader->Enable;
     $self->object_shader->SetMatrix(
         projection => OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list)
     );
+    $self->object_shader->Disable;
 }
 
 sub _initGL {
@@ -144,11 +148,9 @@ sub _build_settings_bar {
 sub _drawGLScene {
     my $self = shift;
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    $self->object_shader->Enable;
     for(@{ $self->objects }) {
         next if !$_ or !$_->enabled;
-        $_->draw_function->($self->object_shader);
+        $_->draw_function->();
     }
     AntTweakBar::draw;
     glFlush;

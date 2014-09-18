@@ -31,6 +31,7 @@ sub BUILD {
     my ($x, $y) = ($self->width/2, $self->height/2);
     SDL::Mouse::warp_mouse($x, $y);
     my $object = $self->load_object($self->object_path);
+    $object->shader($self->object_shader);
     $self->main_object($object);
     push @{ $self->objects }, $object;
 

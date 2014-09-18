@@ -28,6 +28,13 @@ has contexts     => (is => 'rw', default => sub { {} });
 has texture_id    => (is => 'lazy');
 has draw_function => (is => 'lazy', clearer => 1);
 
+has shader              => (is => 'rw', trigger => 1 );
+has _uniform_my_texture => (is => 'rw');
+has _attribute_texcoord => (is => 'rw');
+has _attribute_coord3d  => (is => 'rw');
+
+has _text_coords_oga => (is => 'lazy');
+
 # matrices
 has model          => (is => 'rw', trigger => sub{ shift->clear_model_oga }, default => sub { identity; });
 has model_scale    => (is => 'rw', trigger => sub{ shift->clear_model_oga }, default => sub { identity; });
@@ -42,6 +49,26 @@ has shininess => (is => 'rw', default => sub { 50.0 } );
 
 
 with('Iston::Drawable');
+
+method _trigger_shader($shader) {
+    my $mytexture = $shader->Map('mytexture') // die("cannot map mytexture uniform");
+    my ($texcoord, $coord3d) = map {
+        $shader->MapAttr($_) // die("cannot map attribute $_");
+    } qw/texcoord coord3d/;
+    $self->_uniform_my_texture($mytexture);
+    $self->_attribute_texcoord($texcoord);
+    $self->_attribute_coord3d($coord3d);
+}
+
+method _build__text_coords_oga {
+    my ($vbo_texcoords) = glGenBuffersARB_p(1);
+    my $texcoords_oga = OpenGL::Array->new_list(
+        GL_FLOAT, map { @$_ } @{ $self->uv_mappings }
+    );
+    $texcoords_oga->bind($vbo_texcoords);
+    glBufferDataARB_p(GL_ARRAY_BUFFER_ARB, $texcoords_oga, GL_STATIC_DRAW_ARB);
+    return $texcoords_oga;
+}
 
 method _trigger_rotation($values) {
     my $m = identity;
@@ -196,88 +223,40 @@ method _build_draw_function {
     my $draw_mode = $mode eq 'normal'
         ? GL_TRIANGLES : GL_LINES;
 
+    my $indices_oga =OpenGL::Array->new_list(
+        GL_UNSIGNED_INT,
+        @$indices
+    );
 
-    #$indices = [@{$indices}[0 .. 9] ];
-
-    # my ($diffuse, $ambient, $specular) =  map {
-    #     OpenGL::Array->new_list( GL_FLOAT, @$_ )
-    #   } map { $self->$_ } qw/diffuse ambient specular/;
-    # my $shininess = OpenGL::Array->new_list(GL_FLOAT, $self->shininess);
     my $draw_function = sub {
-        my $shader = shift;
-        # glEnableClientState(GL_NORMAL_ARRAY);
-        # glNormalPointer_p($normals);
-        # glEnableClientState(GL_VERTEX_ARRAY);
-        # glVertexPointer_p($components, $vertices);
+        $self->shader->Enable;
 
-        # # applying material properties to the whole object
-        # glMaterialfv_c(GL_FRONT, GL_DIFFUSE, $diffuse->ptr);
-        # glMaterialfv_c(GL_FRONT, GL_AMBIENT, $ambient->ptr);
-        # glMaterialfv_c(GL_FRONT, GL_SPECULAR, $specular ->ptr);
-        # glMaterialfv_c(GL_FRONT, GL_SHININESS, $shininess->ptr);
-
-        # glDrawElements_p($draw_mode, @$indices);
-
-        # glDisableClientState(GL_NORMAL_ARRAY);
-        # glDisableClientState(GL_VERTEX_ARRAY);
-
-        $shader->SetMatrix(model => $self->model_oga);
+        $self->shader->SetMatrix(model => $self->model_oga);
+        my $attribute_texcoord = $self->_attribute_texcoord;
+        glEnableVertexAttribArrayARB($attribute_texcoord);
 
         my $texture_id = $self->texture_id;
         if (defined $texture_id) {
             glActiveTextureARB(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, $texture_id);
-            my $uniform_mytexture = $shader->Map('mytexture') // die("cannot map mytexture uniform");
-            glUniform1iARB($uniform_mytexture, 0); # /*GL_TEXTURE*/
+            glUniform1iARB($self->_uniform_my_texture, 0); # /*GL_TEXTURE*/
 
-            my ($vbo_texcoords) = glGenBuffersARB_p(1);
-            my $attribute_texcoord = $shader->MapAttr("texcoord");
-            my $texcoords_oga = OpenGL::Array->new_list(
-                GL_FLOAT, map { @$_ } @{ $self->uv_mappings }
-            );
-            $texcoords_oga->bind($vbo_texcoords);
-            glBufferDataARB_p(GL_ARRAY_BUFFER_ARB, $texcoords_oga, GL_STATIC_DRAW_ARB);
-
-            glEnableVertexAttribArrayARB($attribute_texcoord);
-            #glBindBufferARB(GL_ARRAY_BUFFER, $texcoords_oga->bound);
+            glBindBufferARB(GL_ARRAY_BUFFER, $self->_text_coords_oga->bound);
             glVertexAttribPointerARB_c($attribute_texcoord, 2, GL_FLOAT, 0, 0, 0);
         }
 
-        my $attribute_coord3d = $shader->MapAttr("coord3d");
-        die ("cannot map coord3d attribute") unless defined $attribute_coord3d;
+        my $attribute_coord3d = $self->_attribute_coord3d;
         glEnableVertexAttribArrayARB($attribute_coord3d);
         glBindBufferARB(GL_ARRAY_BUFFER, $vertices->bound);
         glVertexAttribPointerARB_c($attribute_coord3d, 3, GL_FLOAT, 0, 0, 0);
 
-        # glEnableVertexAttribArrayARB($attribute_v_color);
-        # glBindBufferARB(GL_ARRAY_BUFFER, $colors_oga->bound);
-        # glVertexAttribPointerARB_c($attribute_v_color, 3, GL_FLOAT, 0, 0, 0);
-
-        glDrawElements_p(GL_TRIANGLES, @$indices);
+        glDrawElements_c(GL_TRIANGLES, $indices_size, GL_UNSIGNED_INT, $indices_oga->ptr);
 
         glDisableVertexAttribArrayARB($attribute_coord3d);
-        #glDisableVertexAttribArrayARB($attribute_v_color);
+        glDisableVertexAttribArrayARB($attribute_texcoord);
+        $self->shader->Disable;
     };
     return $draw_function;
-    # if ($self->display_list) {
-    #     my ($id, $cleaner) = generate_list_id;
-    #     glNewList($id, GL_COMPILE);
-    #     $draw_function->();
-    #     glEndList;
-    #     $draw_function = sub {
-    #         my $cleaner_ref = \$cleaner;
-    #         glCallList($id);
-    #     };
-    # }
-    # return sub {
-    #     if ($scale) {
-    #         glScalef($scale, $scale, $scale);
-    #         glRotatef($self->rotate(0), 1, 0, 0);
-    #         glRotatef($self->rotate(1), 0, 1, 0);
-    #         glRotatef($self->rotate(2), 0, 0, 1);
-    #     }
-    #     $draw_function->();
-    # };
 }
 
 1;
