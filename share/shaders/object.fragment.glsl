@@ -5,16 +5,18 @@ varying vec3 normal;
 
 uniform sampler2D mytexture;
 uniform int has_texture;
+
 uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
 
 uniform vec4 default_color = vec4(0.8, 0.8, 0.8, 1);
 uniform vec3 light_position = vec3(20, 5, 20);
 
 float get_intensity(void) {
-     vec4 lp4 = vec4(light_position, 0);
+     vec4 light_dir4 = vec4( normalize(light_position), 0 );
      // light direction is model independent
-     vec4 light_dir4 = normalize( lp4 * model);
-     vec4 N4 = vec4(normalize(normal), 0);
+     vec4 N4 = normalize ( vec4(normal, 0) );
      float intensity = dot(N4, light_dir4);
      return intensity;
 }

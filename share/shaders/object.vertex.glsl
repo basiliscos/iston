@@ -22,5 +22,8 @@ void main(void) {
 
   gl_Position = mvp * vec4(my_coord, 1.0);
   f_texcoord = texcoord;
-  normal = N;
+
+  // move normal from object space into world space
+  vec4 my_normal = model * vec4(N, 0);
+  normal = vec3(my_normal.x, my_normal.y, my_normal.z);
 }
