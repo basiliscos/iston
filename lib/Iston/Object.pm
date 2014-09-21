@@ -28,10 +28,12 @@ has contexts     => (is => 'rw', default => sub { {} });
 has texture_id    => (is => 'lazy');
 has draw_function => (is => 'lazy', clearer => 1);
 
-has shader              => (is => 'rw', trigger => 1 );
-has _uniform_my_texture => (is => 'rw');
-has _attribute_texcoord => (is => 'rw');
-has _attribute_coord3d  => (is => 'rw');
+has shader               => (is => 'rw', trigger => 1 );
+has _uniform_my_texture  => (is => 'rw');
+has _uniform_has_texture => (is => 'rw');
+has _attribute_texcoord  => (is => 'rw');
+has _attribute_coord3d   => (is => 'rw');
+has _attribute_normal    => (is => 'rw');
 
 has _text_coords_oga => (is => 'lazy');
 
@@ -51,13 +53,17 @@ has shininess => (is => 'rw', default => sub { 50.0 } );
 with('Iston::Drawable');
 
 method _trigger_shader($shader) {
-    my $mytexture = $shader->Map('mytexture') // die("cannot map mytexture uniform");
-    my ($texcoord, $coord3d) = map {
-        $shader->MapAttr($_) // die("cannot map attribute $_");
-    } qw/texcoord coord3d/;
+    my ($mytexture, $has_texture) = map {
+        $shader->Map($_) // die("cannot map '$_' uniform");
+    } qw/mytexture has_texture/;
+    my ($texcoord, $coord3d, $normal) = map {
+        $shader->MapAttr($_) // die("cannot map attribute '$_'");
+    } qw/texcoord coord3d N/;
     $self->_uniform_my_texture($mytexture);
+    $self->_uniform_has_texture($has_texture);
     $self->_attribute_texcoord($texcoord);
     $self->_attribute_coord3d($coord3d);
+    $self->_attribute_normal($normal);
 }
 
 method _build__text_coords_oga {
@@ -214,8 +220,12 @@ method _build_draw_function {
         ($p_vertices, $p_normals);
     my $components = 3; # number of coordinates
     my ($vbo_vertices, $vbo_normals) = glGenBuffersARB_p(2);
+
     $vertices->bind($vbo_vertices);
     glBufferDataARB_p(GL_ARRAY_BUFFER_ARB, $vertices, GL_STATIC_DRAW_ARB);
+
+    $normals->bind($vbo_normals);
+    glBufferDataARB_p(GL_ARRAY_BUFFER_ARB, $normals, GL_STATIC_DRAW_ARB);
 
     my $indices = $self->indices;
     my $indices_size = scalar(@$indices);
@@ -228,6 +238,12 @@ method _build_draw_function {
         @$indices
     );
 
+    my $texture_id = $self->texture_id;
+    $self->shader->Enable;
+    my $has_texture_u = $self->_uniform_has_texture;
+    glUniform1iARB($has_texture_u, defined($texture_id));
+    $self->shader->Disable;
+
     my $draw_function = sub {
         $self->shader->Enable;
 
@@ -235,7 +251,6 @@ method _build_draw_function {
         my $attribute_texcoord = $self->_attribute_texcoord;
         glEnableVertexAttribArrayARB($attribute_texcoord);
 
-        my $texture_id = $self->texture_id;
         if (defined $texture_id) {
             glActiveTextureARB(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, $texture_id);
@@ -249,6 +264,11 @@ method _build_draw_function {
         glEnableVertexAttribArrayARB($attribute_coord3d);
         glBindBufferARB(GL_ARRAY_BUFFER, $vertices->bound);
         glVertexAttribPointerARB_c($attribute_coord3d, 3, GL_FLOAT, 0, 0, 0);
+
+        my $attribute_normal = $self->_attribute_normal;
+        glEnableVertexAttribArrayARB($attribute_normal);
+        glBindBufferARB(GL_ARRAY_BUFFER, $vertices->bound);
+        glVertexAttribPointerARB_c($attribute_normal, 3, GL_FLOAT, 0, 0, 0);
 
         glDrawElements_c(GL_TRIANGLES, $indices_size, GL_UNSIGNED_INT, $indices_oga->ptr);
 
