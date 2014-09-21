@@ -6,10 +6,6 @@ varying vec3 normal;
 uniform sampler2D mytexture;
 uniform int has_texture;
 
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
-
 uniform vec4 default_color = vec4(0.8, 0.8, 0.8, 1);
 uniform vec3 light_position = vec3(20, 5, 20);
 
