@@ -5,13 +5,11 @@ attribute vec3 N;
 attribute vec2 texcoord;
 
 varying vec2 f_texcoord;
-varying float intensity;
+varying vec3 normal;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-
-uniform vec3 light_position = vec3(20, 5, 20);
 
 void main(void) {
   mat4 mvp = projection * view * model;
@@ -22,12 +20,7 @@ void main(void) {
   //my_coord.z = my_coord.z + sin(my_coord.x);
   //my_coord.z = my_coord.z + N.z;
 
-  vec4 lp4 = vec4(light_position, 0);
-  // light direction is model independent
-  vec4 light_dir4 = normalize( lp4 * model);
-  vec4 N4 = vec4(N, 0);
-  intensity = dot( N4, light_dir4);
-
   gl_Position = mvp * vec4(my_coord, 1.0);
   f_texcoord = texcoord;
+  normal = N;
 }
