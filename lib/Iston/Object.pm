@@ -28,12 +28,13 @@ has contexts     => (is => 'rw', default => sub { {} });
 has texture_id    => (is => 'lazy');
 has draw_function => (is => 'lazy', clearer => 1);
 
-has shader               => (is => 'rw', trigger => 1 );
-has _uniform_my_texture  => (is => 'rw');
-has _uniform_has_texture => (is => 'rw');
-has _attribute_texcoord  => (is => 'rw');
-has _attribute_coord3d   => (is => 'rw');
-has _attribute_normal    => (is => 'rw');
+has shader                => (is => 'rw', trigger => 1 );
+has _uniform_my_texture   => (is => 'rw');
+has _uniform_has_texture  => (is => 'rw');
+has _uniform_has_lighting => (is => 'rw');
+has _attribute_texcoord   => (is => 'rw');
+has _attribute_coord3d    => (is => 'rw');
+has _attribute_normal     => (is => 'rw');
 
 has _text_coords_oga => (is => 'lazy');
 
@@ -53,14 +54,15 @@ has shininess => (is => 'rw', default => sub { 50.0 } );
 with('Iston::Drawable');
 
 method _trigger_shader($shader) {
-    my ($mytexture, $has_texture) = map {
+    my ($mytexture, $has_texture, $has_lighting) = map {
         $shader->Map($_) // die("cannot map '$_' uniform");
-    } qw/mytexture has_texture/;
+    } qw/mytexture has_texture has_lighting/;
     my ($texcoord, $coord3d, $normal) = map {
         $shader->MapAttr($_) // die("cannot map attribute '$_'");
     } qw/texcoord coord3d N/;
     $self->_uniform_my_texture($mytexture);
     $self->_uniform_has_texture($has_texture);
+    $self->_uniform_has_lighting($has_lighting);
     $self->_attribute_texcoord($texcoord);
     $self->_attribute_coord3d($coord3d);
     $self->_attribute_normal($normal);
@@ -240,8 +242,12 @@ method _build_draw_function {
 
     my $texture_id = $self->texture_id;
     $self->shader->Enable;
+
     my $has_texture_u = $self->_uniform_has_texture;
     glUniform1iARB($has_texture_u, defined($texture_id));
+    my $has_lighting_u = $self->_uniform_has_lighting;
+    glUniform1iARB($has_lighting_u, $ENV{ISTON_LIGHTING} // 1);
+
     $self->shader->Disable;
 
     my $draw_function = sub {
