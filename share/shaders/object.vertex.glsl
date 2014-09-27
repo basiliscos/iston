@@ -13,17 +13,11 @@ uniform mat4 projection;
 
 void main(void) {
   mat4 mvp = projection * view * model;
-  vec3 my_coord = vec3(coord3d);
-  //my_coord.z = my_coord.z * 0.5;
-  //my_coord.x = sin(5.0* my_coord.x )*0.25;
-  //my_coord.z = abs(sin(my_coord.z)) * my_coord.x;
-  //my_coord.z = my_coord.z + sin(my_coord.x);
-  //my_coord.z = my_coord.z + N.z;
 
-  gl_Position = mvp * vec4(my_coord, 1.0);
+  gl_Position = mvp * vec4(coord3d, 1.0);
   f_texcoord = texcoord;
 
   // move normal from object space into world space
-  vec4 my_normal = model * vec4(N, 0);
-  normal = vec3(my_normal.x, my_normal.y, my_normal.z);
+  vec4 my_normal = transpose (inverse( view * model)) * vec4(N, 0);
+  normal = normalize(vec3(my_normal.x, my_normal.y, my_normal.z));
 }

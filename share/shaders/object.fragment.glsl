@@ -47,7 +47,7 @@ vec4 compute_color(vec4 initial_color) {
   if(has_lighting == 0) return initial_color;
   vec4 light_dir = normalize(light1.position);
   vec3 light_dir3 = vec3(light_dir.x, light_dir.y, light_dir.z);
-  float intensity = max(dot(normal, light_dir3), 0);
+  float intensity = max(dot(normalize(normal), light_dir3), 0);
 
   vec4 diffuse = frontMaterial.diffuse * light1.diffuse;
   vec4 ambient = frontMaterial.ambient * (light1.ambient + global_ambient);

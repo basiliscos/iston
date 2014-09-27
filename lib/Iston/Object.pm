@@ -273,7 +273,7 @@ method _build_draw_function {
 
         my $attribute_normal = $self->_attribute_normal;
         glEnableVertexAttribArrayARB($attribute_normal);
-        glBindBufferARB(GL_ARRAY_BUFFER, $vertices->bound);
+        glBindBufferARB(GL_ARRAY_BUFFER, $normals->bound);
         glVertexAttribPointerARB_c($attribute_normal, 3, GL_FLOAT, 0, 0, 0);
 
         glDrawElements_c(GL_TRIANGLES, $indices_size, GL_UNSIGNED_INT, $indices_oga->ptr);
