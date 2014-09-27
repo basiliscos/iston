@@ -107,7 +107,8 @@ method _trigger_camera_position {
 }
 
 method _update_view {
-    my $translate = translate($self->camera_position);
+    my $camera = $self->camera_position;
+    my $translate = translate($camera);
     my $view = $self->view;
     my $matrix = $view * $translate;
     $matrix = ~$matrix;
@@ -117,6 +118,7 @@ method _update_view {
     $self->object_shader->SetMatrix(
         view => OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list)
     );
+    $self->object_shader->SetVector('camera', @$camera, 0.0);
     $self->object_shader->Disable;
 }
 
