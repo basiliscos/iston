@@ -4,6 +4,7 @@ use 5.12.0;
 
 use AntTweakBar qw/:all/;
 use AnyEvent;
+use File::ShareDir::ProjectDistDir (':all', projectdir => 'share');
 use Function::Parameters qw(:strict);
 use Iston::Matrix;
 use Iston::Utils qw/perspective look_at translate identity/;
@@ -89,9 +90,12 @@ sub init_app {
 method _init_shaders($name) {
     my $shader = OpenGL::Shader->new('GLSL');
     say "Shader ", $shader->GetType, " version: ", $shader->GetVersion;
+
+    my $dist_dir = dist_dir('Iston');
+    say "dist dir: $dist_dir";
     my @shader_files = (
-        "share/shaders/$name.fragment.glsl",
-        "share/shaders/$name.vertex.glsl"
+        "$dist_dir/shaders/$name.fragment.glsl",
+        "$dist_dir/shaders/$name.vertex.glsl"
     );
     my $info = $shader->LoadFiles(@shader_files);
     die ("shaders $name loading: $info") if $info;
