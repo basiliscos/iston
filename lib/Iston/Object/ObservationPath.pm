@@ -1,5 +1,5 @@
 package Iston::Object::ObservationPath;
-$Iston::Object::ObservationPath::VERSION = '0.05';
+$Iston::Object::ObservationPath::VERSION = '0.06';
 use 5.16.0;
 use strict;
 use warnings;
@@ -170,7 +170,7 @@ Iston::Object::ObservationPath
 
 =head1 VERSION
 
-version 0.05
+version 0.06
 
 =head1 AUTHOR
 

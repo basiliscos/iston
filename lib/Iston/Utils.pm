@@ -1,5 +1,5 @@
 package Iston::Utils;
-$Iston::Utils::VERSION = '0.05';
+$Iston::Utils::VERSION = '0.06';
 use 5.12.0;
 
 use Guard;
@@ -127,7 +127,7 @@ Iston::Utils
 
 =head1 VERSION
 
-version 0.05
+version 0.06
 
 =head1 AUTHOR
 

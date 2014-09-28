@@ -1,5 +1,5 @@
 package Iston;
-$Iston::VERSION = '0.05';
+$Iston::VERSION = '0.06';
 #ABSTRACT: Phychology-enchanced 3D-objects viewer and view path analyzer
 
 1;
@@ -16,7 +16,7 @@ Iston - Phychology-enchanced 3D-objects viewer and view path analyzer
 
 =head1 VERSION
 
-version 0.05
+version 0.06
 
 =head1 AUTHOR
 

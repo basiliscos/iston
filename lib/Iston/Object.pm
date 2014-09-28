@@ -1,5 +1,5 @@
 package Iston::Object;
-$Iston::Object::VERSION = '0.05';
+$Iston::Object::VERSION = '0.06';
 use 5.16.0;
 
 use Carp;
@@ -299,7 +299,7 @@ Iston::Object
 
 =head1 VERSION
 
-version 0.05
+version 0.06
 
 =head1 AUTHOR
 

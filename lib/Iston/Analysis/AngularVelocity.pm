@@ -1,6 +1,6 @@
 package Iston::Analysis::AngularVelocity;
 # Abstract: Tracks the value of angular velocity.
-$Iston::Analysis::AngularVelocity::VERSION = '0.05';
+$Iston::Analysis::AngularVelocity::VERSION = '0.06';
 use 5.12.0;
 
 use Function::Parameters qw(:strict);
@@ -71,7 +71,7 @@ Iston::Analysis::AngularVelocity
 
 =head1 VERSION
 
-version 0.05
+version 0.06
 
 =head1 AUTHOR
 
