@@ -31,6 +31,7 @@ sub BUILD {
     my ($x, $y) = ($self->width/2, $self->height/2);
     SDL::Mouse::warp_mouse($x, $y);
     my $object = $self->load_object($self->object_path);
+    $object->shader($self->object_shader);
     $self->main_object($object);
     push @{ $self->objects }, $object;
 
@@ -83,6 +84,7 @@ sub _build__commands {
         my $value = shift;
         return sub {
             $self->camera_position->[2] += $value;
+            $self->_update_view;
         };
     };
     my $rotate_step = 2;
@@ -172,6 +174,7 @@ sub process_event {
             # say "mouse wheel?";
             my $step = 0.1 * ( ($button == SDL_BUTTON_WHEELUP) ? 1: -1);
             $self->camera_position->[2] += $step;
+            $self->_update_view;
         }
     }
     if ($action) {

@@ -4,8 +4,13 @@ use 5.12.0;
 
 use AntTweakBar qw/:all/;
 use AnyEvent;
+use File::ShareDir::ProjectDistDir (':all', projectdir => 'share');
+use Function::Parameters qw(:strict);
+use Iston::Matrix;
+use Iston::Utils qw/perspective look_at translate identity/;
 use Moo::Role;
 use OpenGL qw(:all);
+use OpenGL::Shader;
 use SDL;
 use SDLx::App;
 use SDL::Joystick;
@@ -17,7 +22,8 @@ use SDL::Event;
 use aliased qw/Iston::Loader/;
 use aliased qw/Iston::Vector/;
 
-has camera_position => (is => 'rw', default => sub { [0, 0, -7] });
+has camera_position => (is => 'rw', trigger => 1);
+has object_shader   => (is => 'rw');
 has cv_finish       => (is => 'ro', default => sub { AE::cv });
 has max_boundary    => (is => 'ro', default => sub { 3.0 });
 has full_screen     => (is => 'ro', default => sub { 1 });
@@ -26,8 +32,14 @@ has sdl_app         => (is => 'rw');
 has width           => (is => 'rw');
 has height          => (is => 'rw');
 has settings_bar    => (is => 'lazy');
-
 has history         => (is => 'rw');
+
+# matrices
+has view            => (is => 'rw', trigger => 1, default => sub { identity } );
+has projection      => (is => 'rw', trigger => 1);
+
+has view_oga        => (is => 'rw');
+has projection_oga  => (is => 'rw');
 
 requires qw/process_event/;
 requires qw/objects/;
@@ -54,6 +66,17 @@ sub init_app {
     glEnable(GL_DEPTH_TEST);
     glClearColor(0.0, 0.0, 0.0, 0.0);
     $self->_initGL;
+    $self->_init_shaders('object');
+    #$self->object_shader->Enable;
+    $self->camera_position([0, 0, -7]);
+    # $self->view( look_at(
+    #         Vector->new([0.0, 2.0, 0.0]),
+    #         $self->camera_position,
+    #         Vector->new([0.0, 1.0, 0.0]),
+    # ));
+    $self->projection(
+        perspective(45.0, 1.0 * $self->width/$self->height, 0.1, 30.0)
+    );
     AntTweakBar::init(TW_OPENGL);
     my ($width, $height) = map { $self->sdl_app->$_ } qw/w h/;
     AntTweakBar::window_size($width, $height);
@@ -64,28 +87,54 @@ sub init_app {
 }
 
 
-sub _init_light {
-    my $self = shift;
-    glShadeModel (GL_SMOOTH);
+method _init_shaders($name) {
+    my $shader = OpenGL::Shader->new('GLSL');
+    say "Shader ", $shader->GetType, " version: ", $shader->GetVersion;
 
-    # Initialize material property, light source, lighting model,
-    # and depth buffer.
-    my @mat_specular = ( 1.0, 1.0, 1.0, 1.0 );
-    #my @mat_diffuse  = ( 0.1, 0.4, 0.8, 1.0 );
-    my @light_position = ( 20.0, 20.0, 20.0, 0.0 );
+    my $dist_dir = dist_dir('Iston');
+    say "dist dir: $dist_dir";
+    my @shader_files = (
+        "$dist_dir/shaders/$name.fragment.glsl",
+        "$dist_dir/shaders/$name.vertex.glsl"
+    );
+    my $info = $shader->LoadFiles(@shader_files);
+    die ("shaders $name loading: $info") if $info;
+    $self->object_shader($shader);
+}
 
-    #glMaterialfv_s(GL_FRONT, GL_DIFFUSE, pack("f4",@mat_diffuse));
-    glMaterialfv_c(GL_FRONT, GL_SPECULAR, OpenGL::Array->new_list(
-        GL_FLOAT, @mat_specular)->ptr);
-    glMaterialfv_c(GL_FRONT, GL_SHININESS, OpenGL::Array->new_list(
-        GL_FLOAT, 120.0)->ptr);
-    glLightfv_c(GL_LIGHT0, GL_POSITION, OpenGL::Array->new_list(
-        GL_FLOAT, @light_position)->ptr);
+method _trigger_view($matrix) {
+    $self->_update_view;
+}
 
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-    glDepthFunc(GL_LESS);
-    glEnable(GL_DEPTH_TEST);
+method _trigger_camera_position {
+    $self->_update_view;
+}
+
+method _update_view {
+    my $camera = $self->camera_position;
+    my $translate = translate($camera);
+    my $view = $self->view;
+    my $matrix = $view * $translate;
+    $matrix = ~$matrix;
+    #say "upating view with\n", $matrix;
+    #say "list: \n", join(', ', $matrix->as_list);
+    $self->object_shader->Enable;
+    $self->object_shader->SetMatrix(
+        view => OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list)
+    );
+    $self->object_shader->SetVector('camera', @$camera, 0.0);
+    $self->object_shader->Disable;
+}
+
+method _trigger_projection($matrix) {
+    $matrix = ~$matrix;
+    #say "upating projection with\n", $matrix;
+    #say "list: \n", join(', ', $matrix->as_list);
+    $self->object_shader->Enable;
+    $self->object_shader->SetMatrix(
+        projection => OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list)
+    );
+    $self->object_shader->Disable;
 }
 
 sub _initGL {
@@ -94,12 +143,8 @@ sub _initGL {
     $self->width( $width );
     $self->height( $height );
     say "screen: ${width}x${height} px";
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity;
-    gluPerspective(65.0, $width/$height, 1, 100.0);
-    glMatrixMode(GL_MODELVIEW);
-    glEnable(GL_NORMALIZE);
-    _init_light;
+    #glMatrixMode(GL_PROJECTION);
+    glShadeModel(GL_SMOOTH);
 }
 
 sub _build_settings_bar {
@@ -109,25 +154,12 @@ sub _build_settings_bar {
 sub _drawGLScene {
     my $self = shift;
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glLoadIdentity;
-    glTranslatef(@{ $self->camera_position });
-
     for(@{ $self->objects }) {
         next if !$_ or !$_->enabled;
-        glPushMatrix;
-        glPushClientAttrib(GL_CLIENT_ALL_ATTRIB_BITS);
-        glPushAttrib(GL_ALL_ATTRIB_BITS);
         $_->draw_function->();
-        glPopAttrib;
-        glPopClientAttrib;
-        glPopMatrix;
     }
-
-    glEnable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
-    glEnable(GL_NORMALIZE);
     AntTweakBar::draw;
+    glFlush;
 }
 
 sub refresh_world {

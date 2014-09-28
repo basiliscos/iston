@@ -13,7 +13,7 @@ configure_requires:
   ExtUtils::MakeMaker: '6.86'
   File::ShareDir::Install: '0.06'
 dynamic_config: 0
-generated_by: 'Dist::Zilla version 5.020, CPAN::Meta::Converter version 2.142060'
+generated_by: 'Dist::Zilla version 5.020, CPAN::Meta::Converter version 2.142690'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -26,12 +26,15 @@ requires:
   AnyEvent: '0'
   Carp: '1.26'
   EV: '0'
+  File::ShareDir::ProjectDistDir: '0'
   Function::Parameters: '1.0201'
   Guard: '0'
   List::MoreUtils: '0'
   Math::MatrixReal: '2.11'
   Moo: '0'
   OpenGL: '0'
+  OpenGL::Image: '0'
+  OpenGL::Shader: '0'
   Path::Tiny: '0.049'
   SDL: '0'
   Smart::Comments: '0'

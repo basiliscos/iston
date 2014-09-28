@@ -4,7 +4,7 @@ use warnings;
 
 # this test was generated with Dist::Zilla::Plugin::Test::Compile 2.046
 
-use Test::More  tests => 24 + ($ENV{AUTHOR_TESTING} ? 1 : 0);
+use Test::More  tests => 25 + ($ENV{AUTHOR_TESTING} ? 1 : 0);
 
 
 
@@ -20,6 +20,7 @@ my @module_files = (
     'Iston/History.pm',
     'Iston/History/Record.pm',
     'Iston/Loader.pm',
+    'Iston/Matrix.pm',
     'Iston/Object.pm',
     'Iston/Object/HTM.pm',
     'Iston/Object/ObservationPath.pm',

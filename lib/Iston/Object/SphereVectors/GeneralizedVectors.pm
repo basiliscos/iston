@@ -4,11 +4,11 @@ use 5.16.0;
 
 use Function::Parameters qw(:strict);
 use Iston::Utils qw/rotation_matrix generate_list_id/;
+use Iston::Matrix;
 use List::Util qw(max);
 use List::Util qw/reduce/;
 use List::MoreUtils qw/pairwise/;
 use Math::Trig;
-use Math::MatrixReal;
 use Moo;
 use OpenGL qw(:all);
 
@@ -152,7 +152,7 @@ method arrow_vertices($index) {
         }
         map { $_ * $length }
         map {
-            my $r = $rotation * Math::MatrixReal->new_from_cols([ [@$_] ]);
+            my $r = $rotation * Iston::Matrix->new_from_cols([ [@$_] ]);
             my $result_vector = Vector->new( [map { $r->element($_, 1) } (1 .. 3) ] );
         } @normals;
     return @results;
@@ -193,7 +193,7 @@ method _build_draw_function {
         my $rotation = rotation_matrix(@$axis, $_vizualization_step);
         push @displayed_vertices, $start_v;
         for(my $phi = $_vizualization_step; $phi < $angle; $phi += $_vizualization_step) {
-            my $r = $rotation * Math::MatrixReal->new_from_cols([ [@$start_v] ]);
+            my $r = $rotation * Istion::Matrix->new_from_cols([ [@$start_v] ]);
             my $result_vector = Vector->new( [map { $r->element($_, 1) } (1 .. 3) ] );
             push @displayed_vertices, $result_vector;
             push @indices, (map { ($_-2, $_-1) } scalar(@displayed_vertices) );

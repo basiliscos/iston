@@ -37,6 +37,8 @@ subtest "normalize normalized" => sub {
 subtest "normalize simple" => sub {
     my $v = Vector->new([0, 0, 4]);
     is $v->normalize, Vector->new([0, 0, 1]);
+    $v = Vector->new([0, 2, 4])->normalize;
+    is $v, 'vector[0.0000, 0.4472, 0.8944]';
 };
 
 subtest "vertex on scalar multiplication" => sub {

@@ -7,7 +7,6 @@ use Function::Parameters qw(:strict);
 use Iston::Utils qw/rotation_matrix/;
 use List::MoreUtils qw/pairwise/;
 use List::Util qw/reduce/;
-use Math::MatrixReal;
 use Math::Trig;
 use Moo;
 
