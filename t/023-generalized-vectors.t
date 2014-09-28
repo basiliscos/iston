@@ -1,5 +1,6 @@
-use 5.12.0;
+use 5.16.0;
 
+use Path::Tiny;
 use Test::More;
 use Test::Warnings;
 
@@ -117,6 +118,33 @@ subtest "no generalization on step back, duplication check " => sub {
     is $mapper->(2), 0, "vertex 2 maps to vector 0";
     is $mapper->(3), 1, "vertex 3 maps to vector 1";
     is $mapper->(4), 1, "vertex 4 maps to vector 1";
+};
+
+subtest "avoid disision by zero" => sub {
+    my $tmp_dir = Path::Tiny->tempdir( CLEANUP => 1);
+    my $data =<<DATA;
+timestamp,x_axis_degree,y_axis_degree,camera_x,camera_y,camera_z
+0.987732,0,0,0,0,-7
+1.558614,0,359,0,0,-7
+1.657826,0,0,0,0,-7
+DATA
+    my $data_path = path($tmp_dir, "x.csv");
+    $data_path->spew($data);
+    my $h = History->new(path => $data_path);
+    $h->load;
+    my $o = ObservationPath->new(history => $h);
+    my $sv = VectorizedVertices->new(
+        vertices       => $o->vertices,
+        vertex_indices => $o->sphere_vertex_indices,
+        hilight_color  => [0.0, 0.0, 0.0, 0.0], # does not matter
+    );
+    my $gv = GeneralizedVectors->new(
+        distance       => 2,
+        source_vectors => $sv,
+        hilight_color  => [0.0, 0.0, 0.0, 0.0], # does not matter
+    );
+    $gv->vectors;
+    pass "survived";
 };
 
 done_testing;
