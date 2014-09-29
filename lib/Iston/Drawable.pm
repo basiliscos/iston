@@ -45,6 +45,9 @@ has model_scale     => (is => 'rw', trigger => sub{ shift->clear_model_oga }, de
 has model_rotation  => (is => 'rw', trigger => sub{ shift->clear_model_oga }, default => sub { identity; });
 has model_oga       => (is => 'lazy', clearer => 1);
 
+# just cache
+has _contexts => (is => 'rw', default => sub { {} });
+
 method _trigger_shader($shader) {
     my ($mytexture, $has_texture, $has_lighting) = map {
         $shader->Map($_) // die("cannot map '$_' uniform");
@@ -100,6 +103,34 @@ sub rotate {
         return $self->rotation->[$axis];
     }
 }
+
+method _trigger_mode {
+    my $mode = $self->mode;
+    if ($mode eq 'mesh') {
+        $self->_contexts->{normal} = {
+            indices => $self->indices,
+        };
+        $self->indices($self->_triangle_2_lines_indices);
+    } else {
+        $self->_contexts->{mesh} = {
+            indices => $self->indices,
+        };
+        $self->indices($self->_contexts->{normal}->{indices});
+    }
+    $self->clear_draw_function;
+};
+
+method _triangle_2_lines_indices {
+    my $source = $self->indices;
+    my $components = 3;
+    my @result = map {
+        my $idx = $_;
+        my @v = @{$source}[$idx*3 .. $idx*3+2];
+        my @r = @v[0,1,1,2,2,0];
+        @r;
+    } (0 .. scalar(@$source) / $components-1);
+    return \@result;
+};
 
 method _build_draw_function {
     my $scale = $self->scale;
