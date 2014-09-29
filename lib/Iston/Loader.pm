@@ -118,8 +118,8 @@ method load {
         display_list => 1,
     );
     my $center = $object->center;
-    my $to_center = [ map { $_ * -1 } @$center ];
-    $object->translate($to_center);
+    my $to_center = -1 * Vector->new([@$center]);
+    $object->model_translate(translate($to_center));
 
     return $object;
 };

@@ -39,10 +39,11 @@ has _attribute_normal     => (is => 'rw');
 has _text_coords_oga => (is => 'lazy');
 
 # matrices
-has model          => (is => 'rw', trigger => sub{ shift->clear_model_oga }, default => sub { identity; });
-has model_scale    => (is => 'rw', trigger => sub{ shift->clear_model_oga }, default => sub { identity; });
-has model_rotation => (is => 'rw', trigger => sub{ shift->clear_model_oga }, default => sub { identity; });
-has model_oga      => (is => 'lazy', clearer => 1);
+has model           => (is => 'rw', trigger => sub{ shift->clear_model_oga }, default => sub { identity; });
+has model_translate => (is => 'rw', trigger => sub{ shift->clear_model_oga }, default => sub { identity; });
+has model_scale     => (is => 'rw', trigger => sub{ shift->clear_model_oga }, default => sub { identity; });
+has model_rotation  => (is => 'rw', trigger => sub{ shift->clear_model_oga }, default => sub { identity; });
+has model_oga       => (is => 'lazy', clearer => 1);
 
 method _trigger_shader($shader) {
     my ($mytexture, $has_texture, $has_lighting) = map {
@@ -80,25 +81,13 @@ method _trigger_scale($value) {
 sub _build_model_oga {
     my $self = shift;
     my $scale    = $self->model_scale;
+    my $translate = $self->model_translate;
     my $rotation = $self->model_rotation;
     my $model = $self->model;
-    my $matrix = $model * $rotation * $scale;
+    my $matrix = $model * $rotation * $scale * $translate;
     $matrix = ~$matrix;
     return OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list);
 }
-
-method translate($vector) {
-    my $vertices_count = scalar(@{$self->vertices});
-    for my $vertex_index (0 .. $vertices_count-1) {
-        for my $c (0 .. 2) {
-            $self->vertices->[$vertex_index]->[$c] += $vector->[$c];
-        }
-    };
-    for my $c (0 .. 2) {
-        $self->center->[$c] += $vector->[$c];
-    }
-}
-
 
 # candidate for deletion
 sub rotate {
