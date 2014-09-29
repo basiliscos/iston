@@ -18,6 +18,7 @@ use SDL::Mouse;
 use SDL::Video;
 use SDL::Events;
 use SDL::Event;
+use Time::HiRes qw/gettimeofday tv_interval/;
 
 use aliased qw/Iston::Loader/;
 use aliased qw/Iston::Vector/;
@@ -182,6 +183,7 @@ sub _handle_polls {
 
 sub load_object {
     my ($self, $path, $shader) = @_;
+    my $start = [gettimeofday];
     my $object = Loader->new(file => $path)->load;
 
     my ($max_distance) =
@@ -193,6 +195,8 @@ sub load_object {
     say "model $path loaded, scaled: $scale_to";
     $object->shader($shader);
     say "Shader has been attached";
+    my $elapsed = tv_interval ( $start );
+    say "Object $path loaded at ", sprintf("%0.4f", $elapsed), " seconds";
     return $object;
 }
 
