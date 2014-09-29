@@ -189,7 +189,7 @@ sub load_object {
     my ($max_distance) =
         reverse sort {$a->length <=> $b->length }
         map { Vector->new( $_ ) }
-        $object->boudaries;
+        @{ $object->boundaries };
     my $scale_to = 1/($max_distance->length/$self->max_boundary);
     $object->scale( $scale_to );
     say "model $path loaded, scaled: $scale_to";

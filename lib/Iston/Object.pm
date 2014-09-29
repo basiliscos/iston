@@ -31,23 +31,9 @@ method _build_center {
     croak "Count of vertices must match count of normals"
         unless $v_size == $n_size;
 
-    my($mins, $maxs) = $self->boudaries;
+    my($mins, $maxs) = map { $self->boundaries->[$_] } (0, 1);
     my @avgs = map { ($mins->[$_] + $maxs->[$_]) /2  } (0 .. 2);
     return Vertex->new(\@avgs);
-};
-
-method boudaries {
-    my $first_vertex = $self->vertices->[0];
-    my ($mins, $maxs) = map { Vertex->new($first_vertex) } (0 .. 1);
-    my $vertices_count = scalar(@{$self->vertices});
-    for my $vertex_index (0 .. $vertices_count-1) {
-        my $v = $self->vertices->[$vertex_index];
-        for my $c (0 .. 2) {
-            $mins->[$c] = $v->[$c] if($mins->[$c] > $v->[$c]);
-            $maxs->[$c] = $v->[$c] if($maxs->[$c] < $v->[$c]);
-        }
-    }
-    return ($mins, $maxs);
 };
 
 method radius {

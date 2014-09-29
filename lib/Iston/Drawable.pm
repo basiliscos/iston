@@ -9,6 +9,7 @@ use Moo::Role;
 use OpenGL qw(:all);
 
 use aliased qw/Iston::Vector/;
+use aliased qw/Iston::Vertex/;
 
 # candidate for deletion
 has rotation     => (is => 'rw', default => sub { [0, 0, 0] }, trigger => 1);
@@ -17,6 +18,7 @@ has enabled      => (is => 'rw', default => sub { 1 });
 has display_list => (is => 'ro', default => sub { 0 });
 
 has center       => (is => 'lazy');
+has boundaries   => (is => 'lazy');
 has scale        => (is => 'rw', default => sub { 1; }, trigger => 1);
 has vertices     => (is => 'rw', required => 0);
 has indices      => (is => 'rw', required => 0);
@@ -130,6 +132,20 @@ method _triangle_2_lines_indices {
         @r;
     } (0 .. scalar(@$source) / $components-1);
     return \@result;
+};
+
+method _build_boundaries {
+    my $first_vertex = $self->vertices->[0];
+    my ($mins, $maxs) = map { Vertex->new($first_vertex) } (0 .. 1);
+    my $vertices_count = scalar(@{$self->vertices});
+    for my $vertex_index (0 .. $vertices_count-1) {
+        my $v = $self->vertices->[$vertex_index];
+        for my $c (0 .. 2) {
+            $mins->[$c] = $v->[$c] if($mins->[$c] > $v->[$c]);
+            $maxs->[$c] = $v->[$c] if($maxs->[$c] < $v->[$c]);
+        }
+    }
+    return [$mins, $maxs];
 };
 
 method _build_draw_function {
