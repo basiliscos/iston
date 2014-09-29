@@ -12,7 +12,7 @@ use OpenGL qw(:all);
 use parent qw/Exporter/;
 
 our @EXPORT = qw/maybe_zero rotation_matrix generate_list_id translate perspective
-                 look_at identity rotate scale/;
+                 look_at identity rotate scale as_oga/;
 
 my $_accuracy_format = '%0.6f';
 my $_accuracy_zero   = sprintf($_accuracy_format, 0);
@@ -101,6 +101,15 @@ fun look_at($eye, $at, $up){
         [0, 0, 0, 1]
     ]);
 }
+
+fun as_oga($source) {
+    my $source = shift;
+    return OpenGL::Array->new_list(
+        GL_FLOAT,
+        map { @$_ } @$source
+    );
+};
+
 
 my $_identity = Iston::Matrix->new_from_rows([
     [1, 0, 0, 0],

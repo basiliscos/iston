@@ -181,7 +181,7 @@ sub _handle_polls {
 }
 
 sub load_object {
-    my ($self, $path) = @_;
+    my ($self, $path, $shader) = @_;
     my $object = Loader->new(file => $path)->load;
 
     my ($max_distance) =
@@ -191,6 +191,8 @@ sub load_object {
     my $scale_to = 1/($max_distance->length/$self->max_boundary);
     $object->scale( $scale_to );
     say "model $path loaded, scaled: $scale_to";
+    $object->shader($shader);
+    say "Shader has been attached";
     return $object;
 }
 

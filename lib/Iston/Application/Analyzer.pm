@@ -59,6 +59,7 @@ sub _build_htm {
     my $scale_to = 1/($r/$self->max_boundary);
     $htm->scale($scale_to); # 2.5
     $htm->level(3);
+    $htm->shader($self->object_shader);
     return $htm;
 }
 
