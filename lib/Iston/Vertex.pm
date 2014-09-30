@@ -1,5 +1,5 @@
 package Iston::Vertex;
-$Iston::Vertex::VERSION = '0.06';
+$Iston::Vertex::VERSION = '0.07';
 use 5.12.0;
 
 use Carp;
@@ -46,7 +46,7 @@ Iston::Vertex
 
 =head1 VERSION
 
-version 0.06
+version 0.07
 
 =head1 AUTHOR
 

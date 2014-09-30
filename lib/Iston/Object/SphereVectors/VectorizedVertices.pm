@@ -1,5 +1,5 @@
 package Iston::Object::SphereVectors::VectorizedVertices;
-$Iston::Object::SphereVectors::VectorizedVertices::VERSION = '0.06';
+$Iston::Object::SphereVectors::VectorizedVertices::VERSION = '0.07';
 use 5.16.0;
 
 use Function::Parameters qw(:strict);
@@ -164,7 +164,7 @@ Iston::Object::SphereVectors::VectorizedVertices
 
 =head1 VERSION
 
-version 0.06
+version 0.07
 
 =head1 AUTHOR
 

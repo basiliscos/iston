@@ -1,6 +1,6 @@
 package Iston::Payload;
 # ABSTRACT: holds hash-ref with additional attirubtes for basic objects
-$Iston::Payload::VERSION = '0.06';
+$Iston::Payload::VERSION = '0.07';
 use Moo::Role;
 
 has payload => (is => 'ro', default => sub { {} });
@@ -19,7 +19,7 @@ Iston::Payload - holds hash-ref with additional attirubtes for basic objects
 
 =head1 VERSION
 
-version 0.06
+version 0.07
 
 =head1 AUTHOR
 

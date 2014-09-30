@@ -1,6 +1,6 @@
 package Iston::Object::HTM;
 # Abstract: Hierarchical Triangular Map
-$Iston::Object::HTM::VERSION = '0.06';
+$Iston::Object::HTM::VERSION = '0.07';
 use 5.12.0;
 
 use Carp;
@@ -60,20 +60,14 @@ has triangles    => (is => 'rw', default =>
             } (0 .. @$_indices/3 - 1);
         return \@triangles;
     } );
-
-#has normals      => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
-#has vertices     => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
-#has indices      => (is => 'rw', lazy => 1, builder => 1, clearer => 1 );
-
-has scale    => (is => 'rw', default => sub { 1; });
-
-has draw_function => (is => 'lazy', clearer => 1);
+has texture => (is => 'lazy', predicate => 1, clearer => 1);
 
 with('Iston::Drawable');
 
 method BUILD {
     $self->levels_cache->{$self->level} = $self->triangles;
     $self->_calculate_normals;
+    $self->_prepare_data;
 };
 
 
@@ -100,6 +94,54 @@ method _calculate_normals {
             $t->normals->[$v_idx] = $n;
         }
     }
+};
+
+method _build_texture {
+    my $triangles = $self->triangles;
+    my %shares_for;
+    for my $t_idx (0 .. @$triangles-1) {
+        my $t = $triangles->[$t_idx];
+        if (exists $t->{payload}->{time_share}) {
+            my $share = $t->{payload}->{time_share};
+            push @{ $shares_for{$share} }, $t;
+        }
+    }
+    if (!%shares_for) {
+        my ($width, $height) = (4, 4);
+        my $texture = OpenGL::Image->new(width=>$width,height=>$height);
+        my ($texture_id) = glGenTextures_p(1);
+        my $share = 1.0;
+        # seems that, gl_format is GL_BGRA, and not  GL_RGBA
+        for my $x ( 0 .. $width-1) {
+            for my $y (0 .. $height-1) {
+                $texture->SetPixel($x, $y, 0.0, $share, $share, 1.0);
+            }
+        }
+        my @uv_mappings = map {
+            ([0.0, 0.0], [0.0, 1.0], [1.0, 1.0]);
+        } @$triangles;
+        $self->uv_mappings(\@uv_mappings);
+        return $texture;
+    }
+};
+
+method _prepare_data {
+    my $triangles = $self->triangles;
+    my @vertices;
+    my @normals;
+    my @indices;
+    for my $t_idx (0 .. @$triangles-1) {
+        my $t = $triangles->[$t_idx];
+        my $vertices = $t->vertices;
+        my $normals = $t->normals;
+        push @vertices, @$vertices;
+        push @normals, @$normals;
+        push @indices, map { $_ + ($t_idx*3) } (0, 1, 2);
+    }
+    $self->vertices(\@vertices);
+    $self->normals(\@normals);
+    $self->indices(\@indices);
+    $self->clear_texture;
 }
 
 method _trigger_level($level) {
@@ -115,6 +157,7 @@ method _trigger_level($level) {
     }
     $self->triangles($current_triangles);
     $self->_calculate_normals;
+    $self->_prepare_data;
     $self->clear_draw_function;
 }
 
@@ -133,28 +176,6 @@ method radius {
     return 1;
 };
 
-method _build_draw_function {
-    my @triangles =
-        grep { $_ && $_->enabled }
-        @{ $self->triangles };
-    my $scale = $self->scale;
-
-    my ($id, $cleaner) = generate_list_id;
-    glNewList($id, GL_COMPILE);
-    $_->draw_function->() for(@triangles);
-    glEndList;
-
-    return sub {
-        my $cleaner_ref = \$cleaner;
-        glScalef($scale, $scale, $scale);
-        glRotatef($self->rotate(0), 1, 0, 0);
-        glRotatef($self->rotate(1), 0, 1, 0);
-        glRotatef($self->rotate(2), 0, 0, 1);
-
-        glCallList($id);
-    };
-}
-
 1;
 
 __END__
@@ -169,7 +190,7 @@ Iston::Object::HTM
 
 =head1 VERSION
 
-version 0.06
+version 0.07
 
 =head1 AUTHOR
 

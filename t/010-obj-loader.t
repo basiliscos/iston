@@ -20,6 +20,8 @@ sub _check_indices {
     }
 };
 
+$ENV{ISTON_HEADLESS} = 1;
+
 subtest "load cube" => sub {
     my $l = Loader->new(file => 'share/models/cube.obj');
     my $c = $l->load;
@@ -55,6 +57,11 @@ subtest "load two-squares" => sub {
 
     is $vertices_count, $uv_mappings_count,
         "number of UV-mappings equals to number of vertices";
+
+    my ($v_min, $v_max) = map { $o->boundaries->[$_] } (0, 1);
+    is $v_min, "vertex[-1.0000000, -1.0000000, -1.0000000]";
+    is $v_max, "vertex[1.0000000, 1.0000000, 1.0000000]";
+
 };
 
 done_testing;

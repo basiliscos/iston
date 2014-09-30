@@ -1,5 +1,5 @@
 package Iston::Application;
-$Iston::Application::VERSION = '0.06';
+$Iston::Application::VERSION = '0.07';
 use 5.12.0;
 
 use AntTweakBar qw/:all/;
@@ -18,6 +18,7 @@ use SDL::Mouse;
 use SDL::Video;
 use SDL::Events;
 use SDL::Event;
+use Time::HiRes qw/gettimeofday tv_interval/;
 
 use aliased qw/Iston::Loader/;
 use aliased qw/Iston::Vector/;
@@ -181,16 +182,21 @@ sub _handle_polls {
 }
 
 sub load_object {
-    my ($self, $path) = @_;
+    my ($self, $path, $shader) = @_;
+    my $start = [gettimeofday];
     my $object = Loader->new(file => $path)->load;
 
     my ($max_distance) =
         reverse sort {$a->length <=> $b->length }
         map { Vector->new( $_ ) }
-        $object->boudaries;
+        @{ $object->boundaries };
     my $scale_to = 1/($max_distance->length/$self->max_boundary);
     $object->scale( $scale_to );
     say "model $path loaded, scaled: $scale_to";
+    $object->shader($shader);
+    say "Shader has been attached";
+    my $elapsed = tv_interval ( $start );
+    say "Object $path loaded at ", sprintf("%0.4f", $elapsed), " seconds";
     return $object;
 }
 
@@ -208,7 +214,7 @@ Iston::Application
 
 =head1 VERSION
 
-version 0.06
+version 0.07
 
 =head1 AUTHOR
 

@@ -1,5 +1,5 @@
 package Iston::Application::Analyzer;
-$Iston::Application::Analyzer::VERSION = '0.06';
+$Iston::Application::Analyzer::VERSION = '0.07';
 use 5.16.0;
 
 use AntTweakBar qw/:all/;
@@ -59,6 +59,7 @@ sub _build_htm {
     my $scale_to = 1/($r/$self->max_boundary);
     $htm->scale($scale_to); # 2.5
     $htm->level(3);
+    $htm->shader($self->object_shader);
     return $htm;
 }
 
@@ -543,18 +544,11 @@ sub _build__htm_visualizers {
                         return unless $max_distance;
                         my $time_share = $t->{payload}->{total_time};
                         my $share = ($time_share - $min) / $max_distance;
-                        # say "$path share: $share, min: $min, max: $max, level: $level";
-                        my $diffuse_ambient = [ $share, $share, 0, 1 ];
-                        $t->diffuse($diffuse_ambient);
-                        $t->ambient($diffuse_ambient);
-                        $t->specular([0.1, 0.1, 0.1, 0.1]);
-                        $t->shininess(0.8);
-
-                        $t->mode('normal') unless($t->mode eq 'normal' );
-                        $t->enabled(1);
-                        $t->clear_draw_function;
+                        $t->{payload}->{time_share} = $share;
                     });
                 });
+                $htm->clear_texture;
+                $htm->clear_draw_function;
                 return 1;
             }
         },
@@ -623,7 +617,7 @@ Iston::Application::Analyzer
 
 =head1 VERSION
 
-version 0.06
+version 0.07
 
 =head1 AUTHOR
 

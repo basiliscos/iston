@@ -1,5 +1,5 @@
 package Iston::Application::Observer;
-$Iston::Application::Observer::VERSION = '0.06';
+$Iston::Application::Observer::VERSION = '0.07';
 use 5.12.0;
 
 use Moo;
@@ -30,8 +30,7 @@ sub BUILD {
     SDL::Mouse::show_cursor(SDL_DISABLE);
     my ($x, $y) = ($self->width/2, $self->height/2);
     SDL::Mouse::warp_mouse($x, $y);
-    my $object = $self->load_object($self->object_path);
-    $object->shader($self->object_shader);
+    my $object = $self->load_object($self->object_path, $self->object_shader);
     $self->main_object($object);
     push @{ $self->objects }, $object;
 
@@ -197,7 +196,7 @@ Iston::Application::Observer
 
 =head1 VERSION
 
-version 0.06
+version 0.07
 
 =head1 AUTHOR
 

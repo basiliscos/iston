@@ -1,5 +1,5 @@
 package Iston::Loader;
-$Iston::Loader::VERSION = '0.06';
+$Iston::Loader::VERSION = '0.07';
 use 5.12.0;
 
 use Carp;
@@ -28,12 +28,22 @@ method load {
     my @faces;
     my %info_for_vertex;
     my %order_for;
+    my ($v_min, $v_max);
     for my $line (@lines) {
         if ($line =~ /^v (.+)$/) {
             my @coordinates = split(/\s+/, $1);
             croak "There should be exactly 3 coordinates for vertex: $line"
                 unless @coordinates == 3;
-            push @vertices, Vertex->new(\@coordinates);
+            my $vertex = Vertex->new(\@coordinates);
+            push @vertices, $vertex;
+
+            # calculate boundaries
+            $v_min //= Vertex->new([@coordinates]);
+            $v_max //= Vertex->new([@coordinates]);
+            for my $idx ( 0 .. @coordinates - 1) {
+                $v_min->[$idx] = $coordinates[$idx] if $v_min->[$idx] > $coordinates[$idx];
+                $v_max->[$idx] = $coordinates[$idx] if $v_max->[$idx] < $coordinates[$idx];
+            }
         } elsif ($line =~ /^f (.+)$/) {
             my @components = split(/\s+/, $1);
             croak "There should be exactly 3 components for face: $line"
@@ -116,11 +126,12 @@ method load {
         uv_mappings  => \@vertices_mappings,
         texture_file => $texture_file,
         display_list => 1,
+        boundaries   => [$v_min, $v_max],
     );
     my $center = $object->center;
-    my $to_center = [ map { $_ * -1 } @$center ];
-    $object->translate($to_center);
-
+    my $to_center = -1 * Vector->new([@$center]);
+    say "Shifting object $to_center";
+    $object->model_translate(translate($to_center));
     return $object;
 };
 
@@ -138,7 +149,7 @@ Iston::Loader
 
 =head1 VERSION
 
-version 0.06
+version 0.07
 
 =head1 AUTHOR
 
