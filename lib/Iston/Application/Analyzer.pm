@@ -544,18 +544,11 @@ sub _build__htm_visualizers {
                         return unless $max_distance;
                         my $time_share = $t->{payload}->{total_time};
                         my $share = ($time_share - $min) / $max_distance;
-                        # say "$path share: $share, min: $min, max: $max, level: $level";
-                        my $diffuse_ambient = [ $share, $share, 0, 1 ];
-                        $t->diffuse($diffuse_ambient);
-                        $t->ambient($diffuse_ambient);
-                        $t->specular([0.1, 0.1, 0.1, 0.1]);
-                        $t->shininess(0.8);
-
-                        $t->mode('normal') unless($t->mode eq 'normal' );
-                        $t->enabled(1);
-                        $t->clear_draw_function;
+                        $t->{payload}->{time_share} = $share;
                     });
                 });
+                $htm->clear_texture_id;
+                $htm->clear_draw_function;
                 return 1;
             }
         },

@@ -98,7 +98,38 @@ method _calculate_normals {
 };
 
 method _build_texture_id {
-}
+    my $triangles = $self->triangles;
+    my %shares_for;
+    for my $t_idx (0 .. @$triangles-1) {
+        my $t = $triangles->[$t_idx];
+        if (exists $t->{payload}->{time_share}) {
+            my $share = $t->{payload}->{time_share};
+            push @{ $shares_for{$share} }, $t;
+        }
+    }
+    if (!%shares_for) {
+        my ($width, $height) = (4, 4);
+        my $texture = OpenGL::Image->new(width=>$width,height=>$height);
+        my ($texture_id) = glGenTextures_p(1);
+        my $share = 1.0;
+        # seems that, gl_format is GL_BGRA, and not  GL_RGBA
+        for my $x ( 0 .. $width-1) {
+            for my $y (0 .. $height-1) {
+                $texture->SetPixel($x, $y, 0.0, $share, $share, 1.0);
+            }
+        }
+        glBindTexture(GL_TEXTURE_2D, $texture_id);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        my($internal_format, $format, $type) = $texture->Get('gl_internalformat','gl_format','gl_type');
+        glTexImage2D_c(GL_TEXTURE_2D, 0, $internal_format, $width, $height,
+                       0, $format, $type, $texture->Ptr());
+        my @uv_mappings = map {
+            ([0.0, 0.0], [0.0, 1.0], [1.0, 1.0]);
+        } @$triangles;
+        $self->uv_mappings(\@uv_mappings);
+        return $texture_id;
+    }
+};
 
 method _prepare_data {
     my $triangles = $self->triangles;
@@ -116,6 +147,7 @@ method _prepare_data {
     $self->vertices(\@vertices);
     $self->normals(\@normals);
     $self->indices(\@indices);
+    $self->clear_texture_id;
 }
 
 method _trigger_level($level) {

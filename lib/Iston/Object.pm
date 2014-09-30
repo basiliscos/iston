@@ -17,16 +17,6 @@ with('Iston::Drawable');
 
 has texture_file => (is => 'rw', required => 0);
 
-method _build__text_coords_oga {
-    my ($vbo_texcoords) = glGenBuffersARB_p(1);
-    my $texcoords_oga = OpenGL::Array->new_list(
-        GL_FLOAT, map { @$_ } @{ $self->uv_mappings }
-    );
-    $texcoords_oga->bind($vbo_texcoords);
-    glBufferDataARB_p(GL_ARRAY_BUFFER_ARB, $texcoords_oga, GL_STATIC_DRAW_ARB);
-    return $texcoords_oga;
-}
-
 method _build_center {
     my ($v_size, $n_size) = map { scalar(@{ $self->$_ }) }
         qw/vertices normals/;
@@ -54,14 +44,14 @@ method _build_texture_id {
     my ($texture_id) = glGenTextures_p(1);
     my $texture = OpenGL::Image->new( source => $self->texture_file);
 
-    my($internan_format, $format, $type) = $texture->Get('gl_internalformat','gl_format','gl_type');
+    my($internal_format, $format, $type) = $texture->Get('gl_internalformat','gl_format','gl_type');
     my($texture_width, $texture_height) = $texture->Get('width','height');
 
     die ("texture isn't power of 2?") if (!$texture->IsPowerOf2());
 
     glBindTexture(GL_TEXTURE_2D, $texture_id);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexImage2D_c(GL_TEXTURE_2D, 0, $internan_format, $texture_width, $texture_height,
+    glTexImage2D_c(GL_TEXTURE_2D, 0, $internal_format, $texture_width, $texture_height,
                    0, $format, $type, $texture->Ptr());
 
     return $texture_id;

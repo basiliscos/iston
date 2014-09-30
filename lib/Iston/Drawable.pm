@@ -26,7 +26,7 @@ has normals      => (is => 'rw', required => 0);
 has uv_mappings  => (is => 'rw', required => 0);
 has mode         => (is => 'rw', default => sub { 'normal' }, trigger => 1);
 
-has texture_id    => (is => 'lazy');
+has texture_id    => (is => 'lazy', clearer => 1);
 has draw_function => (is => 'lazy', clearer => 1);
 
 has shader                => (is => 'rw', trigger => 1 );
@@ -146,6 +146,16 @@ method _build_boundaries {
     }
     return [$mins, $maxs];
 };
+
+method _build__text_coords_oga {
+    my ($vbo_texcoords) = glGenBuffersARB_p(1);
+    my $texcoords_oga = OpenGL::Array->new_list(
+        GL_FLOAT, map { @$_ } @{ $self->uv_mappings }
+    );
+    $texcoords_oga->bind($vbo_texcoords);
+    glBufferDataARB_p(GL_ARRAY_BUFFER_ARB, $texcoords_oga, GL_STATIC_DRAW_ARB);
+    return $texcoords_oga;
+}
 
 method _build_draw_function {
     my $scale = $self->scale;
