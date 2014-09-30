@@ -15,7 +15,15 @@ use aliased qw/Iston::Vertex/;
 
 with('Iston::Drawable');
 
-has texture_file => (is => 'rw', required => 0);
+has texture_file => (is => 'rw', required => 0, predicate => 1);
+
+method BUILD {
+    if ($self->has_texture_file && !$ENV{ISTON_HEADLESS}) {
+        my $texture = OpenGL::Image->new( source => $self->texture_file );
+        croak("texture isn't power of 2?") if (!$texture->IsPowerOf2());
+        $self->texture($texture);
+    }
+};
 
 method _build_center {
     my ($v_size, $n_size) = map { scalar(@{ $self->$_ }) }
@@ -38,24 +46,6 @@ method radius {
     $r;
 }
 
-method _build_texture_id {
-    return if(!defined($self->uv_mappings) or !defined($self->texture_file));
-
-    my ($texture_id) = glGenTextures_p(1);
-    my $texture = OpenGL::Image->new( source => $self->texture_file);
-
-    my($internal_format, $format, $type) = $texture->Get('gl_internalformat','gl_format','gl_type');
-    my($texture_width, $texture_height) = $texture->Get('width','height');
-
-    die ("texture isn't power of 2?") if (!$texture->IsPowerOf2());
-
-    glBindTexture(GL_TEXTURE_2D, $texture_id);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexImage2D_c(GL_TEXTURE_2D, 0, $internal_format, $texture_width, $texture_height,
-                   0, $format, $type, $texture->Ptr());
-
-    return $texture_id;
-}
 
 
 1;

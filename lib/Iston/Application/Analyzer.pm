@@ -547,7 +547,7 @@ sub _build__htm_visualizers {
                         $t->{payload}->{time_share} = $share;
                     });
                 });
-                $htm->clear_texture_id;
+                $htm->clear_texture;
                 $htm->clear_draw_function;
                 return 1;
             }

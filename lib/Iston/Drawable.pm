@@ -23,6 +23,7 @@ has scale        => (is => 'rw', default => sub { 1; }, trigger => 1);
 has vertices     => (is => 'rw', required => 0);
 has indices      => (is => 'rw', required => 0);
 has normals      => (is => 'rw', required => 0);
+has texture      => (is => 'rw', predicate => 1);
 has uv_mappings  => (is => 'rw', required => 0);
 has mode         => (is => 'rw', default => sub { 'normal' }, trigger => 1);
 
@@ -157,6 +158,23 @@ method _build__text_coords_oga {
     return $texcoords_oga;
 }
 
+method _build_texture_id {
+    return if(!defined($self->uv_mappings) or !$self->has_texture);
+
+    my ($texture_id) = glGenTextures_p(1);
+
+    my $texture = $self->texture;
+    my($internal_format, $format, $type) = $texture->Get('gl_internalformat','gl_format','gl_type');
+    my($texture_width, $texture_height) = $texture->Get('width','height');
+
+    glBindTexture(GL_TEXTURE_2D, $texture_id);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage2D_c(GL_TEXTURE_2D, 0, $internal_format, $texture_width, $texture_height,
+                   0, $format, $type, $texture->Ptr());
+
+    return $texture_id;
+}
+
 method _build_draw_function {
     my $scale = $self->scale;
 
@@ -189,11 +207,14 @@ method _build_draw_function {
         @$indices
     );
 
-    my $texture_id = $self->texture_id;
     $self->shader->Enable;
+    my $texture_id;
+    if ($self->has_texture) {
+        $texture_id = $self->texture_id;
+        my $has_texture_u = $self->_uniform_has_texture;
+        glUniform1iARB($has_texture_u, 1);
+    }
 
-    my $has_texture_u = $self->_uniform_has_texture;
-    glUniform1iARB($has_texture_u, defined($texture_id));
     my $has_lighting_u = $self->_uniform_has_lighting;
     glUniform1iARB($has_lighting_u, $ENV{ISTON_LIGHTING} // 1);
 

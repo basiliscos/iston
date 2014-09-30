@@ -15,7 +15,6 @@ use aliased qw/Iston::TrianglePath/;
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
-extends 'Iston::Object';
 with('Iston::Payload');
 
 has vertices => (is => 'rw', required => 1, isa =>
@@ -32,14 +31,7 @@ has normal       => (is => 'lazy'); # triangle normal
 has subtriangles => (is => 'lazy');
 has tesselation  => (is => 'ro', default => sub { 0  });
 
-# material properties
-has diffuse   => (is => 'rw', default => sub { [0.75, 0.75, 0, 1]} );
-has ambient   => (is => 'rw', default => sub { [0.75, 0.75, 0, 1]} );
-has specular  => (is => 'rw', default => sub { [1.0, 1.0, 1.0, 1.0]} );
-has shininess => (is => 'rw', default => sub { 80.0 } );
-
 method BUILD {
-    $self->scale(0); # means, that it will be scaled "outside" by container
     $self->path->triangle($self);
 }
 
@@ -95,7 +87,6 @@ method _build_subtriangles {
             vertices    => $vertices,
             path        => TrianglePath->new($base_path, $_),
             tesselation => $do_tesselation,
-            scale       => $self->scale,
         )
     } (0 .. @new_triangle_vertices-1);
     return \@new_triangles;
