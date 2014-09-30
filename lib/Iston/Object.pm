@@ -15,6 +15,8 @@ use aliased qw/Iston::Vertex/;
 
 with('Iston::Drawable');
 
+has texture_file => (is => 'rw', required => 0);
+
 method _build__text_coords_oga {
     my ($vbo_texcoords) = glGenBuffersARB_p(1);
     my $texcoords_oga = OpenGL::Array->new_list(

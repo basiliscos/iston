@@ -24,7 +24,6 @@ has vertices     => (is => 'rw', required => 0);
 has indices      => (is => 'rw', required => 0);
 has normals      => (is => 'rw', required => 0);
 has uv_mappings  => (is => 'rw', required => 0);
-has texture_file => (is => 'rw', required => 0);
 has mode         => (is => 'rw', default => sub { 'normal' }, trigger => 1);
 
 has texture_id    => (is => 'lazy');

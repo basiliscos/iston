@@ -130,6 +130,7 @@ method load {
     );
     my $center = $object->center;
     my $to_center = -1 * Vector->new([@$center]);
+    say "Shifting object $to_center";
     $object->model_translate(translate($to_center));
     return $object;
 };
