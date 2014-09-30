@@ -81,6 +81,9 @@ fun _max_distance($vectors, $start_idx, $end_idx) {
     my $a = $vectors->[$start_idx]->payload->{start_vertex};
     my $b = $vectors->[$end_idx]->payload->{end_vertex};
     my $great_arc_normal = $a->vector_to($b) * $_center->vector_to($a);
+
+    return (0, 0) if $great_arc_normal->is_zero;
+
     my @center_vectors = (
         $_center->vector_to($a),
         map {
