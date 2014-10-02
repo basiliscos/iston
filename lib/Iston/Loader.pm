@@ -124,9 +124,9 @@ method load {
         indices      => \@face_indices,
         normals      => \@vertices_normals,
         uv_mappings  => \@vertices_mappings,
-        texture_file => $texture_file,
         display_list => 1,
         boundaries   => [$v_min, $v_max],
+        (defined $texture_file ? (texture_file => $texture_file) : ()),
     );
     my $center = $object->center;
     my $to_center = -1 * Vector->new([@$center]);
