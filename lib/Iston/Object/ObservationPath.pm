@@ -37,6 +37,8 @@ method BUILD {
     $self->_build_vertices_on_sphere;
 }
 
+method has_texture { return 0; }
+
 method _build_vertices_and_indices {
     my $history = $self->history;
     my $current_point =  Iston::Matrix->new_from_cols([ [0, 0, 1] ]);

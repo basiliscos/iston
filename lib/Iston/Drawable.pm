@@ -23,7 +23,7 @@ has scale        => (is => 'rw', default => sub { 1; }, trigger => 1);
 has vertices     => (is => 'rw', required => 0);
 has indices      => (is => 'rw', required => 0);
 has normals      => (is => 'rw', required => 0);
-has texture      => (is => 'rw', predicate => 1);
+has texture      => (is => 'rw');
 has uv_mappings  => (is => 'rw', required => 0);
 has mode         => (is => 'rw', default => sub { 'normal' }, trigger => 1);
 
@@ -49,6 +49,8 @@ has model_oga       => (is => 'lazy', clearer => 1);
 
 # just cache
 has _contexts => (is => 'rw', default => sub { {} });
+
+requires 'has_texture';
 
 method _trigger_shader($shader) {
     my ($mytexture, $has_texture, $has_lighting) = map {
@@ -159,7 +161,8 @@ method _build__text_coords_oga {
 }
 
 method _build_texture_id {
-    return if(!defined($self->uv_mappings) or !$self->has_texture);
+    croak("Generating texture for textureless object")
+        unless $self->has_texture;
 
     my ($texture_id) = glGenTextures_p(1);
 

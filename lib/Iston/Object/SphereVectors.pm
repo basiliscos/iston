@@ -18,5 +18,6 @@ requires('vertex_to_vector_function');
 
 with('Iston::Drawable');
 
+method has_texture { return 0; }
 
 1;

@@ -20,8 +20,6 @@ sub _check_indices {
     }
 };
 
-$ENV{ISTON_HEADLESS} = 1;
-
 subtest "load cube" => sub {
     my $l = Loader->new(file => 'share/models/cube.obj');
     my $c = $l->load;

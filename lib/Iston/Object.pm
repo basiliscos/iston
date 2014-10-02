@@ -13,17 +13,18 @@ use OpenGL::Image;
 
 use aliased qw/Iston::Vertex/;
 
-with('Iston::Drawable');
-
+has texture      => (is => 'lazy');
 has texture_file => (is => 'rw', required => 0, predicate => 1);
 
-method BUILD {
-    if ($self->has_texture_file && !$ENV{ISTON_HEADLESS}) {
-        my $texture = OpenGL::Image->new( source => $self->texture_file );
-        croak("texture isn't power of 2?") if (!$texture->IsPowerOf2());
-        $self->texture($texture);
-    }
-};
+with('Iston::Drawable');
+
+method has_texture { return $self->has_texture_file; };
+
+method _build_texture {
+    my $texture = OpenGL::Image->new( source => $self->texture_file );
+    croak("texture isn't power of 2?") if (!$texture->IsPowerOf2());
+    return $texture;
+}
 
 method _build_center {
     my ($v_size, $n_size) = map { scalar(@{ $self->$_ }) }

@@ -60,7 +60,7 @@ has triangles    => (is => 'rw', default =>
             } (0 .. @$_indices/3 - 1);
         return \@triangles;
     } );
-has texture => (is => 'lazy', predicate => 1, clearer => 1);
+has texture => (is => 'lazy', clearer => 1);
 
 with('Iston::Drawable');
 
@@ -96,6 +96,8 @@ method _calculate_normals {
     }
 };
 
+method has_texture { return 1; };
+
 method _build_texture {
     my $triangles = $self->triangles;
     my %shares_for;
@@ -108,12 +110,12 @@ method _build_texture {
     }
     if (!%shares_for) {
         my ($width, $height) = (4, 4);
-        my $texture = OpenGL::Image->new(width=>$width,height=>$height);
+        my $texture = OpenGL::Image->new( width => $width, height => $height);
         my ($texture_id) = glGenTextures_p(1);
         my $share = 1.0;
         # seems that, gl_format is GL_BGRA, and not  GL_RGBA
-        for my $x ( 0 .. $width-1) {
-            for my $y (0 .. $height-1) {
+        for my $x ( 0 .. $width) {
+            for my $y (0 .. $height) {
                 $texture->SetPixel($x, $y, 0.0, $share, $share, 1.0);
             }
         }
