@@ -24,7 +24,7 @@ use aliased qw/Iston::Loader/;
 use aliased qw/Iston::Vector/;
 
 has camera_position => (is => 'rw', trigger => 1);
-has object_shader   => (is => 'rw');
+has shader_for      => (is => 'rw', default => sub { {} });
 has cv_finish       => (is => 'ro', default => sub { AE::cv });
 has max_boundary    => (is => 'ro', default => sub { 3.0 });
 has full_screen     => (is => 'ro', default => sub { 1 });
@@ -67,7 +67,7 @@ sub init_app {
     glEnable(GL_DEPTH_TEST);
     glClearColor(0.0, 0.0, 0.0, 0.0);
     $self->_initGL;
-    $self->_init_shaders('object');
+    $self->_init_shaders(qw/object line/);
     #$self->object_shader->Enable;
     $self->camera_position([0, 0, -7]);
     # $self->view( look_at(
@@ -88,19 +88,23 @@ sub init_app {
 }
 
 
-method _init_shaders($name) {
-    my $shader = OpenGL::Shader->new('GLSL');
-    say "Shader ", $shader->GetType, " version: ", $shader->GetVersion;
-
+method _init_shaders(@names) {
     my $dist_dir = dist_dir('Iston');
     say "dist dir: $dist_dir";
-    my @shader_files = (
-        "$dist_dir/shaders/$name.fragment.glsl",
-        "$dist_dir/shaders/$name.vertex.glsl"
-    );
-    my $info = $shader->LoadFiles(@shader_files);
-    die ("shaders $name loading: $info") if $info;
-    $self->object_shader($shader);
+    for (0 .. @names-1) {
+        my $name = $names[$_];
+        my $shader = OpenGL::Shader->new('GLSL');
+        say "Shader ", $shader->GetType, " version: ", $shader->GetVersion if(!$_);
+
+        my @shader_files = (
+            "$dist_dir/shaders/$name.fragment.glsl",
+            "$dist_dir/shaders/object.vertex.glsl"
+        );
+        my $info = $shader->LoadFiles(@shader_files);
+        die ("shaders $name loading: $info") if $info;
+        say "loaded shaders for $name";
+        $self->shader_for->{$name} = $shader;
+    }
 }
 
 method _trigger_view($matrix) {
@@ -119,23 +123,27 @@ method _update_view {
     $matrix = ~$matrix;
     #say "upating view with\n", $matrix;
     #say "list: \n", join(', ', $matrix->as_list);
-    $self->object_shader->Enable;
-    $self->object_shader->SetMatrix(
-        view => OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list)
-    );
-    $self->object_shader->SetVector('camera', @$camera, 0.0);
-    $self->object_shader->Disable;
+    for my $shader (values %{ $self->shader_for }) {
+        $shader->Enable;
+        $shader->SetMatrix(
+            view => OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list)
+        );
+        $shader->SetVector('camera', @$camera, 0.0);
+        $shader->Disable;
+    }
 }
 
 method _trigger_projection($matrix) {
     $matrix = ~$matrix;
     #say "upating projection with\n", $matrix;
     #say "list: \n", join(', ', $matrix->as_list);
-    $self->object_shader->Enable;
-    $self->object_shader->SetMatrix(
-        projection => OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list)
-    );
-    $self->object_shader->Disable;
+    for my $shader (values %{ $self->shader_for }) {
+        $shader->Enable;
+        $shader->SetMatrix(
+            projection => OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list)
+        );
+        $shader->Disable;
+    }
 }
 
 sub _initGL {
@@ -182,7 +190,7 @@ sub _handle_polls {
 }
 
 sub load_object {
-    my ($self, $path, $shader) = @_;
+    my ($self, $path) = @_;
     my $start = [gettimeofday];
     my $object = Loader->new(file => $path)->load;
 
@@ -193,8 +201,8 @@ sub load_object {
     my $scale_to = 1/($max_distance->length/$self->max_boundary);
     $object->scale( $scale_to );
     say "model $path loaded, scaled: $scale_to";
-    $object->shader($shader);
-    say "Shader has been attached";
+    $object->shader($self->shader_for->{object});
+    say "Object shader has been attached";
     my $elapsed = tv_interval ( $start );
     say "Object $path loaded at ", sprintf("%0.4f", $elapsed), " seconds";
     return $object;
