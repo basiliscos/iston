@@ -90,7 +90,7 @@ method arrow_vertices($index_to, $index_from) {
         }
         map { $_ * $length }
         map {
-            my $r = $rotation * Matrix->new_from_cols([ [@$_] ]);
+            my $r = $rotation * Iston::Matrix->new_from_cols([ [@$_] ]);
             my $result_vector = Vector->new( [map { $r->element($_, 1) } (1 .. 3) ] );
         } @normals;
     return @results;

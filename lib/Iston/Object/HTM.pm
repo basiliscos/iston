@@ -114,8 +114,8 @@ method _build_texture {
         my ($texture_id) = glGenTextures_p(1);
         my $share = 1.0;
         # seems that, gl_format is GL_BGRA, and not  GL_RGBA
-        for my $x ( 0 .. $width) {
-            for my $y (0 .. $height) {
+        for my $x (0 .. $width-1) {
+            for my $y (0 .. $height-1) {
                 $texture->SetPixel($x, $y, 0.0, $share, $share, 1.0);
             }
         }
@@ -161,17 +161,6 @@ method _trigger_level($level) {
     $self->_calculate_normals;
     $self->_prepare_data;
     $self->clear_draw_function;
-}
-
-method rotate($axis,$value = undef){
-    if (defined $value) {
-        for (@{ $self->triangles }) {
-            $_->rotate($axis, $value);
-        }
-    }
-    else {
-        return $self->triangles->[0]->rotate($axis);
-    }
 }
 
 method radius {

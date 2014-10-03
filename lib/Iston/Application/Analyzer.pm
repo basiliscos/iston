@@ -517,7 +517,7 @@ sub _build__htm_visualizers {
                 my $min_share_of = {};
                 for my $level (0 .. $max_level) {
                     my $triangles = $htm->levels_cache->{$level};
-                    $_->enabled(0) for (@$triangles);
+                    $_->payload->{total_time} = 0 for (@$triangles);
                 }
                 $projections->walk( sub {
                     my ($vertex_index, $level, $path) = @_;
