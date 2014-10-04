@@ -17,15 +17,15 @@ has enabled      => (is => 'rw', default => sub { 1 });
 # candidate for deletion
 has display_list => (is => 'ro', default => sub { 0 });
 
-has center       => (is => 'lazy');
-has boundaries   => (is => 'lazy');
-has scale        => (is => 'rw', default => sub { 1; }, trigger => 1);
-has vertices     => (is => 'rw', required => 0);
-has indices      => (is => 'rw', required => 0);
-has normals      => (is => 'rw', required => 0);
-has texture      => (is => 'rw');
-has uv_mappings  => (is => 'rw', required => 0);
-has mode         => (is => 'rw', default => sub { 'normal' }, trigger => 1);
+has center        => (is => 'lazy');
+has boundaries    => (is => 'lazy');
+has scale         => (is => 'rw', default => sub { 1; }, trigger => 1);
+has vertices      => (is => 'rw', required => 0);
+has indices       => (is => 'rw', required => 0);
+has normals       => (is => 'rw', required => 0);
+has texture       => (is => 'rw');
+has uv_mappings   => (is => 'rw', required => 0);
+has mode          => (is => 'rw', default => sub { 'normal' }, trigger => 1);
 has default_color => (is => 'rw', default => sub { [1.0, 1.0, 1.0, 0.0] } );
 
 has texture_id    => (is => 'lazy', clearer => 1);
