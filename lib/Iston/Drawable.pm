@@ -214,11 +214,11 @@ method _build_draw_function {
     );
 
     $self->shader->Enable;
+    my $has_texture_u = $self->_uniform_has_texture;
+
     my ($texture_id, $default_color);
     if ($self->has_texture) {
         $texture_id = $self->texture_id;
-        my $has_texture_u = $self->_uniform_has_texture;
-        glUniform1iARB($has_texture_u, 1);
     } else {
         $default_color = $self->default_color;
     }
@@ -231,6 +231,7 @@ method _build_draw_function {
     my $draw_function = sub {
         $self->shader->Enable;
 
+        glUniform1iARB($has_texture_u, $self->has_texture);
         $self->shader->SetMatrix(model => $self->model_oga);
         my $attribute_texcoord = $self->_attribute_texcoord;
         glEnableVertexAttribArrayARB($attribute_texcoord);
