@@ -135,7 +135,7 @@ method load {
     $object->model_translate(translate($to_center));
     # hack, this should be recalculated indirectly via matrices
     for (0 .. @$boundaries-1) {
-        $boundaries->[$_] += $to_center;
+        Vertex->new([ @{ $boundaries->[$_] + $to_center } ]);
     }
     return $object;
 };

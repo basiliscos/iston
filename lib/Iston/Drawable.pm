@@ -182,8 +182,6 @@ method _build_texture_id {
 }
 
 method _build_draw_function {
-    my $scale = $self->scale;
-
     my ($p_vertices, $p_normals) =
         map {
             my $v = $self->$_;
@@ -193,7 +191,6 @@ method _build_draw_function {
     my ($vertices, $normals) =
         map { as_oga($_) }
         ($p_vertices, $p_normals);
-    my $components = 3; # number of coordinates
     my ($vbo_vertices, $vbo_normals) = glGenBuffersARB_p(2);
 
     $vertices->bind($vbo_vertices);

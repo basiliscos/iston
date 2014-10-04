@@ -202,7 +202,6 @@ sub load_object {
     $object->scale( $scale_to );
     say "model $path loaded, scaled: $scale_to";
     $object->shader($self->shader_for->{object});
-    say "Object shader has been attached";
     my $elapsed = tv_interval ( $start );
     say "Object $path loaded at ", sprintf("%0.4f", $elapsed), " seconds";
     return $object;

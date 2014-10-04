@@ -82,11 +82,12 @@ sub _load_object {
     $self->htm->clear_draw_function;
 
     my $observation_path = ObservationPath->new(history => $history);
+    $observation_path->shader($self->shader_for->{line});
     $observation_path->scale($scale_to*1.02);
     my $sphere_vectors = VectorizedVertices->new(
         vertices       => $observation_path->vertices,
         vertex_indices => $observation_path->sphere_vertex_indices,
-        hilight_color  => [0.75, 0.0, 0.0, 1.0], # does not matter
+        default_color  => [1.0, 0.0, 0.0, 0.0],
     );
     $observation_path->sphere_vectors($sphere_vectors);
     $self->observation_path($observation_path);

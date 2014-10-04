@@ -6,7 +6,7 @@ use warnings;
 use utf8;
 
 use Function::Parameters qw(:strict);
-use Iston::Utils qw/rotation_matrix/;
+use Iston::Utils qw/rotation_matrix identity/;
 use Iston::Matrix;
 use List::Util qw/reduce/;
 use List::MoreUtils qw/pairwise/;
@@ -19,7 +19,6 @@ use aliased qw/Iston::Vertex/;
 use aliased qw/Iston::Object::SphereVectors::VectorizedVertices/;
 
 has history                => (is => 'ro', required => 1);
-has scale                  => (is => 'rw', default => sub { 1; });
 has vertices               => (is => 'rw');
 has index_at               => (is => 'rw', default => sub{ {} });
 has active_time            => (is => 'rw', trigger => 1);
@@ -27,6 +26,14 @@ has sphere_vertex_indices  => (is => 'rw');
 has sphere_vectors         => (is => 'rw');
 has current_sphere_vector  => (is => 'lazy', clearer => 1);
 has vertex_to_sphere_index => (is => 'rw');
+
+has model_rotation  => (is => 'rw', default => sub { identity; }, trigger =>
+    sub {
+        $_[0]->clear_model_oga;
+        $_[0]->clear_draw_function;
+    },
+);
+
 
 has draw_function          => (is => 'lazy', clearer => 1);
 
@@ -135,7 +142,7 @@ method _build_current_sphere_vector {
             return VectorizedVertices->new(
                 vertices       => $self->vertices,
                 vertex_indices => \@indices,
-                hilight_color  => [0.0, 0.95, 0.0, 1.0],
+                default_color  => [0.0, 1.0, 0.0, 0.0],
             );
         }
     }
@@ -143,17 +150,20 @@ method _build_current_sphere_vector {
 
 method _trigger_active_time {
     $self->clear_current_sphere_vector;
-}
+};
 
 method _build_draw_function {
+    my $current = $self->current_sphere_vector;
+    for (qw/model model_translate model_scale model_rotation/) {
+        my $value = $self->$_;
+        $current->$_($value) if ($current);
+        $self->sphere_vectors->$_($value);
+    }
+    $current->shader($self->shader) if ($current);
+    $self->sphere_vectors->shader($self->shader);
+
     return sub {
-        my $scale = $self->scale;
-        glScalef($scale, $scale, $scale);
-        glRotatef($self->rotate(0), 1, 0, 0);
-        glRotatef($self->rotate(1), 0, 1, 0);
-        glRotatef($self->rotate(2), 0, 0, 1);
-        my $current = $self->current_sphere_vector;
-        $current->draw_function->() if $current;
+        $current->draw_function->() if($current);
         $self->sphere_vectors->draw_function->();
     };
 }

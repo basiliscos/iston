@@ -17,7 +17,6 @@ use aliased qw/Iston::Vertex/;
 has 'vertices'                  => (is => 'ro', required => 1);
 has 'vectors'                   => (is => 'lazy');
 has 'vertex_indices'            => (is => 'ro', required => 1);
-has 'draw_function'             => (is => 'lazy');
 has 'vertex_to_vector_function' => (is => 'lazy');
 
 with('Iston::Object::SphereVectors');
@@ -97,14 +96,11 @@ method arrow_vertices($index_to, $index_from) {
 }
 
 method _build_draw_function {
-
-    # main sphere vector drawing
     my $vertex_indices = $self->vertex_indices;
     my @displayed_vertices =
         map { $self->vertices->[$_] }
         @$vertex_indices;
     my @indices = map{ ($_-1, $_) }(1 .. @displayed_vertices-1);
-
     # arrays for sphere vertices calculations
     for my $i (0 .. @$vertex_indices - 2 ) {
         my $v_index = $vertex_indices->[$i];
@@ -119,35 +115,7 @@ method _build_draw_function {
         push @indices, @arrow_indices;
     }
 
-    my $vertices = OpenGL::Array->new_list( GL_FLOAT,
-        map { @$_ } @displayed_vertices
-    );
-
-    my $diffusion = OpenGL::Array->new_list(GL_FLOAT, 0.0, 0.0, 0.0, 1.0);
-    my $emission = OpenGL::Array->new_list(GL_FLOAT, @{ $self->hilight_color });
-
-    my $draw_function = sub {
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glVertexPointer_p(3, $vertices);
-        glMaterialfv_c(GL_FRONT, GL_DIFFUSE,  $diffusion->ptr);
-        glMaterialfv_c(GL_FRONT, GL_AMBIENT,  $diffusion->ptr);
-        glMaterialfv_c(GL_FRONT, GL_EMISSION, $emission->ptr);
-        glDrawElements_p(GL_LINES, @indices);
-    };
-
-    if (@$vertex_indices > 15) {
-        my ($id, $cleaner) = generate_list_id;
-        glNewList($id, GL_COMPILE);
-        $draw_function->();
-        glEndList;
-        $draw_function = sub {
-            my $cleaner_ref = \$cleaner;
-            glCallList($id);
-        };
-    }
-
-    return $draw_function;
-};
-
+    return $self->_draw_function_constructor(\@displayed_vertices, \@indices);
+}
 
 1;
