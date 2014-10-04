@@ -119,19 +119,24 @@ method load {
         ($texture_file = path($self->file)) =~ s/(\.obj)$/.tga/;
         $texture_file = undef unless -s $texture_file;
     }
+    my $boundaries = [$v_min, $v_max];
     my $object = Object->new(
         vertices     => \@final_vertices,
         indices      => \@face_indices,
         normals      => \@vertices_normals,
         uv_mappings  => \@vertices_mappings,
         display_list => 1,
-        boundaries   => [$v_min, $v_max],
+        boundaries   => $boundaries,
         (defined $texture_file ? (texture_file => $texture_file) : ()),
     );
     my $center = $object->center;
     my $to_center = -1 * Vector->new([@$center]);
     say "Shifting object $to_center";
     $object->model_translate(translate($to_center));
+    # hack, this should be recalculated indirectly via matrices
+    for (0 .. @$boundaries-1) {
+        $boundaries->[$_] += $to_center;
+    }
     return $object;
 };
 
