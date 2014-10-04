@@ -26,17 +26,19 @@ has normals      => (is => 'rw', required => 0);
 has texture      => (is => 'rw');
 has uv_mappings  => (is => 'rw', required => 0);
 has mode         => (is => 'rw', default => sub { 'normal' }, trigger => 1);
+has default_color => (is => 'rw', default => sub { [1.0, 1.0, 1.0, 0.0] } );
 
 has texture_id    => (is => 'lazy', clearer => 1);
 has draw_function => (is => 'lazy', clearer => 1);
 
-has shader                => (is => 'rw', trigger => 1 );
-has _uniform_my_texture   => (is => 'rw');
-has _uniform_has_texture  => (is => 'rw');
-has _uniform_has_lighting => (is => 'rw');
-has _attribute_texcoord   => (is => 'rw');
-has _attribute_coord3d    => (is => 'rw');
-has _attribute_normal     => (is => 'rw');
+has shader                 => (is => 'rw', trigger => 1 );
+has _uniform_my_texture    => (is => 'rw');
+has _uniform_has_texture   => (is => 'rw');
+has _uniform_has_lighting  => (is => 'rw');
+has _uniform_default_color => (is => 'rw');
+has _attribute_texcoord    => (is => 'rw');
+has _attribute_coord3d     => (is => 'rw');
+has _attribute_normal      => (is => 'rw');
 
 has _text_coords_oga => (is => 'lazy');
 
@@ -53,15 +55,16 @@ has _contexts => (is => 'rw', default => sub { {} });
 requires 'has_texture';
 
 method _trigger_shader($shader) {
-    my ($mytexture, $has_texture, $has_lighting) = map {
+    my ($mytexture, $has_texture, $has_lighting, $default_color) = map {
         $shader->Map($_) // die("cannot map '$_' uniform");
-    } qw/mytexture has_texture has_lighting/;
+    } qw/mytexture has_texture has_lighting default_color/;
     my ($texcoord, $coord3d, $normal) = map {
         $shader->MapAttr($_) // die("cannot map attribute '$_'");
     } qw/texcoord coord3d N/;
     $self->_uniform_my_texture($mytexture);
     $self->_uniform_has_texture($has_texture);
     $self->_uniform_has_lighting($has_lighting);
+    $self->_uniform_default_color($default_color);
     $self->_attribute_texcoord($texcoord);
     $self->_attribute_coord3d($coord3d);
     $self->_attribute_normal($normal);
@@ -211,11 +214,13 @@ method _build_draw_function {
     );
 
     $self->shader->Enable;
-    my $texture_id;
+    my ($texture_id, $default_color);
     if ($self->has_texture) {
         $texture_id = $self->texture_id;
         my $has_texture_u = $self->_uniform_has_texture;
         glUniform1iARB($has_texture_u, 1);
+    } else {
+        $default_color = $self->default_color;
     }
 
     my $has_lighting_u = $self->_uniform_has_lighting;
@@ -237,6 +242,8 @@ method _build_draw_function {
 
             glBindBufferARB(GL_ARRAY_BUFFER, $self->_text_coords_oga->bound);
             glVertexAttribPointerARB_c($attribute_texcoord, 2, GL_FLOAT, 0, 0, 0);
+        } else {
+            $self->shader->SetVector('default_color', @$default_color);
         }
 
         my $attribute_coord3d = $self->_attribute_coord3d;
