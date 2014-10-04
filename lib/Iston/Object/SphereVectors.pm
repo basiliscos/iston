@@ -11,6 +11,8 @@ use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
 has draw_function => (is => 'lazy', clearer => 1);
+has model_oga     => (is => 'rw'); # inherited from outer container
+
 
 requires('vectors');
 requires('vertex_indices');

@@ -154,7 +154,7 @@ method _trigger_active_time {
 
 method _build_draw_function {
     my $current = $self->current_sphere_vector;
-    for (qw/model model_translate model_scale model_rotation/) {
+    for (qw/model_oga/) {
         my $value = $self->$_;
         $current->$_($value) if ($current);
         $self->sphere_vectors->$_($value);
