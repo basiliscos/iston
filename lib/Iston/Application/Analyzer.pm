@@ -451,19 +451,14 @@ sub process_event {
     AntTweakBar::eventSDL($event);
     if ($event->type == SDL_KEYUP) {
         my $dispatch_table = {
-            'w' => 'rotate_axis_x_ccw',
-            's' => 'rotate_axis_x_cw',
-            'a' => 'rotate_axis_y_cw',
-            'd' => 'rotate_axis_y_ccw',
-            '+' => 'increase_step_delay',
-            '-' => 'decrease_step_delay',
-            'i' => 'increase_htm_details',
-            'I' => 'decrease_htm_details',
-            ' ' => 'pause_unpause',
-            'q' => 'terminate_program',
+            SDLK_w()  => 'rotate_axis_x_ccw',
+            SDLK_s()  => 'rotate_axis_x_cw',
+            SDLK_a()  => 'rotate_axis_y_cw',
+            SDLK_d()  => 'rotate_axis_y_ccw',
+            SDLK_q()  => 'terminate_program',
+            SDLK_F4() => 'terminate_program',
         };
-        my $key = chr($event->key_sym);
-        $key = uc($key) if($event->key_mod & KMOD_SHIFT);
+        my $key = $event->key_sym;
         my $command = $dispatch_table->{$key};
         $action = $self->_commands->{$command} if defined $command;
     }
