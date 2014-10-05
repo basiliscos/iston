@@ -355,7 +355,7 @@ sub _build_menu {
                 ? GeneralizedVectors->new(
                     distance       => deg2rad($angular_distance),
                     source_vectors => $self->_source_sphere_vectors,
-                    hilight_color  => [0.75, 0.0, 0.75, 0.0]
+                    default_color  => [0.75, 0.0, 0.75, 0.0]
                 )
                 : $self->_source_sphere_vectors;
             $self->observation_path->sphere_vectors($sv);

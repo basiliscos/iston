@@ -23,7 +23,7 @@ has vertices               => (is => 'rw');
 has index_at               => (is => 'rw', default => sub{ {} });
 has active_time            => (is => 'rw', trigger => 1);
 has sphere_vertex_indices  => (is => 'rw');
-has sphere_vectors         => (is => 'rw');
+has sphere_vectors         => (is => 'rw', trigger => 1);
 has current_sphere_vector  => (is => 'lazy', clearer => 1);
 has vertex_to_sphere_index => (is => 'rw');
 
@@ -143,6 +143,7 @@ method _build_current_sphere_vector {
                 vertices       => $self->vertices,
                 vertex_indices => \@indices,
                 default_color  => [0.0, 1.0, 0.0, 0.0],
+                shader         => $self->shader,
             );
         }
     }
@@ -152,19 +153,22 @@ method _trigger_active_time {
     $self->clear_current_sphere_vector;
 };
 
+method _trigger_sphere_vectors($vectors) {
+    $vectors->shader($self->shader);
+    $self->clear_draw_function;
+}
+
 method _build_draw_function {
+    my $model_oga = $self->model_oga;
     my $current = $self->current_sphere_vector;
-    for (qw/model_oga/) {
-        my $value = $self->$_;
-        $current->$_($value) if ($current);
-        $self->sphere_vectors->$_($value);
-    }
-    $current->shader($self->shader) if ($current);
-    $self->sphere_vectors->shader($self->shader);
+    my $sphere_vectors = $self->sphere_vectors;
+
+    $sphere_vectors->model_oga($model_oga);
+    $current->model_oga($model_oga) if($current);
 
     return sub {
         $current->draw_function->() if($current);
-        $self->sphere_vectors->draw_function->();
+        $sphere_vectors->draw_function->();
     };
 }
 
