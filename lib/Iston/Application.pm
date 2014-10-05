@@ -194,11 +194,8 @@ sub load_object {
     my $start = [gettimeofday];
     my $object = Loader->new(file => $path)->load;
 
-    my ($max_distance) =
-        reverse sort {$a->length <=> $b->length }
-        map { Vector->new( $_ ) }
-        @{ $object->boundaries };
-    my $scale_to = 1/($max_distance->length/$self->max_boundary);
+    my $scale_to = 1 / ($object->radius / $self->max_boundary);
+
     $object->scale( $scale_to );
     say "model $path loaded, scaled: $scale_to";
     $object->shader($self->shader_for->{object});
