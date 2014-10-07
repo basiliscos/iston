@@ -23,10 +23,11 @@ has scale         => (is => 'rw', default => sub { 1; }, trigger => 1);
 has vertices      => (is => 'rw', required => 0);
 has indices       => (is => 'rw', required => 0);
 has normals       => (is => 'rw', required => 0);
-has texture       => (is => 'rw');
-has uv_mappings   => (is => 'rw', required => 0);
+has texture       => (is => 'rw', clearer => 1);
+has uv_mappings   => (is => 'rw', required => 0, clearer => 1);
 has mode          => (is => 'rw', default => sub { 'normal' }, trigger => 1);
 has default_color => (is => 'rw', default => sub { [1.0, 1.0, 1.0, 0.0] } );
+has lighting      => (is => 'rw', default => sub { 1; });
 
 has texture_id    => (is => 'lazy', clearer => 1);
 has draw_function => (is => 'lazy', clearer => 1);
@@ -109,6 +110,14 @@ sub rotate {
     else {
         return $self->rotation->[$axis];
     }
+}
+
+method reset_texture {
+    $self->clear_texture;
+    $self->clear_texture_id;
+    $self->_clear_text_coords_oga;
+    $self->clear_draw_function;
+    $self->clear_uv_mappings;
 }
 
 method _trigger_mode {
@@ -221,14 +230,15 @@ method _build_draw_function {
     }
 
     my $has_lighting_u = $self->_uniform_has_lighting;
-    glUniform1iARB($has_lighting_u, $ENV{ISTON_LIGHTING} // 1);
 
     $self->shader->Disable;
 
     my $draw_function = sub {
         $self->shader->Enable;
 
+        glUniform1iARB($has_lighting_u, $self->lighting);
         glUniform1iARB($has_texture_u, $self->has_texture);
+
         $self->shader->SetMatrix(model => $self->model_oga);
         my $attribute_texcoord = $self->_attribute_texcoord;
         glEnableVertexAttribArrayARB($attribute_texcoord);

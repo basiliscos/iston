@@ -65,6 +65,7 @@ has texture => (is => 'lazy', clearer => 1);
 with('Iston::Drawable');
 
 method BUILD {
+    $self->lighting(0);
     $self->levels_cache->{$self->level} = $self->triangles;
     $self->_calculate_normals;
     $self->_prepare_data;
@@ -174,7 +175,7 @@ method _prepare_data {
     $self->vertices(\@vertices);
     $self->normals(\@normals);
     $self->indices(\@indices);
-    $self->clear_texture;
+    $self->reset_texture;
 }
 
 method _trigger_level($level) {
@@ -191,8 +192,6 @@ method _trigger_level($level) {
     $self->triangles($current_triangles);
     $self->_calculate_normals;
     $self->_prepare_data;
-    $self->clear_draw_function;
-    $self->clear_texture;
 }
 
 method radius {

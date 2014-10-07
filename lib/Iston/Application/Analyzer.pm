@@ -543,10 +543,6 @@ sub _build__htm_visualizers {
                     });
                 });
                 $htm->_prepare_data;
-                $htm->clear_texture;
-                $htm->clear_texture_id;
-                $htm->_clear_text_coords_oga;
-                $htm->clear_draw_function;
                 return 1;
             }
         },
