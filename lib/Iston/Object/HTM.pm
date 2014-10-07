@@ -120,6 +120,7 @@ method _build_texture {
     my $square_size = 4;
     my $height  = $square_size * 2;
     my @shares = keys %share_for;
+    my $draw_all = @shares == 1 && exists $share_for{''};
     my $squares = @shares / 2;
     $squares = 1 if $squares < 1;
     my $pow_of_2 = log($squares) / log(2);
@@ -136,7 +137,7 @@ method _build_texture {
         my $square_idx = int($idx/2);
         $_->[0] += ($square_idx * $square_size) for(@texture_coords);
         my $share = $shares[$idx];
-        my @color_values = (0.0, $share, $share, 1.0);
+        my @color_values = (0.0, $draw_all ? 1.0 : $share, $draw_all ? 1.0 : $share, 1.0);
         for(my $dy = 0; $dy < $square_size; $dy++ ){
             for(my $dx = 0; $dx < $square_size; $dx++) {
                 my ($x, $y) = ($square_idx * $square_size, !$odd ? 0 : $square_size);

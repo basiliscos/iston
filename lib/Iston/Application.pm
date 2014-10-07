@@ -67,7 +67,7 @@ sub init_app {
     glEnable(GL_DEPTH_TEST);
     glClearColor(0.0, 0.0, 0.0, 0.0);
     $self->_initGL;
-    $self->_init_shaders(qw/object line/);
+    $self->_init_shaders(qw/object/);
     #$self->object_shader->Enable;
     $self->camera_position([0, 0, -7]);
     # $self->view( look_at(

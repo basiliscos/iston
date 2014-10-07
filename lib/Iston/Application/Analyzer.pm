@@ -82,7 +82,7 @@ sub _load_object {
     $self->htm->clear_draw_function;
 
     my $observation_path = ObservationPath->new(history => $history);
-    $observation_path->shader($self->shader_for->{line});
+    $observation_path->shader($self->shader_for->{object});
     $observation_path->scale($scale_to*1.02);
     my $sphere_vectors = VectorizedVertices->new(
         vertices       => $observation_path->vertices,
@@ -254,6 +254,7 @@ sub _build_menu {
         definition => " group='HTM' label='triangles' ",
     );
     my $htm = $self->htm;
+    $htm->lighting(1);
     my $htm_visualizers = $self->_htm_visualizers;
     my $htm_visualization = Type->new(
         "htm_visualization", [
@@ -543,6 +544,7 @@ sub _build__htm_visualizers {
                     });
                 });
                 $htm->_prepare_data;
+                $htm->lighting(0);
                 return 1;
             }
         },
