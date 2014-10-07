@@ -97,6 +97,7 @@ sub _load_object {
         observation_path => $observation_path,
         htm              => $self->htm,
     );
+    $self->htm->walk_triangles(sub { $_[0]->enabled(0) });
     $projections->distribute_observation_timings;
     $self->projections($projections);
 
@@ -508,13 +509,8 @@ sub _build__htm_visualizers {
         'duration projections' => sub {
             my $projections = $self->projections;
             if($projections) {
-                my $max_level = max keys %{ $htm->levels_cache };
                 my $max_share_of = {};
                 my $min_share_of = {};
-                for my $level (0 .. $max_level) {
-                    my $triangles = $htm->levels_cache->{$level};
-                    $_->payload->{total_time} = 0 for (@$triangles);
-                }
                 $projections->walk( sub {
                     my ($vertex_index, $level, $path) = @_;
                     $max_share_of->{$level} //= 0;
@@ -537,13 +533,19 @@ sub _build__htm_visualizers {
                             $max_share_of->{$level},
                         );
                         my $max_distance = $max - $min;
-                        return unless $max_distance;
+                        #return unless $max_distance;
                         my $time_share = $t->{payload}->{total_time};
-                        my $share = ($time_share - $min) / $max_distance;
+                        my $share = $max_distance
+                            ? ($time_share - $min) / $max_distance
+                            : 1.0;
                         $t->{payload}->{time_share} = $share;
+                        $t->enabled(1);
                     });
                 });
+                $htm->_prepare_data;
                 $htm->clear_texture;
+                $htm->clear_texture_id;
+                $htm->_clear_text_coords_oga;
                 $htm->clear_draw_function;
                 return 1;
             }

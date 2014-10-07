@@ -99,41 +99,72 @@ method _calculate_normals {
 method has_texture { return 1; };
 
 method _build_texture {
-    my $triangles = $self->triangles;
-    my %shares_for;
-    for my $t_idx (0 .. @$triangles-1) {
-        my $t = $triangles->[$t_idx];
-        if (exists $t->{payload}->{time_share}) {
-            my $share = $t->{payload}->{time_share};
-            push @{ $shares_for{$share} }, $t;
-        }
+    my @triangles = grep { $_->enabled } @{ $self->triangles };
+    my %share_for;
+    for my $t_idx (0 .. @triangles-1) {
+        my $t = $triangles[$t_idx];
+        my $share = $t->{payload}->{time_share} // '';
+        $share_for{$share} = 1;
     }
-    if (!%shares_for) {
-        my ($width, $height) = (4, 4);
-        my $texture = OpenGL::Image->new( width => $width, height => $height);
-        my ($texture_id) = glGenTextures_p(1);
-        my $share = 1.0;
-        # seems that, gl_format is GL_BGRA, and not  GL_RGBA
-        for my $x (0 .. $width-1) {
-            for my $y (0 .. $height-1) {
-                $texture->SetPixel($x, $y, 0.0, $share, $share, 1.0);
+    my %mappings_for;
+    # united texture schema:
+    #
+    # 02
+    # 22
+    # 01
+    # 11
+    #
+    # 1 - even triangle texture share
+    # 2 - odd triangle texture share
+    my $square_size = 4;
+    my $height  = $square_size * 2;
+    my @shares = keys %share_for;
+    my $squares = @shares / 2;
+    $squares = 1 if $squares < 1;
+    my $pow_of_2 = log($squares) / log(2);
+    if ($pow_of_2 - int($pow_of_2)) {
+        $pow_of_2 = int($pow_of_2) + 1;
+    }
+    my $width = $square_size * 2**($pow_of_2+1);
+    my $texture = OpenGL::Image->new( width => $width, height => $height);
+    for my $idx (0 .. @shares -1 ) {
+        my $odd = $idx % 2;
+        my @texture_coords = !$odd
+            ? ([1, 1], [$square_size-1, 1], [$square_size-1, $square_size-1])
+            : ([1, $square_size+1], [$square_size-1, $square_size+1], [$square_size-1, $square_size*2-1]);
+        my $square_idx = int($idx/2);
+        $_->[0] += ($square_idx * $square_size) for(@texture_coords);
+        my $share = $shares[$idx];
+        my @color_values = (0.0, $share, $share, 1.0);
+        for(my $dy = 0; $dy < $square_size; $dy++ ){
+            for(my $dx = 0; $dx < $square_size; $dx++) {
+                my ($x, $y) = ($square_idx * $square_size, !$odd ? 0 : $square_size);
+                $texture->SetPixel($x+$dx, $y+$dy, @color_values);
             }
         }
-        my @uv_mappings = map {
-            ([0.0, 0.0], [0.0, 1.0], [1.0, 1.0]);
-        } @$triangles;
-        $self->uv_mappings(\@uv_mappings);
-        return $texture;
+        my @uv_mappings_tripplet = (
+            [$texture_coords[0]->[0] / $width, ($texture_coords[0]->[1]) / $height ],
+            [$texture_coords[1]->[0] / $width, ($texture_coords[1]->[1]) / $height ],
+            [$texture_coords[2]->[0] / $width, ($texture_coords[2]->[1]) / $height ],
+        );
+        $mappings_for{$share} = \@uv_mappings_tripplet;
     }
+    my @uv_mappings = map {
+        my $share = $_->{payload}->{time_share} // '';
+        @{ $mappings_for{$share} };
+    } @triangles;
+
+    $self->uv_mappings(\@uv_mappings);
+    return $texture;
 };
 
 method _prepare_data {
-    my $triangles = $self->triangles;
+    my @triangles = grep { $_->enabled } @{ $self->triangles };
     my @vertices;
     my @normals;
     my @indices;
-    for my $t_idx (0 .. @$triangles-1) {
-        my $t = $triangles->[$t_idx];
+    for my $t_idx (0 .. @triangles-1) {
+        my $t = $triangles[$t_idx];
         my $vertices = $t->vertices;
         my $normals = $t->normals;
         push @vertices, @$vertices;
@@ -161,10 +192,19 @@ method _trigger_level($level) {
     $self->_calculate_normals;
     $self->_prepare_data;
     $self->clear_draw_function;
+    $self->clear_texture;
 }
 
 method radius {
     return 1;
 };
+
+method walk_triangles($callback) {
+    my $max_level = max keys %{ $self->levels_cache };
+    for my $level (0 .. $max_level) {
+        my $triangles = $self->levels_cache->{$level};
+        $callback->($_) for (@$triangles);
+    }
+}
 
 1;

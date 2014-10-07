@@ -40,7 +40,7 @@ has _attribute_texcoord    => (is => 'rw');
 has _attribute_coord3d     => (is => 'rw');
 has _attribute_normal      => (is => 'rw');
 
-has _text_coords_oga => (is => 'lazy');
+has _text_coords_oga => (is => 'lazy', clearer => 1);
 
 # matrices
 has model           => (is => 'rw', trigger => sub{ shift->clear_model_oga }, default => sub { identity; });
