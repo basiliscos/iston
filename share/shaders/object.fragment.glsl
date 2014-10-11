@@ -13,6 +13,7 @@ uniform vec4 camera;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform mat4 view_model; // transpose (inverse( view * model))
 
 // structures
 
@@ -67,7 +68,7 @@ vec4 compute_color(vec4 initial_color) {
 
   if (intensity > 0.0) {
     vec4 eye = -1 * camera;
-    vec4 eye_shifted = transpose (inverse( view * model)) * eye;
+    vec4 eye_shifted = view_model * eye;
     vec4 halfway = normalize( eye - light_dir );
     float NdotHV = max(dot(vec4(N, 0.0), halfway),0.0);
     specular = light1.specular * frontMaterial.specular * pow(NdotHV, frontMaterial.shininess);

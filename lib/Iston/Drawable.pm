@@ -33,42 +33,46 @@ has texture_id    => (is => 'lazy', clearer => 1);
 has draw_function => (is => 'lazy', clearer => 1);
 
 has shader                 => (is => 'rw', trigger => 1 );
-has _uniform_my_texture    => (is => 'rw');
-has _uniform_has_texture   => (is => 'rw');
-has _uniform_has_lighting  => (is => 'rw');
-has _uniform_default_color => (is => 'rw');
-has _attribute_texcoord    => (is => 'rw');
-has _attribute_coord3d     => (is => 'rw');
-has _attribute_normal      => (is => 'rw');
+has notifyer               => (is => 'rw', trigger => 1 );
+has _uniform_for   => (is => 'ro', default => sub { {} } );
+has _attribute_for => (is => 'ro', default => sub { {} } );
 
 has _text_coords_oga => (is => 'lazy', clearer => 1);
 
 # matrices
-has model           => (is => 'rw', trigger => sub{ shift->clear_model_oga }, default => sub { identity; });
-has model_translate => (is => 'rw', trigger => sub{ shift->clear_model_oga }, default => sub { identity; });
-has model_scale     => (is => 'rw', trigger => sub{ shift->clear_model_oga }, default => sub { identity; });
-has model_rotation  => (is => 'rw', trigger => sub{ shift->clear_model_oga }, default => sub { identity; });
+has model           => (is => 'rw', trigger => sub{ $_[0]->reset_model }, default => sub { identity; });
+has model_translate => (is => 'rw', trigger => sub{ $_[0]->reset_model }, default => sub { identity; });
+has model_scale     => (is => 'rw', trigger => sub{ $_[0]->reset_model }, default => sub { identity; });
+has model_rotation  => (is => 'rw', trigger => sub{ $_[0]->reset_model }, default => sub { identity; });
+
 has model_oga       => (is => 'lazy', clearer => 1);
+has model_view_oga  => (is => 'lazy', clearer => 1);  # transpose (inverse( view * model))
 
 # just cache
 has _contexts => (is => 'rw', default => sub { {} });
 
 requires 'has_texture';
 
+method reset_model {
+    $self->clear_model_oga;
+    $self->clear_model_view_oga;
+}
+
 method _trigger_shader($shader) {
-    my ($mytexture, $has_texture, $has_lighting, $default_color) = map {
-        $shader->Map($_) // die("cannot map '$_' uniform");
-    } qw/mytexture has_texture has_lighting default_color/;
-    my ($texcoord, $coord3d, $normal) = map {
-        $shader->MapAttr($_) // die("cannot map attribute '$_'");
-    } qw/texcoord coord3d N/;
-    $self->_uniform_my_texture($mytexture);
-    $self->_uniform_has_texture($has_texture);
-    $self->_uniform_has_lighting($has_lighting);
-    $self->_uniform_default_color($default_color);
-    $self->_attribute_texcoord($texcoord);
-    $self->_attribute_coord3d($coord3d);
-    $self->_attribute_normal($normal);
+    for (qw/mytexture has_texture has_lighting default_color view_model/) {
+        my $id = $shader->Map($_);
+        croak "cannot map '$_' uniform" unless defined $id;
+        $self->_uniform_for->{$_} = $id;
+    }
+    for (qw/texcoord coord3d N/) {
+        my $id = $shader->MapAttr($_);
+        croak "cannot map attribute '$_'" unless defined $id;
+        $self->_attribute_for->{$_} = $id;
+    }
+}
+
+method _trigger_notifyer($notifyer) {
+    $notifyer->subscribe(view_change => sub { $self->clear_model_view_oga } );
 }
 
 method _trigger_rotation($values) {
@@ -96,6 +100,17 @@ sub _build_model_oga {
     my $rotation = $self->model_rotation;
     my $model = $self->model;
     my $matrix = $model * $rotation * $scale * $translate;
+    $matrix = ~$matrix;
+    return OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list);
+}
+
+method _build_model_view_oga {
+    my $scale    = $self->model_scale;
+    my $translate = $self->model_translate;
+    my $rotation = $self->model_rotation;
+    my $model = $self->model * $rotation * $scale * $translate;
+    my $view = $self->notifyer->last_value('view_change');
+    my $matrix = (~($model * $view))->inverse;
     $matrix = ~$matrix;
     return OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list);
 }
@@ -220,7 +235,10 @@ method _build_draw_function {
     );
 
     $self->shader->Enable;
-    my $has_texture_u = $self->_uniform_has_texture;
+    my $has_texture_u  = $self->_uniform_for->{has_texture };
+    my $has_lighting_u = $self->_uniform_for->{has_lighting};
+    my $my_texture_u   = $self->_uniform_for->{mytexture};
+    my $view_model_u   = $self->_uniform_for->{view_model};
 
     my ($texture_id, $default_color);
     if ($self->has_texture) {
@@ -229,7 +247,9 @@ method _build_draw_function {
         $default_color = $self->default_color;
     }
 
-    my $has_lighting_u = $self->_uniform_has_lighting;
+    my $attribute_texcoord = $self->_attribute_for->{texcoord};
+    my $attribute_coord3d  = $self->_attribute_for->{coord3d };
+    my $attribute_normal   = $self->_attribute_for->{N       };
 
     $self->shader->Disable;
 
@@ -240,13 +260,13 @@ method _build_draw_function {
         glUniform1iARB($has_texture_u, $self->has_texture);
 
         $self->shader->SetMatrix(model => $self->model_oga);
-        my $attribute_texcoord = $self->_attribute_texcoord;
+        $self->shader->SetMatrix(view_model => $self->model_view_oga);
         glEnableVertexAttribArrayARB($attribute_texcoord);
 
         if (defined $texture_id) {
             glActiveTextureARB(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, $texture_id);
-            glUniform1iARB($self->_uniform_my_texture, 0); # /*GL_TEXTURE*/
+            glUniform1iARB($my_texture_u, 0); # /*GL_TEXTURE*/
 
             glBindBufferARB(GL_ARRAY_BUFFER, $self->_text_coords_oga->bound);
             glVertexAttribPointerARB_c($attribute_texcoord, 2, GL_FLOAT, 0, 0, 0);
@@ -254,12 +274,10 @@ method _build_draw_function {
             $self->shader->SetVector('default_color', @$default_color);
         }
 
-        my $attribute_coord3d = $self->_attribute_coord3d;
         glEnableVertexAttribArrayARB($attribute_coord3d);
         glBindBufferARB(GL_ARRAY_BUFFER, $vertices->bound);
         glVertexAttribPointerARB_c($attribute_coord3d, 3, GL_FLOAT, 0, 0, 0);
 
-        my $attribute_normal = $self->_attribute_normal;
         glEnableVertexAttribArrayARB($attribute_normal);
         glBindBufferARB(GL_ARRAY_BUFFER, $normals->bound);
         glVertexAttribPointerARB_c($attribute_normal, 3, GL_FLOAT, 0, 0, 0);

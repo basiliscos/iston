@@ -22,6 +22,7 @@ use Time::HiRes qw/gettimeofday tv_interval/;
 
 use aliased qw/Iston::Loader/;
 use aliased qw/Iston::Vector/;
+use aliased qw/Iston::EventDistributor/;
 
 has camera_position => (is => 'rw', trigger => 1);
 has shader_for      => (is => 'rw', default => sub { {} });
@@ -34,6 +35,9 @@ has width           => (is => 'rw');
 has height          => (is => 'rw');
 has settings_bar    => (is => 'lazy');
 has history         => (is => 'rw');
+
+# event distributor
+has _notifyer => (is => 'rw', default => sub { EventDistributor->new } );
 
 # matrices
 has view            => (is => 'rw', trigger => 1, default => sub { identity } );
@@ -48,6 +52,7 @@ requires qw/objects/;
 sub init_app {
     my $self = shift;
 
+    $self->_notifyer->declare('view_change');
     SDL::init(SDL_INIT_VIDEO);
 
     my $video_info = SDL::Video::get_video_info();
@@ -120,6 +125,7 @@ method _update_view {
     my $translate = translate($camera);
     my $view = $self->view;
     my $matrix = $view * $translate;
+    $self->_notifyer->publish('view_change', $matrix);
     $matrix = ~$matrix;
     #say "upating view with\n", $matrix;
     #say "list: \n", join(', ', $matrix->as_list);
@@ -199,6 +205,7 @@ sub load_object {
     $object->scale( $scale_to );
     say "model $path loaded, scaled: $scale_to";
     $object->shader($self->shader_for->{object});
+    $object->notifyer($self->_notifyer);
     my $elapsed = tv_interval ( $start );
     say "Object $path loaded at ", sprintf("%0.4f", $elapsed), " seconds";
     return $object;
