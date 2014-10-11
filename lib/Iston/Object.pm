@@ -16,6 +16,8 @@ use aliased qw/Iston::Vertex/;
 has texture      => (is => 'lazy');
 has texture_file => (is => 'rw', required => 0, predicate => 1);
 
+method lighting { return $ENV{ISTON_LIGHTING} // 1 };
+
 with('Iston::Drawable');
 
 method has_texture { return $self->has_texture_file; };
