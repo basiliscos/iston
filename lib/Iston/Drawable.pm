@@ -261,13 +261,13 @@ method _build_draw_function {
 
         $self->shader->SetMatrix(model => $self->model_oga);
         $self->shader->SetMatrix(view_model => $self->model_view_oga);
-        glEnableVertexAttribArrayARB($attribute_texcoord);
 
         if (defined $texture_id) {
             glActiveTextureARB(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, $texture_id);
             glUniform1iARB($my_texture_u, 0); # /*GL_TEXTURE*/
 
+            glEnableVertexAttribArrayARB($attribute_texcoord);
             glBindBufferARB(GL_ARRAY_BUFFER, $self->_text_coords_oga->bound);
             glVertexAttribPointerARB_c($attribute_texcoord, 2, GL_FLOAT, 0, 0, 0);
         } else {
@@ -285,7 +285,7 @@ method _build_draw_function {
         glDrawElements_c(GL_TRIANGLES, $indices_size, GL_UNSIGNED_INT, $indices_oga->ptr);
 
         glDisableVertexAttribArrayARB($attribute_coord3d);
-        glDisableVertexAttribArrayARB($attribute_texcoord);
+        glDisableVertexAttribArrayARB($attribute_texcoord) if (defined $texture_id);
         $self->shader->Disable;
     };
     return $draw_function;
