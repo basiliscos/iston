@@ -41,7 +41,7 @@ subtest "load cube" => sub {
 subtest "load two-squares" => sub {
     my $o = Loader->new(file => 'share/models/two-squares.obj')->load;
     ok $o;
-    like $o->texture_file, qr/two-squares.tga$/;
+    like $o->texture_file, qr/two-squares.png$/;
 
     my $indices = $o->indices;
     my $faces_count = @{$indices} / 3;

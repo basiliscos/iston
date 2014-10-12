@@ -194,14 +194,20 @@ method _build_texture_id {
     my ($texture_id) = glGenTextures_p(1);
 
     my $texture = $self->texture;
-    my($internal_format, $format, $type) = $texture->Get('gl_internalformat','gl_format','gl_type');
-    my($texture_width, $texture_height) = $texture->Get('width','height');
+    my $bpp = $texture->format->BytesPerPixel;
+    my $rmask = $texture->format->Rmask;
+    my $texture_format = $bpp == 4
+        ? ($rmask == 0x000000ff ? GL_RGBA : GL_BGRA)
+        : ($rmask == 0x000000ff ? GL_RGB  : GL_BGR );
+
+    my($texture_width, $texture_height) = map { $texture->$_ } qw/w h/;
 
     glBindTexture(GL_TEXTURE_2D, $texture_id);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexImage2D_c(GL_TEXTURE_2D, 0, $internal_format, $texture_width, $texture_height,
-                   0, $format, $type, $texture->Ptr());
+    glTexImage2D_s(GL_TEXTURE_2D, 0, $texture_format, $texture_width, $texture_height,
+                   0, $texture_format, GL_UNSIGNED_BYTE, ${ $texture->get_pixels_ptr });
 
+    $self->clear_texture; # we do not need texture any more
     return $texture_id;
 }
 

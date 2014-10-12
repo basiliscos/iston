@@ -9,7 +9,7 @@ use Moo;
 use List::Util qw/max/;
 use Function::Parameters qw(:strict);
 use OpenGL qw(:all);
-use OpenGL::Image;
+use SDL::Image;
 
 use aliased qw/Iston::Vertex/;
 
@@ -23,8 +23,15 @@ with('Iston::Drawable');
 method has_texture { return $self->has_texture_file; };
 
 method _build_texture {
-    my $texture = OpenGL::Image->new( source => $self->texture_file );
-    croak("texture isn't power of 2?") if (!$texture->IsPowerOf2());
+    my $file = $self->texture_file;
+    my $texture = SDL::Image::load( $file );
+    croak "Error loading $file : " . SDL::get_error()
+        unless defined $texture;
+    for (map { $texture->$_ } qw/w h/ ) {
+        my $pow2 = log($_) / log(2);
+        croak("texture isn't power of 2?")
+            if(int($pow2) - $pow2);
+    }
     return $texture;
 }
 

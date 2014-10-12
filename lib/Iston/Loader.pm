@@ -74,6 +74,7 @@ method load {
             my @components = split /\s+/, $1;
             croak "There should be exactly 2 components for texture: $line"
                 unless @components == 2;
+            $components[1] = 1 - $components[1]; # (0,0) will become top-left corner
             push @uv_mappings, \@components;
         }
     }
@@ -116,7 +117,7 @@ method load {
 
     my $texture_file;
     if (@uv_mappings) {
-        ($texture_file = path($self->file)) =~ s/(\.obj)$/.tga/;
+        ($texture_file = path($self->file)) =~ s/(\.obj)$/.png/;
         $texture_file = undef unless -s $texture_file;
     }
     my $boundaries = [$v_min, $v_max];
