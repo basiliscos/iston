@@ -60,6 +60,7 @@ sub _build_htm {
     $htm->scale($scale_to); # 2.5
     $htm->level(3);
     $htm->shader($self->shader_for->{object});
+    $htm->notifyer($self->_notifyer);
     return $htm;
 }
 

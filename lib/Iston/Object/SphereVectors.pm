@@ -40,11 +40,11 @@ method _draw_function_constructor($vertices, $indices) {
         @$indices
     );
 
-
     $self->shader->Enable;
-    my $has_texture_u = $self->_uniform_has_texture;
+    my $has_texture_u = $self->_uniform_for->{has_texture};
     my $default_color = $self->default_color;
-    my $has_lighting_u = $self->_uniform_has_lighting;
+    my $has_lighting_u = $self->_uniform_for->{has_lighting};
+    my $attribute_coord3d = $self->_attribute_for->{coord3d};
     $self->shader->Disable;
 
     my $draw_function = sub {
@@ -55,7 +55,6 @@ method _draw_function_constructor($vertices, $indices) {
         $self->shader->SetMatrix(model => $self->model_oga);
         $self->shader->SetVector('default_color', @$default_color);
 
-        my $attribute_coord3d = $self->_attribute_coord3d;
         glEnableVertexAttribArrayARB($attribute_coord3d);
         glBindBufferARB(GL_ARRAY_BUFFER, $vertices_oga->bound);
         glVertexAttribPointerARB_c($attribute_coord3d, 3, GL_FLOAT, 0, 0, 0);
