@@ -12,6 +12,10 @@ use Math::Trig;
 use Moo;
 use Function::Parameters qw(:strict);
 use OpenGL qw(:all);
+use SDL;
+use SDL::Video;
+use SDLx::Rect;
+use SDL::Surface;
 
 use aliased qw/Iston::Triangle/;
 use aliased qw/Iston::TrianglePath/;
@@ -128,7 +132,10 @@ method _build_texture {
         $pow_of_2 = int($pow_of_2) + 1;
     }
     my $width = $square_size * 2**($pow_of_2+1);
-    my $texture = OpenGL::Image->new( width => $width, height => $height);
+    my $texture = SDL::Surface->new(
+        SDL_SWSURFACE, $width, $height, 32, 0xFF, 0xFF00, 0xFF0000, 0xFF000000,
+    );
+    $texture->set_pixels(0, 0xFF);
     for my $idx (0 .. @shares -1 ) {
         my $odd = $idx % 2;
         my @texture_coords = !$odd
@@ -137,13 +144,13 @@ method _build_texture {
         my $square_idx = int($idx/2);
         $_->[0] += ($square_idx * $square_size) for(@texture_coords);
         my $share = $shares[$idx];
-        my @color_values = (0.0, $draw_all ? 1.0 : $share, $draw_all ? 1.0 : $share, 1.0);
-        for(my $dy = 0; $dy < $square_size; $dy++ ){
-            for(my $dx = 0; $dx < $square_size; $dx++) {
-                my ($x, $y) = ($square_idx * $square_size, !$odd ? 0 : $square_size);
-                $texture->SetPixel($x+$dx, $y+$dy, @color_values);
-            }
-        }
+        my @color_values = map { int($_ * 255) }
+            ($draw_all ? 1.0 : $share, $draw_all ? 1.0 : $share, 0.0, 1.0);
+        my $x = $square_idx * $square_size;
+        my $y = !$odd ? 0 : $square_size;
+        my $rect = SDLx::Rect->new($x, $y, $square_size, $square_size);
+        my $mapped_color = SDL::Video::map_RGBA($texture->format, @color_values);
+        SDL::Video::fill_rect($texture, $rect, $mapped_color);
         my @uv_mappings_tripplet = (
             [$texture_coords[0]->[0] / $width, ($texture_coords[0]->[1]) / $height ],
             [$texture_coords[1]->[0] / $width, ($texture_coords[1]->[1]) / $height ],
@@ -157,6 +164,7 @@ method _build_texture {
     } @triangles;
 
     $self->uv_mappings(\@uv_mappings);
+    #SDL::Video::save_BMP( $texture, "/tmp/1.bmp" );
     return $texture;
 };
 

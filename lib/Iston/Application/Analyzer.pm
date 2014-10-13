@@ -57,7 +57,7 @@ sub _build_htm {
     # $htm->mode('mesh');
     my $r = Vertex->new([0, 0, 0])->vector_to($htm->triangles->[0]->vertices->[0])->length;
     my $scale_to = 1/($r/$self->max_boundary);
-    $htm->scale($scale_to); # 2.5
+    $htm->scale($scale_to);
     $htm->level(3);
     $htm->shader($self->shader_for->{object});
     $htm->notifyer($self->_notifyer);
