@@ -12,6 +12,10 @@ use Math::Trig;
 use Moo;
 use Function::Parameters qw(:strict);
 use OpenGL qw(:all);
+use SDL;
+use SDL::Video;
+use SDLx::Rect;
+use SDL::Surface;
 
 use aliased qw/Iston::Triangle/;
 use aliased qw/Iston::TrianglePath/;
@@ -60,11 +64,12 @@ has triangles    => (is => 'rw', default =>
             } (0 .. @$_indices/3 - 1);
         return \@triangles;
     } );
-has texture => (is => 'lazy', predicate => 1, clearer => 1);
+has texture => (is => 'lazy', clearer => 1);
 
 with('Iston::Drawable');
 
 method BUILD {
+    $self->lighting(0);
     $self->levels_cache->{$self->level} = $self->triangles;
     $self->_calculate_normals;
     $self->_prepare_data;
@@ -96,42 +101,80 @@ method _calculate_normals {
     }
 };
 
+method has_texture { return 1; };
+
 method _build_texture {
-    my $triangles = $self->triangles;
-    my %shares_for;
-    for my $t_idx (0 .. @$triangles-1) {
-        my $t = $triangles->[$t_idx];
-        if (exists $t->{payload}->{time_share}) {
-            my $share = $t->{payload}->{time_share};
-            push @{ $shares_for{$share} }, $t;
-        }
+    my @triangles = grep { $_->enabled } @{ $self->triangles };
+    my %share_for;
+    for my $t_idx (0 .. @triangles-1) {
+        my $t = $triangles[$t_idx];
+        my $share = $t->{payload}->{time_share} // '';
+        $share_for{$share} = 1;
     }
-    if (!%shares_for) {
-        my ($width, $height) = (4, 4);
-        my $texture = OpenGL::Image->new(width=>$width,height=>$height);
-        my ($texture_id) = glGenTextures_p(1);
-        my $share = 1.0;
-        # seems that, gl_format is GL_BGRA, and not  GL_RGBA
-        for my $x ( 0 .. $width-1) {
-            for my $y (0 .. $height-1) {
-                $texture->SetPixel($x, $y, 0.0, $share, $share, 1.0);
-            }
-        }
-        my @uv_mappings = map {
-            ([0.0, 0.0], [0.0, 1.0], [1.0, 1.0]);
-        } @$triangles;
-        $self->uv_mappings(\@uv_mappings);
-        return $texture;
+    my %mappings_for;
+    # united texture schema:
+    #
+    # 02
+    # 22
+    # 01
+    # 11
+    #
+    # 1 - even triangle texture share
+    # 2 - odd triangle texture share
+    my $square_size = 4;
+    my $height  = $square_size * 2;
+    my @shares = keys %share_for;
+    my $draw_all = @shares == 1 && exists $share_for{''};
+    my $squares = @shares / 2;
+    $squares = 1 if $squares < 1;
+    my $pow_of_2 = log($squares) / log(2);
+    if ($pow_of_2 - int($pow_of_2)) {
+        $pow_of_2 = int($pow_of_2) + 1;
     }
+    my $width = $square_size * 2**($pow_of_2+1);
+    my $texture = SDL::Surface->new(
+        SDL_SWSURFACE, $width, $height, 32, 0xFF, 0xFF00, 0xFF0000, 0xFF000000,
+    );
+    $texture->set_pixels(0, 0xFF);
+    for my $idx (0 .. @shares -1 ) {
+        my $odd = $idx % 2;
+        my @texture_coords = !$odd
+            ? ([1, 1], [$square_size-1, 1], [$square_size-1, $square_size-1])
+            : ([1, $square_size+1], [$square_size-1, $square_size+1], [$square_size-1, $square_size*2-1]);
+        my $square_idx = int($idx/2);
+        $_->[0] += ($square_idx * $square_size) for(@texture_coords);
+        my $share = $shares[$idx];
+        my @color_values = map { int($_ * 255) }
+            ($draw_all ? 1.0 : $share, $draw_all ? 1.0 : $share, 0.0, 1.0);
+        my $x = $square_idx * $square_size;
+        my $y = !$odd ? 0 : $square_size;
+        my $rect = SDLx::Rect->new($x, $y, $square_size, $square_size);
+        my $mapped_color = SDL::Video::map_RGBA($texture->format, @color_values);
+        SDL::Video::fill_rect($texture, $rect, $mapped_color);
+        my @uv_mappings_tripplet = (
+            [$texture_coords[0]->[0] / $width, ($texture_coords[0]->[1]) / $height ],
+            [$texture_coords[1]->[0] / $width, ($texture_coords[1]->[1]) / $height ],
+            [$texture_coords[2]->[0] / $width, ($texture_coords[2]->[1]) / $height ],
+        );
+        $mappings_for{$share} = \@uv_mappings_tripplet;
+    }
+    my @uv_mappings = map {
+        my $share = $_->{payload}->{time_share} // '';
+        @{ $mappings_for{$share} };
+    } @triangles;
+
+    $self->uv_mappings(\@uv_mappings);
+    #SDL::Video::save_BMP( $texture, "/tmp/1.bmp" );
+    return $texture;
 };
 
 method _prepare_data {
-    my $triangles = $self->triangles;
+    my @triangles = grep { $_->enabled } @{ $self->triangles };
     my @vertices;
     my @normals;
     my @indices;
-    for my $t_idx (0 .. @$triangles-1) {
-        my $t = $triangles->[$t_idx];
+    for my $t_idx (0 .. @triangles-1) {
+        my $t = $triangles[$t_idx];
         my $vertices = $t->vertices;
         my $normals = $t->normals;
         push @vertices, @$vertices;
@@ -141,7 +184,7 @@ method _prepare_data {
     $self->vertices(\@vertices);
     $self->normals(\@normals);
     $self->indices(\@indices);
-    $self->clear_texture;
+    $self->reset_texture;
 }
 
 method _trigger_level($level) {
@@ -158,23 +201,19 @@ method _trigger_level($level) {
     $self->triangles($current_triangles);
     $self->_calculate_normals;
     $self->_prepare_data;
-    $self->clear_draw_function;
-}
-
-method rotate($axis,$value = undef){
-    if (defined $value) {
-        for (@{ $self->triangles }) {
-            $_->rotate($axis, $value);
-        }
-    }
-    else {
-        return $self->triangles->[0]->rotate($axis);
-    }
 }
 
 method radius {
     return 1;
 };
+
+method walk_triangles($callback) {
+    my $max_level = max keys %{ $self->levels_cache };
+    for my $level (0 .. $max_level) {
+        my $triangles = $self->levels_cache->{$level};
+        $callback->($_) for (@$triangles);
+    }
+}
 
 1;
 

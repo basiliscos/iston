@@ -2,11 +2,11 @@ use 5.006;
 use strict;
 use warnings;
 
-# this test was generated with Dist::Zilla::Plugin::Test::Compile 2.046
+# this test was generated with Dist::Zilla::Plugin::Test::Compile 2.048
 
-use Test::More  tests => 25 + ($ENV{AUTHOR_TESTING} ? 1 : 0);
+use Test::More;
 
-
+plan tests => 26 + ($ENV{AUTHOR_TESTING} ? 1 : 0);
 
 my @module_files = (
     'Iston.pm',
@@ -17,6 +17,7 @@ my @module_files = (
     'Iston/Application/Analyzer.pm',
     'Iston/Application/Observer.pm',
     'Iston/Drawable.pm',
+    'Iston/EventDistributor.pm',
     'Iston/History.pm',
     'Iston/History/Record.pm',
     'Iston/Loader.pm',
@@ -98,6 +99,7 @@ foreach my $file (@scripts)
 
 
 
-is(scalar(@warnings), 0, 'no warnings found') or diag 'got warnings: ', explain \@warnings if $ENV{AUTHOR_TESTING};
+is(scalar(@warnings), 0, 'no warnings found')
+    or diag 'got warnings: ', ( Test::More->can('explain') ? Test::More::explain(\@warnings) : join("\n", '', @warnings) ) if $ENV{AUTHOR_TESTING};
 
 

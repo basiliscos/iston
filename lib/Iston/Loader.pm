@@ -40,7 +40,7 @@ method load {
             # calculate boundaries
             $v_min //= Vertex->new([@coordinates]);
             $v_max //= Vertex->new([@coordinates]);
-            for my $idx ( 0 .. @coordinates - 1) {
+            for (my $idx = 0 ; $idx < @coordinates; $idx++) {
                 $v_min->[$idx] = $coordinates[$idx] if $v_min->[$idx] > $coordinates[$idx];
                 $v_max->[$idx] = $coordinates[$idx] if $v_max->[$idx] < $coordinates[$idx];
             }
@@ -74,6 +74,7 @@ method load {
             my @components = split /\s+/, $1;
             croak "There should be exactly 2 components for texture: $line"
                 unless @components == 2;
+            $components[1] = 1 - $components[1]; # (0,0) will become top-left corner
             push @uv_mappings, \@components;
         }
     }
@@ -87,13 +88,13 @@ method load {
 
     my @vertex_incides;
     my @face_indices;
-    for my $face_idx (0 .. @faces-1) {
+    for (my $face_idx = 0 ; $face_idx < @faces; $face_idx++) {
         my $face_info = $faces[$face_idx];
         my $source_idx = $face_info->{v} - 1;
         my $info = $info_for_vertex{$source_idx};
         my ($f_indices, $n_indices, $t_indices) =  map { $info->{$_} } qw/faces normals textures/;
         my ($n, $t) = (-1, -1);
-        for my $j (0 .. @$n_indices-1) {
+        for (my $j = 0; $j < @$n_indices; $j++) {
             my $key = sub {
                 my ($n, $t) = ($_[0], $_[1] // '?');
                 return join("-", $source_idx, $n, $t);
@@ -116,22 +117,27 @@ method load {
 
     my $texture_file;
     if (@uv_mappings) {
-        ($texture_file = path($self->file)) =~ s/(\.obj)$/.tga/;
+        ($texture_file = path($self->file)) =~ s/(\.obj)$/.png/;
         $texture_file = undef unless -s $texture_file;
     }
+    my $boundaries = [$v_min, $v_max];
     my $object = Object->new(
         vertices     => \@final_vertices,
         indices      => \@face_indices,
         normals      => \@vertices_normals,
         uv_mappings  => \@vertices_mappings,
-        texture_file => $texture_file,
         display_list => 1,
-        boundaries   => [$v_min, $v_max],
+        boundaries   => $boundaries,
+        (defined $texture_file ? (texture_file => $texture_file) : ()),
     );
     my $center = $object->center;
     my $to_center = -1 * Vector->new([@$center]);
     say "Shifting object $to_center";
     $object->model_translate(translate($to_center));
+    # hack, this should be recalculated indirectly via matrices
+    for (0 .. @$boundaries-1) {
+        Vertex->new([ @{ $boundaries->[$_] + $to_center } ]);
+    }
     return $object;
 };
 

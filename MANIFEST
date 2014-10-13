@@ -17,6 +17,7 @@ lib/Iston/Application.pm
 lib/Iston/Application/Analyzer.pm
 lib/Iston/Application/Observer.pm
 lib/Iston/Drawable.pm
+lib/Iston/EventDistributor.pm
 lib/Iston/History.pm
 lib/Iston/History/Record.pm
 lib/Iston/Loader.pm
@@ -35,10 +36,10 @@ lib/Iston/Vector.pm
 lib/Iston/Vertex.pm
 make-exe.bat
 share/models/cube.obj
-share/models/cube.tga
+share/models/cube.png
 share/models/monkey.obj
 share/models/two-squares.obj
-share/models/two-squares.tga
+share/models/two-squares.png
 share/shaders/object.fragment.glsl
 share/shaders/object.vertex.glsl
 t/000-compile.t

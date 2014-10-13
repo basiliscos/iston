@@ -17,52 +17,62 @@ has enabled      => (is => 'rw', default => sub { 1 });
 # candidate for deletion
 has display_list => (is => 'ro', default => sub { 0 });
 
-has center       => (is => 'lazy');
-has boundaries   => (is => 'lazy');
-has scale        => (is => 'rw', default => sub { 1; }, trigger => 1);
-has vertices     => (is => 'rw', required => 0);
-has indices      => (is => 'rw', required => 0);
-has normals      => (is => 'rw', required => 0);
-has texture      => (is => 'rw', predicate => 1);
-has uv_mappings  => (is => 'rw', required => 0);
-has mode         => (is => 'rw', default => sub { 'normal' }, trigger => 1);
+has center        => (is => 'lazy');
+has boundaries    => (is => 'lazy');
+has scale         => (is => 'rw', default => sub { 1; }, trigger => 1);
+has vertices      => (is => 'rw', required => 0);
+has indices       => (is => 'rw', required => 0);
+has normals       => (is => 'rw', required => 0);
+has texture       => (is => 'rw', clearer => 1);
+has uv_mappings   => (is => 'rw', required => 0, clearer => 1);
+has mode          => (is => 'rw', default => sub { 'normal' }, trigger => 1);
+has default_color => (is => 'rw', default => sub { [1.0, 1.0, 1.0, 0.0] } );
+has lighting      => (is => 'rw', default => sub { 1; });
 
 has texture_id    => (is => 'lazy', clearer => 1);
 has draw_function => (is => 'lazy', clearer => 1);
 
-has shader                => (is => 'rw', trigger => 1 );
-has _uniform_my_texture   => (is => 'rw');
-has _uniform_has_texture  => (is => 'rw');
-has _uniform_has_lighting => (is => 'rw');
-has _attribute_texcoord   => (is => 'rw');
-has _attribute_coord3d    => (is => 'rw');
-has _attribute_normal     => (is => 'rw');
+has shader                 => (is => 'rw', trigger => 1 );
+has notifyer               => (is => 'rw', trigger => 1 );
+has _uniform_for   => (is => 'ro', default => sub { {} } );
+has _attribute_for => (is => 'ro', default => sub { {} } );
 
-has _text_coords_oga => (is => 'lazy');
+has _text_coords_oga => (is => 'lazy', clearer => 1);
 
 # matrices
-has model           => (is => 'rw', trigger => sub{ shift->clear_model_oga }, default => sub { identity; });
-has model_translate => (is => 'rw', trigger => sub{ shift->clear_model_oga }, default => sub { identity; });
-has model_scale     => (is => 'rw', trigger => sub{ shift->clear_model_oga }, default => sub { identity; });
-has model_rotation  => (is => 'rw', trigger => sub{ shift->clear_model_oga }, default => sub { identity; });
+has model           => (is => 'rw', trigger => sub{ $_[0]->reset_model }, default => sub { identity; });
+has model_translate => (is => 'rw', trigger => sub{ $_[0]->reset_model }, default => sub { identity; });
+has model_scale     => (is => 'rw', trigger => sub{ $_[0]->reset_model }, default => sub { identity; });
+has model_rotation  => (is => 'rw', trigger => sub{ $_[0]->reset_model }, default => sub { identity; });
+
 has model_oga       => (is => 'lazy', clearer => 1);
+has model_view_oga  => (is => 'lazy', clearer => 1);  # transpose (inverse( view * model))
 
 # just cache
 has _contexts => (is => 'rw', default => sub { {} });
 
+requires 'has_texture';
+
+method reset_model {
+    $self->clear_model_oga;
+    $self->clear_model_view_oga;
+}
+
 method _trigger_shader($shader) {
-    my ($mytexture, $has_texture, $has_lighting) = map {
-        $shader->Map($_) // die("cannot map '$_' uniform");
-    } qw/mytexture has_texture has_lighting/;
-    my ($texcoord, $coord3d, $normal) = map {
-        $shader->MapAttr($_) // die("cannot map attribute '$_'");
-    } qw/texcoord coord3d N/;
-    $self->_uniform_my_texture($mytexture);
-    $self->_uniform_has_texture($has_texture);
-    $self->_uniform_has_lighting($has_lighting);
-    $self->_attribute_texcoord($texcoord);
-    $self->_attribute_coord3d($coord3d);
-    $self->_attribute_normal($normal);
+    for (qw/mytexture has_texture has_lighting default_color view_model/) {
+        my $id = $shader->Map($_);
+        croak "cannot map '$_' uniform" unless defined $id;
+        $self->_uniform_for->{$_} = $id;
+    }
+    for (qw/texcoord coord3d N/) {
+        my $id = $shader->MapAttr($_);
+        croak "cannot map attribute '$_'" unless defined $id;
+        $self->_attribute_for->{$_} = $id;
+    }
+}
+
+method _trigger_notifyer($notifyer) {
+    $notifyer->subscribe(view_change => sub { $self->clear_model_view_oga } );
 }
 
 method _trigger_rotation($values) {
@@ -94,6 +104,17 @@ sub _build_model_oga {
     return OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list);
 }
 
+method _build_model_view_oga {
+    my $scale    = $self->model_scale;
+    my $translate = $self->model_translate;
+    my $rotation = $self->model_rotation;
+    my $model = $self->model * $rotation * $scale * $translate;
+    my $view = $self->notifyer->last_value('view_change');
+    my $matrix = (~($model * $view))->inverse;
+    $matrix = ~$matrix;
+    return OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list);
+}
+
 # candidate for deletion
 sub rotate {
     my ($self, $axis, $value) = @_;
@@ -104,6 +125,14 @@ sub rotate {
     else {
         return $self->rotation->[$axis];
     }
+}
+
+method reset_texture {
+    $self->clear_texture;
+    $self->clear_texture_id;
+    $self->_clear_text_coords_oga;
+    $self->clear_draw_function;
+    $self->clear_uv_mappings;
 }
 
 method _trigger_mode {
@@ -159,25 +188,30 @@ method _build__text_coords_oga {
 }
 
 method _build_texture_id {
-    return if(!defined($self->uv_mappings) or !$self->has_texture);
+    croak("Generating texture for textureless object")
+        unless $self->has_texture;
 
     my ($texture_id) = glGenTextures_p(1);
 
     my $texture = $self->texture;
-    my($internal_format, $format, $type) = $texture->Get('gl_internalformat','gl_format','gl_type');
-    my($texture_width, $texture_height) = $texture->Get('width','height');
+    my $bpp = $texture->format->BytesPerPixel;
+    my $rmask = $texture->format->Rmask;
+    my $texture_format = $bpp == 4
+        ? ($rmask == 0x000000ff ? GL_RGBA : GL_BGRA)
+        : ($rmask == 0x000000ff ? GL_RGB  : GL_BGR );
+
+    my($texture_width, $texture_height) = map { $texture->$_ } qw/w h/;
 
     glBindTexture(GL_TEXTURE_2D, $texture_id);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexImage2D_c(GL_TEXTURE_2D, 0, $internal_format, $texture_width, $texture_height,
-                   0, $format, $type, $texture->Ptr());
+    glTexImage2D_s(GL_TEXTURE_2D, 0, $texture_format, $texture_width, $texture_height,
+                   0, $texture_format, GL_UNSIGNED_BYTE, ${ $texture->get_pixels_ptr });
 
+    $self->clear_texture; # we do not need texture any more
     return $texture_id;
 }
 
 method _build_draw_function {
-    my $scale = $self->scale;
-
     my ($p_vertices, $p_normals) =
         map {
             my $v = $self->$_;
@@ -187,7 +221,6 @@ method _build_draw_function {
     my ($vertices, $normals) =
         map { as_oga($_) }
         ($p_vertices, $p_normals);
-    my $components = 3; # number of coordinates
     my ($vbo_vertices, $vbo_normals) = glGenBuffersARB_p(2);
 
     $vertices->bind($vbo_vertices);
@@ -208,40 +241,49 @@ method _build_draw_function {
     );
 
     $self->shader->Enable;
-    my $texture_id;
+    my $has_texture_u  = $self->_uniform_for->{has_texture };
+    my $has_lighting_u = $self->_uniform_for->{has_lighting};
+    my $my_texture_u   = $self->_uniform_for->{mytexture};
+    my $view_model_u   = $self->_uniform_for->{view_model};
+
+    my ($texture_id, $default_color);
     if ($self->has_texture) {
         $texture_id = $self->texture_id;
-        my $has_texture_u = $self->_uniform_has_texture;
-        glUniform1iARB($has_texture_u, 1);
+    } else {
+        $default_color = $self->default_color;
     }
 
-    my $has_lighting_u = $self->_uniform_has_lighting;
-    glUniform1iARB($has_lighting_u, $ENV{ISTON_LIGHTING} // 1);
+    my $attribute_texcoord = $self->_attribute_for->{texcoord};
+    my $attribute_coord3d  = $self->_attribute_for->{coord3d };
+    my $attribute_normal   = $self->_attribute_for->{N       };
 
     $self->shader->Disable;
 
     my $draw_function = sub {
         $self->shader->Enable;
 
+        glUniform1iARB($has_lighting_u, $self->lighting);
+        glUniform1iARB($has_texture_u, $self->has_texture);
+
         $self->shader->SetMatrix(model => $self->model_oga);
-        my $attribute_texcoord = $self->_attribute_texcoord;
-        glEnableVertexAttribArrayARB($attribute_texcoord);
+        $self->shader->SetMatrix(view_model => $self->model_view_oga);
 
         if (defined $texture_id) {
             glActiveTextureARB(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, $texture_id);
-            glUniform1iARB($self->_uniform_my_texture, 0); # /*GL_TEXTURE*/
+            glUniform1iARB($my_texture_u, 0); # /*GL_TEXTURE*/
 
+            glEnableVertexAttribArrayARB($attribute_texcoord);
             glBindBufferARB(GL_ARRAY_BUFFER, $self->_text_coords_oga->bound);
             glVertexAttribPointerARB_c($attribute_texcoord, 2, GL_FLOAT, 0, 0, 0);
+        } else {
+            $self->shader->SetVector('default_color', @$default_color);
         }
 
-        my $attribute_coord3d = $self->_attribute_coord3d;
         glEnableVertexAttribArrayARB($attribute_coord3d);
         glBindBufferARB(GL_ARRAY_BUFFER, $vertices->bound);
         glVertexAttribPointerARB_c($attribute_coord3d, 3, GL_FLOAT, 0, 0, 0);
 
-        my $attribute_normal = $self->_attribute_normal;
         glEnableVertexAttribArrayARB($attribute_normal);
         glBindBufferARB(GL_ARRAY_BUFFER, $normals->bound);
         glVertexAttribPointerARB_c($attribute_normal, 3, GL_FLOAT, 0, 0, 0);
@@ -249,7 +291,7 @@ method _build_draw_function {
         glDrawElements_c(GL_TRIANGLES, $indices_size, GL_UNSIGNED_INT, $indices_oga->ptr);
 
         glDisableVertexAttribArrayARB($attribute_coord3d);
-        glDisableVertexAttribArrayARB($attribute_texcoord);
+        glDisableVertexAttribArrayARB($attribute_texcoord) if (defined $texture_id);
         $self->shader->Disable;
     };
     return $draw_function;

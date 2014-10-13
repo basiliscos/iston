@@ -9,21 +9,31 @@ use Moo;
 use List::Util qw/max/;
 use Function::Parameters qw(:strict);
 use OpenGL qw(:all);
-use OpenGL::Image;
+use SDL::Image;
 
 use aliased qw/Iston::Vertex/;
 
-with('Iston::Drawable');
-
+has texture      => (is => 'lazy');
 has texture_file => (is => 'rw', required => 0, predicate => 1);
 
-method BUILD {
-    if ($self->has_texture_file && !$ENV{ISTON_HEADLESS}) {
-        my $texture = OpenGL::Image->new( source => $self->texture_file );
-        croak("texture isn't power of 2?") if (!$texture->IsPowerOf2());
-        $self->texture($texture);
+method lighting { return $ENV{ISTON_LIGHTING} // 1 };
+
+with('Iston::Drawable');
+
+method has_texture { return $self->has_texture_file; };
+
+method _build_texture {
+    my $file = $self->texture_file;
+    my $texture = SDL::Image::load( $file );
+    croak "Error loading $file : " . SDL::get_error()
+        unless defined $texture;
+    for (map { $texture->$_ } qw/w h/ ) {
+        my $pow2 = log($_) / log(2);
+        croak("texture isn't power of 2?")
+            if(int($pow2) - $pow2);
     }
-};
+    return $texture;
+}
 
 method _build_center {
     my ($v_size, $n_size) = map { scalar(@{ $self->$_ }) }

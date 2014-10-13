@@ -33,7 +33,6 @@ requires:
   Math::MatrixReal: '2.11'
   Moo: '0'
   OpenGL: '0'
-  OpenGL::Image: '0'
   OpenGL::Shader: '0'
   Path::Tiny: '0.049'
   SDL: '0'

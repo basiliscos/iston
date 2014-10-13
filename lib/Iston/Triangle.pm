@@ -30,6 +30,7 @@ has normals      => (is => 'rw', default => sub { [] });   # vertices normals
 has normal       => (is => 'lazy'); # triangle normal
 has subtriangles => (is => 'lazy');
 has tesselation  => (is => 'ro', default => sub { 0  });
+has enabled      => (is => 'rw', default => sub { 1 });
 
 method BUILD {
     $self->path->triangle($self);

@@ -1,5 +1,3 @@
-#version 120
-
 attribute vec3 coord3d;
 attribute vec3 N;
 attribute vec2 texcoord;
@@ -10,6 +8,7 @@ varying vec3 normal;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform mat4 view_model; // transpose (inverse( view * model))
 
 void main(void) {
   mat4 mvp = projection * view * model;
@@ -17,7 +16,7 @@ void main(void) {
   gl_Position = mvp * vec4(coord3d, 1.0);
   f_texcoord = texcoord;
 
-  // move normal from object space into world space
-  vec4 my_normal = transpose (inverse( view * model)) * vec4(N, 0);
-  normal = normalize(vec3(my_normal.x, my_normal.y, my_normal.z));
+  vec4 my_normal = view_model * vec4(N, 0);
+  vec3 my_normal3 = vec3(my_normal.x, my_normal.y, my_normal.z);
+  normal = normalize(my_normal3);
 }

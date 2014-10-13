@@ -57,9 +57,10 @@ sub _build_htm {
     # $htm->mode('mesh');
     my $r = Vertex->new([0, 0, 0])->vector_to($htm->triangles->[0]->vertices->[0])->length;
     my $scale_to = 1/($r/$self->max_boundary);
-    $htm->scale($scale_to); # 2.5
+    $htm->scale($scale_to);
     $htm->level(3);
-    $htm->shader($self->object_shader);
+    $htm->shader($self->shader_for->{object});
+    $htm->notifyer($self->_notifyer);
     return $htm;
 }
 
@@ -82,11 +83,12 @@ sub _load_object {
     $self->htm->clear_draw_function;
 
     my $observation_path = ObservationPath->new(history => $history);
+    $observation_path->shader($self->shader_for->{object});
     $observation_path->scale($scale_to*1.02);
     my $sphere_vectors = VectorizedVertices->new(
         vertices       => $observation_path->vertices,
         vertex_indices => $observation_path->sphere_vertex_indices,
-        hilight_color  => [0.75, 0.0, 0.0, 1.0], # does not matter
+        default_color  => [1.0, 0.0, 0.0, 0.0],
     );
     $observation_path->sphere_vectors($sphere_vectors);
     $self->observation_path($observation_path);
@@ -96,6 +98,7 @@ sub _load_object {
         observation_path => $observation_path,
         htm              => $self->htm,
     );
+    $self->htm->walk_triangles(sub { $_[0]->enabled(0) });
     $projections->distribute_observation_timings;
     $self->projections($projections);
 
@@ -252,6 +255,7 @@ sub _build_menu {
         definition => " group='HTM' label='triangles' ",
     );
     my $htm = $self->htm;
+    $htm->lighting(1);
     my $htm_visualizers = $self->_htm_visualizers;
     my $htm_visualization = Type->new(
         "htm_visualization", [
@@ -354,7 +358,7 @@ sub _build_menu {
                 ? GeneralizedVectors->new(
                     distance       => deg2rad($angular_distance),
                     source_vectors => $self->_source_sphere_vectors,
-                    hilight_color  => [0.75, 0.0, 0.75, 0.0]
+                    default_color  => [0.75, 0.0, 0.75, 0.0]
                 )
                 : $self->_source_sphere_vectors;
             $self->observation_path->sphere_vectors($sv);
@@ -450,19 +454,14 @@ sub process_event {
     AntTweakBar::eventSDL($event);
     if ($event->type == SDL_KEYUP) {
         my $dispatch_table = {
-            'w' => 'rotate_axis_x_ccw',
-            's' => 'rotate_axis_x_cw',
-            'a' => 'rotate_axis_y_cw',
-            'd' => 'rotate_axis_y_ccw',
-            '+' => 'increase_step_delay',
-            '-' => 'decrease_step_delay',
-            'i' => 'increase_htm_details',
-            'I' => 'decrease_htm_details',
-            ' ' => 'pause_unpause',
-            'q' => 'terminate_program',
+            SDLK_w()  => 'rotate_axis_x_ccw',
+            SDLK_s()  => 'rotate_axis_x_cw',
+            SDLK_a()  => 'rotate_axis_y_cw',
+            SDLK_d()  => 'rotate_axis_y_ccw',
+            SDLK_q()  => 'terminate_program',
+            SDLK_F4() => 'terminate_program',
         };
-        my $key = chr($event->key_sym);
-        $key = uc($key) if($event->key_mod & KMOD_SHIFT);
+        my $key = $event->key_sym;
         my $command = $dispatch_table->{$key};
         $action = $self->_commands->{$command} if defined $command;
     }
@@ -512,13 +511,8 @@ sub _build__htm_visualizers {
         'duration projections' => sub {
             my $projections = $self->projections;
             if($projections) {
-                my $max_level = max keys %{ $htm->levels_cache };
                 my $max_share_of = {};
                 my $min_share_of = {};
-                for my $level (0 .. $max_level) {
-                    my $triangles = $htm->levels_cache->{$level};
-                    $_->enabled(0) for (@$triangles);
-                }
                 $projections->walk( sub {
                     my ($vertex_index, $level, $path) = @_;
                     $max_share_of->{$level} //= 0;
@@ -541,14 +535,17 @@ sub _build__htm_visualizers {
                             $max_share_of->{$level},
                         );
                         my $max_distance = $max - $min;
-                        return unless $max_distance;
+                        #return unless $max_distance;
                         my $time_share = $t->{payload}->{total_time};
-                        my $share = ($time_share - $min) / $max_distance;
+                        my $share = $max_distance
+                            ? ($time_share - $min) / $max_distance
+                            : 1.0;
                         $t->{payload}->{time_share} = $share;
+                        $t->enabled(1);
                     });
                 });
-                $htm->clear_texture;
-                $htm->clear_draw_function;
+                $htm->_prepare_data;
+                $htm->lighting(0);
                 return 1;
             }
         },
