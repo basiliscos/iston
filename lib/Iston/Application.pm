@@ -3,9 +3,9 @@ package Iston::Application;
 use 5.12.0;
 
 use AntTweakBar qw/:all/;
-use AnyEvent;
 use File::ShareDir::ProjectDistDir (':all', projectdir => 'share');
 use Function::Parameters qw(:strict);
+use Iston;
 use Iston::Matrix;
 use Iston::Utils qw/perspective look_at translate identity/;
 use Moo::Role;
@@ -26,7 +26,6 @@ use aliased qw/Iston::EventDistributor/;
 
 has camera_position => (is => 'rw', trigger => 1);
 has shader_for      => (is => 'rw', default => sub { {} });
-has cv_finish       => (is => 'ro', default => sub { AE::cv });
 has max_boundary    => (is => 'ro', default => sub { 3.0 });
 has full_screen     => (is => 'ro', default => sub { 1 });
 has sdl_event       => (is => 'ro', default => sub { SDL::Event->new } );
@@ -60,10 +59,12 @@ sub init_app {
         ? (width => $video_info->current_w, height => $video_info->current_h)
         : (width => 800, height => 600);
 
+    my $version = $Iston::VERSION;
     my %app_options = (
-        title => 'Iston',
+        title => "Iston v${version}",
         gl    => 1,
         ($self->full_screen ? (fullscreen => 1) : ()),
+        delay => 1000/60,
         %display_dimension,
     );
     $self->sdl_app( SDLx::App->new(%app_options) );
@@ -90,6 +91,16 @@ sub init_app {
     # remove all mouse motion events from queue (garbage)
     my $mouse_motion_mask = SDL_EVENTMASK(SDL_MOUSEMOTION);
     SDL::Events::peep_events($self->sdl_event, 127, SDL_GETEVENT, $mouse_motion_mask);
+
+    $self->sdl_app->add_event_handler(sub {
+        my $event = shift;
+        $self->process_event($event);
+    });
+    $self->sdl_app->add_show_handler(sub {
+        $self->_drawGLScene;
+        $self->sdl_app->sync;
+        $self->sdl_app->update;
+    });
 }
 
 
@@ -175,13 +186,6 @@ sub _drawGLScene {
     }
     AntTweakBar::draw;
     glFlush;
-}
-
-sub refresh_world {
-    my $self = shift;
-    $self->_handle_polls;
-    $self->_drawGLScene;
-    $self->sdl_app->sync;
 }
 
 sub _handle_polls {
