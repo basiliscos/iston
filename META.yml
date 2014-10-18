@@ -26,7 +26,6 @@ requires:
   AnyEvent: '0'
   Carp: '1.26'
   EV: '0'
-  File::ShareDir::ProjectDistDir: '0'
   Function::Parameters: '1.0201'
   Guard: '0'
   List::MoreUtils: '0'

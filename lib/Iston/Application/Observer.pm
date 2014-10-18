@@ -62,7 +62,7 @@ sub _exit {
     say "...exiting from observer";
     $self->_log_state;
     $self->history->save if($self->history);
-    $self->cv_finish->send;
+    $self->sdl_app->stop;
 }
 
 sub _build__commands {
