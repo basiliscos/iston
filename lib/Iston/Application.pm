@@ -113,7 +113,7 @@ method _init_shaders(@names) {
 	die("GLSL shaders are not supported on this machine") unless $supported;
 	say "GLSL shaders support detected";
     my $dist_dir = exists $ENV{PAR_TEMP}
-		? path($ENV{PAR_TEMP}, 'inc', 'share') 
+		? path($ENV{PAR_TEMP}, 'inc', 'share')
 		: path(path($0)->parent->parent, "share")->absolute;
     say "dist dir: $dist_dir";
     for (0 .. @names-1) {
