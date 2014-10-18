@@ -381,7 +381,7 @@ sub _build_menu {
 sub _exit {
     my $self = shift;
     say "...exiting from analyzer";
-    $self->cv_finish->send;
+    $self->sdl_app->stop;
 }
 
 sub _rotate_active {
@@ -399,7 +399,7 @@ sub _rotate_active {
     ]);
     $self->observation_path->active_time($record->timestamp);
     $self->settings_bar->refresh;
-    $self->refresh_world;
+    $self->redraw_world;
 }
 
 sub _start_replay {
@@ -440,7 +440,8 @@ sub _start_replay {
     $renew_timer_funciton = sub {
         # timer = 0 check, i.e. stop replay has been pressed
         return if(defined($self->timer) && $self->timer == 0);
-        my $t; $t = AE::timer $sleep_time * $self->time_ratio, 0, sub {
+        my $delay = $sleep_time * $self->time_ratio;
+        my $t; $t = AE::timer $delay, 0, sub {
             $self->step_function->();
         };
         $self->timer($t);

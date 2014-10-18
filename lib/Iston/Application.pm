@@ -3,6 +3,7 @@ package Iston::Application;
 use 5.12.0;
 
 use AntTweakBar qw/:all/;
+use EV;
 use File::ShareDir::ProjectDistDir (':all', projectdir => 'share');
 use Function::Parameters qw(:strict);
 use Iston;
@@ -96,13 +97,15 @@ sub init_app {
         my $event = shift;
         $self->process_event($event);
     });
-    $self->sdl_app->add_show_handler(sub {
-        $self->_drawGLScene;
-        $self->sdl_app->sync;
-        $self->sdl_app->update;
-    });
+    $self->sdl_app->add_show_handler( sub { $self->redraw_world; } );
+    $self->sdl_app->add_move_handler( sub { EV::run(EV::RUN_ONCE); } );
 }
 
+method redraw_world {
+    $self->_drawGLScene;
+    $self->sdl_app->sync;
+    $self->sdl_app->update;
+};
 
 method _init_shaders(@names) {
     my $dist_dir = dist_dir('Iston');
