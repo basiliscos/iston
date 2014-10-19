@@ -12,6 +12,7 @@ use Iston::Utils qw/perspective look_at translate identity/;
 use Moo::Role;
 use OpenGL qw(:all);
 use OpenGL::Shader;
+use Path::Tiny;
 use SDL;
 use SDLx::App;
 use SDL::Joystick;
@@ -108,7 +109,12 @@ method redraw_world {
 };
 
 method _init_shaders(@names) {
-    my $dist_dir = dist_dir('Iston');
+	my $supported = OpenGL::Shader::HasType('GLSL');
+	die("GLSL shaders are not supported on this machine") unless $supported;
+	say "GLSL shaders support detected";
+    my $dist_dir = exists $ENV{PAR_TEMP}
+		? path($ENV{PAR_TEMP}, 'inc', 'share') 
+		: path(path($0)->parent->parent, "share")->absolute;
     say "dist dir: $dist_dir";
     for (0 .. @names-1) {
         my $name = $names[$_];
