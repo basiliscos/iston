@@ -5,6 +5,8 @@ use 5.16.0;
 use AntTweakBar qw/:all/;
 use AnyEvent;
 use Iston;
+use File::Find::Rule;
+use Function::Parameters qw(:strict);
 use List::Util qw/max/;
 use Math::Trig;
 use Moo;
@@ -12,6 +14,8 @@ use OpenGL qw(:all);
 use Path::Tiny;
 use POSIX qw/strftime/;
 use SDL::Events qw/:all/;
+use SDL::Surface;
+use SDL::Video;
 
 use aliased qw/AntTweakBar::Type/;
 use aliased qw/Iston::History/;
@@ -133,8 +137,9 @@ sub _load_object {
         max => "$last_point",
     );
 
+    $self->active_record_idx(0);
     $self->settings_bar->refresh;
-    $self->_start_replay;
+    # $self->_start_replay;
 }
 
 
@@ -143,6 +148,10 @@ sub _pause_unpause {
     $self->timer($value);
     my $bar = $self->settings_bar;
     if($value) {
+        my $step_function = $self->step_end_function;
+        if(!$step_function) {
+            $self->_start_replay;
+        }
         $self->step_end_function->();
         $bar->set_variable_params('current_point', readonly => 'true');
     }else {
@@ -304,15 +313,26 @@ sub _build_menu {
             }
             map { $_->basename } @{ $_->{histories} },
         );
-        my $history_type = Type->new("history_for" . $_->{path},
-                                     \@history_names);
-        $_->{type} = $history_type;
+        my $history_type = Type->new("history_for" . $_->{path}, \@history_names);
+        $_->{history_type} = $history_type;
+
+        (my $region_basename = $_->{path}->basename) =~ s/.obj//;
+        my @regions =
+            sort { $a cmp $b}
+            map  { path($_) }
+            File::Find::Rule->file
+            ->name( "${region_basename}*.png" )
+            ->in( $_->{path}->parent );
+        $_->{regions} = \@regions;
+        my @region_names = ("choose region", map { $_->basename } @regions );
+        my $region_type = Type->new("region_for_" . $_->{path}, \@region_names);
+        $_->{region_type} = $region_type;
     }
     my @model_names = ("choose model", map { $_->{path}->basename } @models);
     my $model_type = Type->new("available_models", \@model_names);
     my $model_index = 0;
-    my $history_index = 0;
     my $already_has_history = 0;
+    my $already_has_regions_of_interes = 0;
     $bar->add_variable(
         mode       => 'rw',
         name       => "model",
@@ -322,12 +342,13 @@ sub _build_menu {
             $model_index = shift;
             return if $model_index == 0; # skip "choose model" index;
             my $model = $models[ $model_index - 1];
-            my $type = $model->{type};
+            my $history_type = $model->{history_type};
             $bar->remove_variable('history') if($already_has_history);
+            my $history_index = 0;
             $bar->add_variable(
                 mode       => 'rw',
                 name       => "history",
-                type       => $type,
+                type       => $history_type,
                 cb_read    => sub { $history_index },
                 cb_write   => sub {
                     $history_index = shift;
@@ -342,6 +363,23 @@ sub _build_menu {
             );
             $history_index = 0;
             $already_has_history = 1;
+
+            my $region_index = 0;
+            $bar->remove_variable('region_of_interest') if($already_has_regions_of_interes);
+            $bar->add_variable(
+                mode       => 'rw',
+                name       => "region_of_interest",
+                type       => $model->{region_type},
+                cb_read    => sub { $region_index },
+                cb_write   => sub {
+                    $region_index = shift;
+                    return if $region_index== 0; # skip "choose region" index;
+                    my $model = $models[ $model_index - 1];
+                    my $region_path = $model->{regions}->[ $region_index - 1];
+                    $self->_analyze_visibility($region_path);
+                },
+                definition => " group='Model' ",
+            );
         },
         definition => " group='Model' ",
     );
@@ -378,15 +416,41 @@ sub _build_menu {
     );
 }
 
+method _analyze_visibility($texture_path) {
+    say "loading custom texture $texture_path for visibility analisys";
+    my $records_count = @{ $self->history->records };
+    my $object = $self->main_object;
+    my @backup_properties = qw/lighting texture_file/;
+    my @backups = map { $object->$_ } @backup_properties;
+    my $previous_lighting = $object->lighting;
+    $object->lighting(0);
+    $object->texture_file($texture_path);
+    my ($w, $h) = map { $self->$_ } qw/width height/;
+    for (my $i = 0; $i < $records_count; $i++) {
+        $self->_rotate_objects($i);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        $object->draw_function->();
+        my $image = SDL::Surface->new(
+            SDL_SWSURFACE, $w, $h, 32, 0xFF, 0xFF00, 0xFF0000, 0xFF000000,
+        );
+        glReadPixels_s(0, 0, $w, $h, GL_RGBA, GL_UNSIGNED_BYTE, $image->get_pixels_ptr);
+        #SDL::Video::save_BMP( $image, "/tmp/1/$i.bmp" );
+        $self->sdl_app->sync;
+        glFlush;
+    }
+    for my $i (0 .. @backup_properties -1 ) {
+        my $property = $backup_properties[$i];
+        $object->$property($backups[$i]);
+    }
+}
+
 sub _exit {
     my $self = shift;
     say "...exiting from analyzer";
     $self->sdl_app->stop;
 }
 
-sub _rotate_active {
-    my $self = shift;
-    my $idx = $self->active_record_idx;
+method _rotate_objects($idx) {
     my $record = $self->history->records->[$idx];
     my ($x_axis_degree, $y_axis_degree) = map { $record->$_ }
         qw/x_axis_degree y_axis_degree/;
@@ -397,6 +461,13 @@ sub _rotate_active {
     $self->camera_position([
         map { $record->$_ } qw/camera_x camera_y camera_z/
     ]);
+}
+
+sub _rotate_active {
+    my $self = shift;
+    my $idx = $self->active_record_idx;
+    my $record = $self->history->records->[$idx];
+    $self->_rotate_objects($idx);
     $self->observation_path->active_time($record->timestamp);
     $self->settings_bar->refresh;
     $self->redraw_world;
