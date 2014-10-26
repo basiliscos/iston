@@ -7,6 +7,7 @@ use AnyEvent;
 use Iston;
 use File::Find::Rule;
 use Function::Parameters qw(:strict);
+use List::MoreUtils qw/any/;
 use List::Util qw/max/;
 use Math::Trig;
 use Moo;
@@ -16,6 +17,7 @@ use POSIX qw/strftime/;
 use SDL::Events qw/:all/;
 use SDL::Surface;
 use SDL::Video;
+use SDLx::Surface;
 
 use aliased qw/AntTweakBar::Type/;
 use aliased qw/Iston::History/;
@@ -426,15 +428,49 @@ method _analyze_visibility($texture_path) {
     $object->lighting(0);
     $object->texture_file($texture_path);
     my ($w, $h) = map { $self->$_ } qw/width height/;
-    for (my $i = 0; $i < $records_count; $i++) {
-        $self->_rotate_objects($i);
+
+    my $visit_surface = sub {
+        my ($surface, $callback) = @_;
+        for (my $i = 0; $i < $surface->w; $i++) {
+            for (my $j = 0; $j < $surface->h; $j++) {
+                $callback->($surface->[$i][$j], $i, $j);
+            }
+        }
+    };
+    my $texture = SDLx::Surface->new(surface => $object->texture);
+    my %has_color;
+    $visit_surface->($texture, sub { my $color = shift; $has_color{$color} = 1 });
+    my @interesting_colors = sort {$a <=> $b} keys %has_color;
+    say "found colors on $texture_path: ",
+        join(', ', map{ sprintf('%x', $_) } @interesting_colors );
+
+    my %colors_on_step;
+STEP:
+    for (my $s = 0; $s < $records_count; $s++) {
+        $self->_rotate_objects($s);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         $object->draw_function->();
         my $image = SDL::Surface->new(
             SDL_SWSURFACE, $w, $h, 32, 0xFF, 0xFF00, 0xFF0000, 0xFF000000,
         );
         glReadPixels_s(0, 0, $w, $h, GL_RGBA, GL_UNSIGNED_BYTE, $image->get_pixels_ptr);
-        #SDL::Video::save_BMP( $image, "/tmp/1/$i.bmp" );
+        my $image_matrix = SDLx::Surface->new(surface => $image);
+        for (my $i = 0; $i < $image_matrix->w; $i++) {
+            for (my $j = 0; $j < $image_matrix->h; $j++) {
+                my $color = $image_matrix->[$i][$j];
+                for my $ic (@interesting_colors) {
+                    if ($color eq $ic) {
+                        my $found_colors = $colors_on_step{$s} //= [];
+                        if( !any { $_ eq $color } @$found_colors ) {
+                            push @$found_colors, $color;
+                            say "Found color: ", sprintf('%x', $color), " on step $s";
+                        }
+                        next STEP if(@$found_colors == @interesting_colors);
+                    }
+                }
+            }
+        }
+        #SDL::Video::save_BMP( $image, "/tmp/1/$s.bmp" );
         $self->sdl_app->sync;
         glFlush;
     }
