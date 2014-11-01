@@ -1,5 +1,5 @@
 package Iston::Application;
-$Iston::Application::VERSION = '0.07';
+$Iston::Application::VERSION = '0.08';
 use 5.12.0;
 
 use AntTweakBar qw/:all/;
@@ -183,7 +183,8 @@ sub _initGL {
 }
 
 sub _build_settings_bar {
-    AntTweakBar->new("Settings");
+    my $version = $Iston::VERSION;
+    AntTweakBar->new("Settings for v${version}");
 }
 
 sub _drawGLScene {
@@ -238,7 +239,7 @@ Iston::Application
 
 =head1 VERSION
 
-version 0.07
+version 0.08
 
 =head1 AUTHOR
 

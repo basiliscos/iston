@@ -1,5 +1,5 @@
 package Iston::Object::SphereVectors::GeneralizedVectors;
-$Iston::Object::SphereVectors::GeneralizedVectors::VERSION = '0.07';
+$Iston::Object::SphereVectors::GeneralizedVectors::VERSION = '0.08';
 use 5.16.0;
 
 use Function::Parameters qw(:strict);
@@ -218,7 +218,7 @@ Iston::Object::SphereVectors::GeneralizedVectors
 
 =head1 VERSION
 
-version 0.07
+version 0.08
 
 =head1 AUTHOR
 

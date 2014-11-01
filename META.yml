@@ -13,7 +13,7 @@ configure_requires:
   ExtUtils::MakeMaker: '6.86'
   File::ShareDir::Install: '0.06'
 dynamic_config: 0
-generated_by: 'Dist::Zilla version 5.020, CPAN::Meta::Converter version 2.142690'
+generated_by: 'Dist::Zilla version 5.022, CPAN::Meta::Converter version 2.142690'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -26,6 +26,7 @@ requires:
   AnyEvent: '0'
   Carp: '1.26'
   EV: '0'
+  File::Find::Rule: '0'
   Function::Parameters: '1.0201'
   Guard: '0'
   List::MoreUtils: '0'
@@ -38,4 +39,4 @@ requires:
   Smart::Comments: '0'
   Text::CSV: '0'
   aliased: '0'
-version: '0.07'
+version: '0.08'

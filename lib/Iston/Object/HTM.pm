@@ -1,6 +1,6 @@
 package Iston::Object::HTM;
 # Abstract: Hierarchical Triangular Map
-$Iston::Object::HTM::VERSION = '0.07';
+$Iston::Object::HTM::VERSION = '0.08';
 use 5.12.0;
 
 use Carp;
@@ -229,7 +229,7 @@ Iston::Object::HTM
 
 =head1 VERSION
 
-version 0.07
+version 0.08
 
 =head1 AUTHOR
 

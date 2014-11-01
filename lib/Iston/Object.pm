@@ -1,5 +1,5 @@
 package Iston::Object;
-$Iston::Object::VERSION = '0.07';
+$Iston::Object::VERSION = '0.08';
 use 5.16.0;
 
 use Carp;
@@ -14,13 +14,20 @@ use SDL::Image;
 use aliased qw/Iston::Vertex/;
 
 has texture      => (is => 'lazy');
-has texture_file => (is => 'rw', required => 0, predicate => 1);
-
-method lighting { return $ENV{ISTON_LIGHTING} // 1 };
+has texture_file => (is => 'rw', required => 0, predicate => 1, trigger => 1);
+has lighting     => (is => 'rw', default => sub { $ENV{ISTON_LIGHTING} // 1 }, trigger => 1);
 
 with('Iston::Drawable');
 
 method has_texture { return $self->has_texture_file; };
+
+method _trigger_lighting { $self->clear_draw_function }
+
+method _trigger_texture_file {
+    $self->clear_texture;
+    $self->clear_texture_id;
+    $self->clear_draw_function;
+}
 
 method _build_texture {
     my $file = $self->texture_file;
@@ -32,6 +39,7 @@ method _build_texture {
         croak("texture isn't power of 2?")
             if(int($pow2) - $pow2);
     }
+    say "texture $file has been loaded";
     return $texture;
 }
 
@@ -72,7 +80,7 @@ Iston::Object
 
 =head1 VERSION
 
-version 0.07
+version 0.08
 
 =head1 AUTHOR
 

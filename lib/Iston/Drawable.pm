@@ -1,5 +1,5 @@
 package Iston::Drawable;
-$Iston::Drawable::VERSION = '0.07';
+$Iston::Drawable::VERSION = '0.08';
 use 5.12.0;
 
 use Carp;
@@ -194,13 +194,19 @@ method _build_texture_id {
     my ($texture_id) = glGenTextures_p(1);
 
     my $texture = $self->texture;
-    my $bpp = $texture->format->BytesPerPixel;
-    my $rmask = $texture->format->Rmask;
+    my $format = $texture->format;
+    my $bpp = $format->BytesPerPixel;
+    my $rmask = $format->Rmask;
     my $texture_format = $bpp == 4
         ? ($rmask == 0x000000ff ? GL_RGBA : GL_BGRA)
         : ($rmask == 0x000000ff ? GL_RGB  : GL_BGR );
 
     my($texture_width, $texture_height) = map { $texture->$_ } qw/w h/;
+
+    say sprintf('texture bpp: %d, rmask: %x, gmask: %x, bmask: %x, amask: %x',
+                $format->BytesPerPixel,
+                $format->Rmask, $format->Gmask, $format->Bmask, $format->Amask
+        );
 
     glBindTexture(GL_TEXTURE_2D, $texture_id);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -311,7 +317,7 @@ Iston::Drawable
 
 =head1 VERSION
 
-version 0.07
+version 0.08
 
 =head1 AUTHOR
 

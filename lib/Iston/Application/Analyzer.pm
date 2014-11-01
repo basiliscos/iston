@@ -1,10 +1,14 @@
 package Iston::Application::Analyzer;
-$Iston::Application::Analyzer::VERSION = '0.07';
+$Iston::Application::Analyzer::VERSION = '0.08';
 use 5.16.0;
 
 use AntTweakBar qw/:all/;
 use AnyEvent;
+use Carp;
 use Iston;
+use File::Find::Rule;
+use Function::Parameters qw(:strict);
+use List::MoreUtils qw/any uniq/;
 use List::Util qw/max/;
 use Math::Trig;
 use Moo;
@@ -12,6 +16,9 @@ use OpenGL qw(:all);
 use Path::Tiny;
 use POSIX qw/strftime/;
 use SDL::Events qw/:all/;
+use SDL::Surface;
+use SDL::Video;
+use SDLx::Surface;
 
 use aliased qw/AntTweakBar::Type/;
 use aliased qw/Iston::History/;
@@ -42,6 +49,7 @@ has _htm_visualizers       => (is => 'lazy');
 has _htm_visualizer_index  => (is => 'rw', default => sub { 0 });
 has _analysis_dumper       => (is => 'rw', default => sub { sub{ } });
 has _source_sphere_vectors => (is => 'rw');
+has _region_path           => (is => 'rw');
 
 sub _build_menu;
 
@@ -123,6 +131,21 @@ sub _load_object {
         my $angular_velocity_fh = path($analisys_dir, "anglual-velocity.csv")
             ->filehandle('>');
         $angular_velocity->dump_analisys($angular_velocity_fh);
+
+        if($self->_region_path){
+            my $colors_on_step = $self->_analyze_visibility($self->_region_path);
+            (my $region_name = path($self->_region_path)->basename) =~ s/\..+$//;
+            my $visibility_path = path($analisys_dir, "${region_name}-visibility.csv");
+            my $visibility_fh = $visibility_path->filehandle('>');
+            for my $step (0 .. @$colors_on_step-1){
+                my $colors = join(', ',
+                                  map  { sprintf('%X', $_) }
+                                  sort { $a <=> $b }
+                                  @{ $colors_on_step->[$step] }
+                );
+                say $visibility_fh "$step, $colors";
+            }
+        }
     };
     $self->_analysis_dumper($dumper);
 
@@ -133,8 +156,11 @@ sub _load_object {
         max => "$last_point",
     );
 
+    $self->active_record_idx(0);
+    $self->settings_bar->set_variable_params('current_point', readonly => 'false');
     $self->settings_bar->refresh;
-    $self->_start_replay;
+    $self->_region_path('');
+    # $self->_start_replay;
 }
 
 
@@ -143,6 +169,10 @@ sub _pause_unpause {
     $self->timer($value);
     my $bar = $self->settings_bar;
     if($value) {
+        my $step_function = $self->step_end_function;
+        if(!$step_function) {
+            $self->_start_replay;
+        }
         $self->step_end_function->();
         $bar->set_variable_params('current_point', readonly => 'true');
     }else {
@@ -281,7 +311,10 @@ sub _build_menu {
     my %history_of = map { $_->{path}->basename => $_ }
         @models;
 
-    my @histories =  grep { /\.csv/i } path(".")->children;
+    my @histories = map { path($_) }
+        File::Find::Rule->file
+        ->name( "history_*.csv" )
+        ->in( path(".") );
     for my $h (@histories) {
         if($h->basename =~ /^history_(\d+)_(.+)\.csv$/) {
             my $model_name = $2;
@@ -298,21 +331,34 @@ sub _build_menu {
         ];
         my @history_names = (
             "choose history",
-            map { /^history_(\d+)_(.+)\.csv$/
-                ? strftime('%Y-%m-%d %H:%M:%S', localtime($1)) . " ($1)"
-                : $_
-            }
-            map { $_->basename } @{ $_->{histories} },
+            map {
+                my $history_file = $_;
+                my $parent = $history_file->parent->basename;
+                $history_file->basename =~ /^history_(\d+)_(.+)\.csv$/
+                    ? "$parent/" . strftime('%Y-%m-%d %H:%M:%S', localtime($1))
+                    : $_
+            } @{ $_->{histories} }
         );
-        my $history_type = Type->new("history_for" . $_->{path},
-                                     \@history_names);
-        $_->{type} = $history_type;
+        my $history_type = Type->new("history_for" . $_->{path}, \@history_names);
+        $_->{history_type} = $history_type;
+
+        (my $region_basename = $_->{path}->basename) =~ s/.obj//;
+        my @regions =
+            sort { $a cmp $b}
+            map  { path($_) }
+            File::Find::Rule->file
+            ->name( "${region_basename}*.png" )
+            ->in( $_->{path}->parent );
+        $_->{regions} = \@regions;
+        my @region_names = ("choose region", map { $_->basename } @regions );
+        my $region_type = Type->new("region_for_" . $_->{path}, \@region_names);
+        $_->{region_type} = $region_type;
     }
     my @model_names = ("choose model", map { $_->{path}->basename } @models);
     my $model_type = Type->new("available_models", \@model_names);
     my $model_index = 0;
-    my $history_index = 0;
     my $already_has_history = 0;
+    my $already_has_regions_of_interes = 0;
     $bar->add_variable(
         mode       => 'rw',
         name       => "model",
@@ -322,12 +368,13 @@ sub _build_menu {
             $model_index = shift;
             return if $model_index == 0; # skip "choose model" index;
             my $model = $models[ $model_index - 1];
-            my $type = $model->{type};
+            my $history_type = $model->{history_type};
             $bar->remove_variable('history') if($already_has_history);
+            my $history_index = 0;
             $bar->add_variable(
                 mode       => 'rw',
                 name       => "history",
-                type       => $type,
+                type       => $history_type,
                 cb_read    => sub { $history_index },
                 cb_write   => sub {
                     $history_index = shift;
@@ -342,6 +389,23 @@ sub _build_menu {
             );
             $history_index = 0;
             $already_has_history = 1;
+
+            my $region_index = 0;
+            $bar->remove_variable('region_of_interest') if($already_has_regions_of_interes);
+            $bar->add_variable(
+                mode       => 'rw',
+                name       => "region_of_interest",
+                type       => $model->{region_type},
+                cb_read    => sub { $region_index },
+                cb_write   => sub {
+                    $region_index = shift;
+                    return if $region_index== 0; # skip "choose region" index;
+                    my $model = $models[ $model_index - 1];
+                    my $region_path = $model->{regions}->[ $region_index - 1];
+                    $self->_region_path($region_path);
+                },
+                definition => " group='Model' ",
+            );
         },
         definition => " group='Model' ",
     );
@@ -366,7 +430,8 @@ sub _build_menu {
         definition => {
             min   => '0',
             max   => '360',
-            label => 'distance'
+            label => 'distance',
+            group => 'Analysis',
         },
     );
 
@@ -374,8 +439,59 @@ sub _build_menu {
     $bar->add_button(
         name       => "dump",
         cb         => sub { $self->_analysis_dumper->() },
-        definition => "label='write results'",
+        definition => {
+            label => 'write results',
+        },
     );
+}
+
+method _analyze_visibility($texture_path) {
+    say "loading custom texture $texture_path for visibility analisys";
+    my $records_count = @{ $self->history->records };
+    my $object = $self->main_object;
+    my @backup_properties = qw/lighting texture_file/;
+    my @backups = map { $object->$_ } @backup_properties;
+    my $previous_lighting = $object->lighting;
+    $object->lighting(0);
+    $object->texture_file($texture_path);
+    my ($w, $h) = map { $self->$_ } qw/width height/;
+
+    my $bpp = $object->texture->format->BytesPerPixel;
+    croak "bytes per pixel != 4 for $texture_path"
+        unless $bpp == 4;
+    my @interesting_colors =
+        sort {$a <=> $b}
+        uniq unpack('L*', ${ $object->texture->get_pixels_ptr });
+    say "found colors on $texture_path: ",
+        join(', ', map{ sprintf('%X', $_) } @interesting_colors );
+
+    my @colors_on_step;
+    for (my $s = 0; $s < $records_count; $s++) {
+        $colors_on_step[$s] = [];
+        $self->_rotate_objects($s);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        $object->draw_function->();
+        my $image = SDL::Surface->new(
+            SDL_SWSURFACE, $w, $h, 32, 0xFF, 0xFF00, 0xFF0000, 0xFF000000,
+        );
+        my $pix_buffer = $image->get_pixels_ptr;
+        glReadPixels_s(0, 0, $w, $h, GL_RGBA, GL_UNSIGNED_BYTE, $pix_buffer);
+        my @uniq_pixels = uniq unpack('L*', $$pix_buffer );
+        for my $color (@interesting_colors) {
+            if (any {$_ eq $color} @uniq_pixels) {
+                #say "Found color: ", sprintf('%x', $color), " on step $s";
+                push @{ $colors_on_step[$s] }, $color;
+            }
+        }
+        #SDL::Video::save_BMP( $image, "/tmp/1/$s.bmp" );
+        $self->sdl_app->sync;
+        glFlush;
+    }
+    for my $i (0 .. @backup_properties -1 ) {
+        my $property = $backup_properties[$i];
+        $object->$property($backups[$i]);
+    }
+    return \@colors_on_step;
 }
 
 sub _exit {
@@ -384,9 +500,7 @@ sub _exit {
     $self->sdl_app->stop;
 }
 
-sub _rotate_active {
-    my $self = shift;
-    my $idx = $self->active_record_idx;
+method _rotate_objects($idx) {
     my $record = $self->history->records->[$idx];
     my ($x_axis_degree, $y_axis_degree) = map { $record->$_ }
         qw/x_axis_degree y_axis_degree/;
@@ -397,6 +511,13 @@ sub _rotate_active {
     $self->camera_position([
         map { $record->$_ } qw/camera_x camera_y camera_z/
     ]);
+}
+
+sub _rotate_active {
+    my $self = shift;
+    my $idx = $self->active_record_idx;
+    my $record = $self->history->records->[$idx];
+    $self->_rotate_objects($idx);
     $self->observation_path->active_time($record->timestamp);
     $self->settings_bar->refresh;
     $self->redraw_world;
@@ -615,7 +736,7 @@ Iston::Application::Analyzer
 
 =head1 VERSION
 
-version 0.07
+version 0.08
 
 =head1 AUTHOR
 

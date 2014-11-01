@@ -1,5 +1,5 @@
 package Iston::Vector;
-$Iston::Vector::VERSION = '0.07';
+$Iston::Vector::VERSION = '0.08';
 use 5.12.0;
 
 use Carp;
@@ -169,7 +169,7 @@ Iston::Vector
 
 =head1 VERSION
 
-version 0.07
+version 0.08
 
 =head1 AUTHOR
 
