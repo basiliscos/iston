@@ -4,10 +4,11 @@ use 5.16.0;
 
 use AntTweakBar qw/:all/;
 use AnyEvent;
+use Carp;
 use Iston;
 use File::Find::Rule;
 use Function::Parameters qw(:strict);
-use List::MoreUtils qw/any/;
+use List::MoreUtils qw/any uniq/;
 use List::Util qw/max/;
 use Math::Trig;
 use Moo;
@@ -429,20 +430,14 @@ method _analyze_visibility($texture_path) {
     $object->texture_file($texture_path);
     my ($w, $h) = map { $self->$_ } qw/width height/;
 
-    my $visit_surface = sub {
-        my ($surface, $callback) = @_;
-        for (my $i = 0; $i < $surface->w; $i++) {
-            for (my $j = 0; $j < $surface->h; $j++) {
-                $callback->($surface->[$i][$j], $i, $j);
-            }
-        }
-    };
-    my $texture = SDLx::Surface->new(surface => $object->texture);
-    my %has_color;
-    $visit_surface->($texture, sub { my $color = shift; $has_color{$color} = 1 });
-    my @interesting_colors = sort {$a <=> $b} keys %has_color;
+    my $bpp = $object->texture->format->BytesPerPixel;
+    croak "bytes per pixel != 4 for $texture_path"
+        unless $bpp == 4;
+    my @interesting_colors =
+        sort {$a <=> $b}
+        uniq unpack('L*', ${ $object->texture->get_pixels_ptr });
     say "found colors on $texture_path: ",
-        join(', ', map{ sprintf('%x', $_) } @interesting_colors );
+        join(', ', map{ sprintf('%X', $_) } @interesting_colors );
 
     my %colors_on_step;
 STEP:
@@ -453,21 +448,12 @@ STEP:
         my $image = SDL::Surface->new(
             SDL_SWSURFACE, $w, $h, 32, 0xFF, 0xFF00, 0xFF0000, 0xFF000000,
         );
-        glReadPixels_s(0, 0, $w, $h, GL_RGBA, GL_UNSIGNED_BYTE, $image->get_pixels_ptr);
-        my $image_matrix = SDLx::Surface->new(surface => $image);
-        for (my $i = 0; $i < $image_matrix->w; $i++) {
-            for (my $j = 0; $j < $image_matrix->h; $j++) {
-                my $color = $image_matrix->[$i][$j];
-                for my $ic (@interesting_colors) {
-                    if ($color eq $ic) {
-                        my $found_colors = $colors_on_step{$s} //= [];
-                        if( !any { $_ eq $color } @$found_colors ) {
-                            push @$found_colors, $color;
-                            say "Found color: ", sprintf('%x', $color), " on step $s";
-                        }
-                        next STEP if(@$found_colors == @interesting_colors);
-                    }
-                }
+        my $pix_buffer = $image->get_pixels_ptr;
+        glReadPixels_s(0, 0, $w, $h, GL_RGBA, GL_UNSIGNED_BYTE, $pix_buffer);
+        my @uniq_pixels = uniq unpack('L*', $$pix_buffer );
+        for my $color (@interesting_colors) {
+            if (any {$_ eq $color} @uniq_pixels) {
+                say "Found color: ", sprintf('%x', $color), " on step $s";
             }
         }
         #SDL::Video::save_BMP( $image, "/tmp/1/$s.bmp" );
