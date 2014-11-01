@@ -4,7 +4,6 @@ use 5.12.0;
 
 use AntTweakBar qw/:all/;
 use EV;
-use File::ShareDir::ProjectDistDir (':all', projectdir => 'share');
 use Function::Parameters qw(:strict);
 use Iston;
 use Iston::Matrix;
