@@ -183,7 +183,8 @@ sub _initGL {
 }
 
 sub _build_settings_bar {
-    AntTweakBar->new("Settings");
+    my $version = $Iston::VERSION;
+    AntTweakBar->new("Settings for v${version}");
 }
 
 sub _drawGLScene {

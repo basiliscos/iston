@@ -49,6 +49,7 @@ has _htm_visualizers       => (is => 'lazy');
 has _htm_visualizer_index  => (is => 'rw', default => sub { 0 });
 has _analysis_dumper       => (is => 'rw', default => sub { sub{ } });
 has _source_sphere_vectors => (is => 'rw');
+has _region_path           => (is => 'rw');
 
 sub _build_menu;
 
@@ -130,6 +131,21 @@ sub _load_object {
         my $angular_velocity_fh = path($analisys_dir, "anglual-velocity.csv")
             ->filehandle('>');
         $angular_velocity->dump_analisys($angular_velocity_fh);
+
+        if($self->_region_path){
+            my $colors_on_step = $self->_analyze_visibility($self->_region_path);
+            (my $region_name = path($self->_region_path)->basename) =~ s/\..+$//;
+            my $visibility_path = path($analisys_dir, "${region_name}-visibility.csv");
+            my $visibility_fh = $visibility_path->filehandle('>');
+            for my $step (0 .. @$colors_on_step-1){
+                my $colors = join(', ',
+                                  map  { sprintf('%X', $_) }
+                                  sort { $a <=> $b }
+                                  @{ $colors_on_step->[$step] }
+                );
+                say $visibility_fh "$step, $colors";
+            }
+        }
     };
     $self->_analysis_dumper($dumper);
 
@@ -141,7 +157,9 @@ sub _load_object {
     );
 
     $self->active_record_idx(0);
+    $self->settings_bar->set_variable_params('current_point', readonly => 'false');
     $self->settings_bar->refresh;
+    $self->_region_path('');
     # $self->_start_replay;
 }
 
@@ -379,7 +397,7 @@ sub _build_menu {
                     return if $region_index== 0; # skip "choose region" index;
                     my $model = $models[ $model_index - 1];
                     my $region_path = $model->{regions}->[ $region_index - 1];
-                    $self->_analyze_visibility($region_path);
+                    $self->_region_path($region_path);
                 },
                 definition => " group='Model' ",
             );
@@ -407,7 +425,8 @@ sub _build_menu {
         definition => {
             min   => '0',
             max   => '360',
-            label => 'distance'
+            label => 'distance',
+            group => 'Analysis',
         },
     );
 
@@ -415,7 +434,9 @@ sub _build_menu {
     $bar->add_button(
         name       => "dump",
         cb         => sub { $self->_analysis_dumper->() },
-        definition => "label='write results'",
+        definition => {
+            label => 'write results',
+        },
     );
 }
 
@@ -439,9 +460,9 @@ method _analyze_visibility($texture_path) {
     say "found colors on $texture_path: ",
         join(', ', map{ sprintf('%X', $_) } @interesting_colors );
 
-    my %colors_on_step;
-STEP:
+    my @colors_on_step;
     for (my $s = 0; $s < $records_count; $s++) {
+        $colors_on_step[$s] = [];
         $self->_rotate_objects($s);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         $object->draw_function->();
@@ -453,7 +474,8 @@ STEP:
         my @uniq_pixels = uniq unpack('L*', $$pix_buffer );
         for my $color (@interesting_colors) {
             if (any {$_ eq $color} @uniq_pixels) {
-                say "Found color: ", sprintf('%x', $color), " on step $s";
+                #say "Found color: ", sprintf('%x', $color), " on step $s";
+                push @{ $colors_on_step[$s] }, $color;
             }
         }
         #SDL::Video::save_BMP( $image, "/tmp/1/$s.bmp" );
@@ -464,6 +486,7 @@ STEP:
         my $property = $backup_properties[$i];
         $object->$property($backups[$i]);
     }
+    return \@colors_on_step;
 }
 
 sub _exit {
