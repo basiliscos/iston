@@ -311,7 +311,10 @@ sub _build_menu {
     my %history_of = map { $_->{path}->basename => $_ }
         @models;
 
-    my @histories =  grep { /\.csv/i } path(".")->children;
+    my @histories = map { path($_) }
+        File::Find::Rule->file
+        ->name( "history_*.csv" )
+        ->in( path(".") );
     for my $h (@histories) {
         if($h->basename =~ /^history_(\d+)_(.+)\.csv$/) {
             my $model_name = $2;
@@ -328,11 +331,13 @@ sub _build_menu {
         ];
         my @history_names = (
             "choose history",
-            map { /^history_(\d+)_(.+)\.csv$/
-                ? strftime('%Y-%m-%d %H:%M:%S', localtime($1)) . " ($1)"
-                : $_
-            }
-            map { $_->basename } @{ $_->{histories} },
+            map {
+                my $history_file = $_;
+                my $parent = $history_file->parent->basename;
+                $history_file->basename =~ /^history_(\d+)_(.+)\.csv$/
+                    ? "$parent/" . strftime('%Y-%m-%d %H:%M:%S', localtime($1))
+                    : $_
+            } @{ $_->{histories} }
         );
         my $history_type = Type->new("history_for" . $_->{path}, \@history_names);
         $_->{history_type} = $history_type;
