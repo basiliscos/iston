@@ -50,6 +50,7 @@ has _htm_visualizer_index  => (is => 'rw', default => sub { 0 });
 has _analysis_dumper       => (is => 'rw', default => sub { sub{ } });
 has _source_sphere_vectors => (is => 'rw');
 has _region_path           => (is => 'rw');
+has _points_of_interes     => (is => 'rw', default => sub { [] });
 
 sub _build_menu;
 
@@ -146,6 +147,11 @@ sub _load_object {
                 say $visibility_fh "$step, $colors";
             }
         }
+        my $point_of_interes = $self->_points_of_interes;
+        if(@$point_of_interes) {
+            path($analisys_dir,'points-of-interes.txt')
+                ->spew(join(', ', @$point_of_interes));
+        }
     };
     $self->_analysis_dumper($dumper);
 
@@ -160,6 +166,7 @@ sub _load_object {
     $self->settings_bar->set_variable_params('current_point', readonly => 'false');
     $self->settings_bar->refresh;
     $self->_region_path('');
+    $self->_points_of_interes([]);
     # $self->_start_replay;
 }
 
@@ -265,6 +272,22 @@ sub _build_menu {
             return $result;
         },
         definition => " group='Replay History' label='Point info' ",
+    );
+    $bar->add_variable(
+        mode       => 'rw',
+        name       => 'interes_mark',
+        type       => 'bool',
+        cb_read    => sub {
+            my $current_point = $self->active_record_idx;
+            return any { $_ eq $current_point } @{ $self->_points_of_interes };
+        },
+        cb_write   => sub {
+            my $current_point = $self->active_record_idx;
+            if(defined $current_point) {
+                push @{ $self->_points_of_interes }, $current_point;
+            }
+        },
+        definition => " group='Replay History' label='interes mark' key='i' ",
     );
 
     # HTM group
