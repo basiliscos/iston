@@ -1,5 +1,10 @@
 {{$NEXT}}
 
+        UI: Implement capability to mark points of interes
+        UI: Recurisively find histories in subfolders too
+        Analyze visibility by applying "area of interes" texture
+        
+
 0.07      2014-10-18 19:43:50+03:00 Europe/Minsk
         Support texture generation for HTM;
         Lower GLSL requirements for GLSL v1.20
