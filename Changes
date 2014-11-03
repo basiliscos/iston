@@ -1,5 +1,7 @@
 {{$NEXT}}
 
+0.08      2014-11-03 22:14:02+03:00 Europe/Minsk
+
         UI: Implement capability to mark points of interes
         UI: Recurisively find histories in subfolders too
         Analyze visibility by applying "area of interes" texture
