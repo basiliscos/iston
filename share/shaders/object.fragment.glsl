@@ -67,7 +67,7 @@ vec4 compute_color(vec4 initial_color) {
 
   if (intensity > 0.0) {
     vec4 eye = -1 * normalize(camera);
-    vec4 R = normalize(dot(light_dir, N)) * 2 * N - eye;
+    vec4 R = normalize(dot(light_dir, N) * 2 * N - eye);
     float specular_intencity = max(dot(R, eye), 0.0);
     specular = light1.specular * frontMaterial.specular * pow(specular_intencity, frontMaterial.shininess);
   }
