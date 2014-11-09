@@ -25,6 +25,7 @@ use aliased qw/Iston::History/;
 use aliased qw/Iston::Analysis::Aberrations/;
 use aliased qw/Iston::Analysis::AngularVelocity/;
 use aliased qw/Iston::Analysis::Projections/;
+use aliased qw/Iston::Analysis::Visibility/;
 use aliased qw/Iston::Object::HTM/;
 use aliased qw/Iston::Object::ObservationPath/;
 use aliased qw/Iston::Object::SphereVectors::GeneralizedVectors/;
@@ -479,14 +480,7 @@ method _analyze_visibility($texture_path) {
     $object->texture_file($texture_path);
     my ($w, $h) = map { $self->$_ } qw/width height/;
 
-    my $bpp = $object->texture->format->BytesPerPixel;
-    croak "bytes per pixel != 4 for $texture_path"
-        unless $bpp == 4;
-    my @interesting_colors =
-        sort {$a <=> $b}
-        uniq unpack('L*', ${ $object->texture->get_pixels_ptr });
-    say "found colors on $texture_path: ",
-        join(', ', map{ sprintf('%X', $_) } @interesting_colors );
+    my $visibility = Visibility->new(pattern => $object->texture);
 
     my @colors_on_step;
     for (my $s = 0; $s < $records_count; $s++) {
@@ -499,13 +493,8 @@ method _analyze_visibility($texture_path) {
         );
         my $pix_buffer = $image->get_pixels_ptr;
         glReadPixels_s(0, 0, $w, $h, GL_RGBA, GL_UNSIGNED_BYTE, $pix_buffer);
-        my @uniq_pixels = uniq unpack('L*', $$pix_buffer );
-        for my $color (@interesting_colors) {
-            if (any {$_ eq $color} @uniq_pixels) {
-                #say "Found color: ", sprintf('%x', $color), " on step $s";
-                push @{ $colors_on_step[$s] }, $color;
-            }
-        }
+        my $found_colors = $visibility->find($image);
+        $colors_on_step[$s] = $found_colors;
         #SDL::Video::save_BMP( $image, "/tmp/1/$s.bmp" );
         $self->sdl_app->sync;
         glFlush;

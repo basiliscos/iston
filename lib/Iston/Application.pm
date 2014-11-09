@@ -58,7 +58,7 @@ sub init_app {
     my $video_info = SDL::Video::get_video_info();
     my %display_dimension = $self->full_screen
         ? (width => $video_info->current_w, height => $video_info->current_h)
-        : (width => 800, height => 600);
+        : (width => 1024, height => 600);
 
     my $version = $Iston::VERSION;
     my %app_options = (
