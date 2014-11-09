@@ -59,4 +59,5 @@ t/031-projections.t
 t/032-aberrations.t
 t/033-angular-velocity.t
 t/034-visibility.t
+t/benchmark-visibility.pl
 t/data/2-colors.png

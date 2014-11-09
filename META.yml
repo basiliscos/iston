@@ -29,6 +29,7 @@ requires:
   File::Find::Rule: '0'
   Function::Parameters: '1.0201'
   Guard: '0'
+  Inline::C: '0'
   List::MoreUtils: '0'
   Math::MatrixReal: '2.11'
   Moo: '0'
