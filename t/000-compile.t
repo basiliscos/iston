@@ -6,13 +6,14 @@ use warnings;
 
 use Test::More;
 
-plan tests => 26 + ($ENV{AUTHOR_TESTING} ? 1 : 0);
+plan tests => 27 + ($ENV{AUTHOR_TESTING} ? 1 : 0);
 
 my @module_files = (
     'Iston.pm',
     'Iston/Analysis/Aberrations.pm',
     'Iston/Analysis/AngularVelocity.pm',
     'Iston/Analysis/Projections.pm',
+    'Iston/Analysis/Visibility.pm',
     'Iston/Application.pm',
     'Iston/Application/Analyzer.pm',
     'Iston/Application/Observer.pm',

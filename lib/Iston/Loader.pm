@@ -56,6 +56,8 @@ method load {
                     t => $texture_index,
                     v => $vertex_index,
                 };
+                croak "No nornal index. Obj without normals?"
+                    unless defined $normal_index;
                 my $face_count = push @faces, $face_info;
                 push @{ $info_for_vertex{$vertex_index-1}->{faces} },
                     $face_count-1;
