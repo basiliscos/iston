@@ -39,16 +39,27 @@ sub _extract_pattern_xs {
 
 method find ($image) {
     my $pix_buffer = $image->get_pixels_ptr;
-    my @uniq_pixels = uniq unpack('L*', $$pix_buffer );
+    # return _find_colors_pp($pix_buffer, $self->pattern_colors);
+    return _find_colors_xs($pix_buffer, $self->pattern_colors);
+};
+
+sub _find_colors_xs {
+    my ($ptr, $pattern) = @_;
+    _find_pixels($ptr, $pattern);
+}
+
+sub _find_colors_pp {
+    my ($ptr, $pattern) = @_;
+    my @uniq_pixels = uniq unpack('L*', $$ptr );
     my @matched_colors;
-    for my $color (@{ $self->pattern_colors }) {
+    for my $color (@$pattern) {
         if (any {$_ eq $color} @uniq_pixels) {
             #say "Found color: ", sprintf('%x', $color), " on step $s";
             push @matched_colors, $color;
         }
     }
     return \@matched_colors;
-};
+}
 
 1;
 
@@ -98,4 +109,48 @@ HV* _extract_pattern(SV* pixels_ref){
         pixels_ptr++;
     }
     return found_colors;
+}
+
+AV* _find_pixels(SV* pixels_ref, AV* pattern) {
+    SV* binary_string = SvRV(pixels_ref);
+    STRLEN len;
+    U32 *pixels_ptr;
+    pixels_ptr = (U32*) SvPV(binary_string, len);
+    U32 i,j;
+
+    SSize_t max_pattern_idx = av_top_index(pattern);
+    if (max_pattern_idx <=0) {
+        Perl_croak("Wrong pattern size");
+    }
+
+    U32* u_pattern = malloc(sizeof(U32)*(max_pattern_idx+1));
+    U32* found_marks = malloc(sizeof(U32)*(max_pattern_idx+1));
+    for (i = 0; i <= max_pattern_idx ; i++) {
+        SV** value = av_fetch(pattern, i, 0);
+        if (!value) {
+            Perl_croak("Undefined values in pattern are not allowed");
+        }
+        u_pattern[i] = SvUV(*value);
+        found_marks[i] = 0;
+    }
+
+    for (i = 0; i < len/4; i++) {
+        U32 color = *pixels_ptr++;
+        for (j = 0; j <= max_pattern_idx; j++ ) {
+            if (u_pattern[j] == color) {
+                found_marks[j] = 1;
+            }
+        }
+    }
+    AV* result = newAV();
+    for (i = 0; i <= max_pattern_idx ; i++) {
+        if (found_marks[i]) {
+            SV* value = newSVuv(u_pattern[i]);
+            av_push(result, value);
+        }
+    }
+    free(u_pattern);
+    free(found_marks);
+
+    return result;
 }
