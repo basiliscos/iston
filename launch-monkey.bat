@@ -1,3 +1,3 @@
-set PERL5LIB=d:\basiliscos\group-iston\iston\lib
+set PERL5LIB=%CD%\lib
 perl bin\iston.pl -o share\models\monkey.obj
 
