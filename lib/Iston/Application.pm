@@ -67,6 +67,7 @@ sub init_app {
         ($self->full_screen ? (fullscreen => 1) : ()),
         delay => 1000/60,
         %display_dimension,
+		depth  => 32,
     );
     $self->sdl_app( SDLx::App->new(%app_options) );
 
