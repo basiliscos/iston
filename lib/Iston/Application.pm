@@ -1,9 +1,10 @@
 package Iston::Application;
-$Iston::Application::VERSION = '0.08';
+$Iston::Application::VERSION = '0.09';
 use 5.12.0;
 
 use AntTweakBar qw/:all/;
 use EV;
+use File::ShareDir ':ALL';
 use Function::Parameters qw(:strict);
 use Iston;
 use Iston::Matrix;
@@ -67,6 +68,7 @@ sub init_app {
         ($self->full_screen ? (fullscreen => 1) : ()),
         delay => 1000/60,
         %display_dimension,
+		depth  => 24,
     );
     $self->sdl_app( SDLx::App->new(%app_options) );
 
@@ -111,8 +113,8 @@ method _init_shaders(@names) {
 	my $supported = OpenGL::Shader::HasType('GLSL');
 	die("GLSL shaders are not supported on this machine") unless $supported;
 	say "GLSL shaders support detected";
-    my $dist_dir = exists $ENV{PAR_TEMP}
-		? path($ENV{PAR_TEMP}, 'inc', 'share')
+    my $dist_dir = exists $ENV{ISTON_PORTABLE}
+		? dist_dir('Iston')
 		: path(path($0)->parent->parent, "share")->absolute;
     say "dist dir: $dist_dir";
     for (0 .. @names-1) {
@@ -238,7 +240,7 @@ Iston::Application
 
 =head1 VERSION
 
-version 0.08
+version 0.09
 
 =head1 AUTHOR
 

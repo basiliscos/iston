@@ -1,5 +1,5 @@
 package Iston::TrianglePath;
-$Iston::TrianglePath::VERSION = '0.08';
+$Iston::TrianglePath::VERSION = '0.09';
 use 5.12.0;
 
 use overload
@@ -63,7 +63,7 @@ Iston::TrianglePath
 
 =head1 VERSION
 
-version 0.08
+version 0.09
 
 =head1 AUTHOR
 

@@ -1,5 +1,5 @@
 package Iston::EventDistributor;
-$Iston::EventDistributor::VERSION = '0.08';
+$Iston::EventDistributor::VERSION = '0.09';
 use 5.16.0;
 
 use Carp;
@@ -55,7 +55,7 @@ Iston::EventDistributor
 
 =head1 VERSION
 
-version 0.08
+version 0.09
 
 =head1 AUTHOR
 

@@ -1,6 +1,6 @@
 package Iston::Analysis::Visibility;
 # Abstract: Tracks the (angle) direction changes of the observation path
-$Iston::Analysis::Visibility::VERSION = '0.08';
+$Iston::Analysis::Visibility::VERSION = '0.09';
 use 5.16.0;
 
 use Carp;
@@ -73,7 +73,7 @@ Iston::Analysis::Visibility
 
 =head1 VERSION
 
-version 0.08
+version 0.09
 
 =head1 AUTHOR
 
@@ -112,6 +112,7 @@ HV* _extract_pattern(SV* pixels_ref){
 }
 
 AV* _find_pixels(SV* pixels_ref, AV* pattern) {
+	dTHX;
     SV* binary_string = SvRV(pixels_ref);
     STRLEN len;
     U32 *pixels_ptr;
@@ -120,7 +121,7 @@ AV* _find_pixels(SV* pixels_ref, AV* pattern) {
 
     SSize_t max_pattern_idx = av_top_index(pattern);
     if (max_pattern_idx <=0) {
-        Perl_croak("Wrong pattern size");
+        Perl_croak( aTHX_ "Wrong pattern size");
     }
 
     U32* u_pattern = malloc(sizeof(U32)*(max_pattern_idx+1));
@@ -128,7 +129,7 @@ AV* _find_pixels(SV* pixels_ref, AV* pattern) {
     for (i = 0; i <= max_pattern_idx ; i++) {
         SV** value = av_fetch(pattern, i, 0);
         if (!value) {
-            Perl_croak("Undefined values in pattern are not allowed");
+            Perl_croak( aTHX_ "Undefined values in pattern are not allowed");
         }
         u_pattern[i] = SvUV(*value);
         found_marks[i] = 0;

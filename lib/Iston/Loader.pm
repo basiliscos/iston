@@ -1,5 +1,5 @@
 package Iston::Loader;
-$Iston::Loader::VERSION = '0.08';
+$Iston::Loader::VERSION = '0.09';
 use 5.12.0;
 
 use Carp;
@@ -157,7 +157,7 @@ Iston::Loader
 
 =head1 VERSION
 
-version 0.08
+version 0.09
 
 =head1 AUTHOR
 

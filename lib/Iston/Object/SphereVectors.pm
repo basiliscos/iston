@@ -1,5 +1,5 @@
 package Iston::Object::SphereVectors;
-$Iston::Object::SphereVectors::VERSION = '0.08';
+$Iston::Object::SphereVectors::VERSION = '0.09';
 use 5.16.0;
 
 use Function::Parameters qw(:strict);
@@ -83,7 +83,7 @@ Iston::Object::SphereVectors
 
 =head1 VERSION
 
-version 0.08
+version 0.09
 
 =head1 AUTHOR
 

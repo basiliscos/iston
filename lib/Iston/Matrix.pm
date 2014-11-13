@@ -1,5 +1,5 @@
 package Iston::Matrix;
-$Iston::Matrix::VERSION = '0.08';
+$Iston::Matrix::VERSION = '0.09';
 use 5.16.0;
 
 use parent qw/Math::MatrixReal/;
@@ -30,7 +30,7 @@ Iston::Matrix
 
 =head1 VERSION
 
-version 0.08
+version 0.09
 
 =head1 AUTHOR
 
