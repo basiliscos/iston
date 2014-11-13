@@ -26,6 +26,10 @@ These options are available:
 -h, --help           Show this message.
 EOF
 
+my $executable = path(path($0)->parent, $^O eq 'MSWin32' ? 'iston.exe' : 'iston');
+die "Cannot find executable $executable"
+    unless -e $executable;
+
 my $bin_dir = path(path($0)->parent->parent, 'bin');
 
 my $rv_ref = scan_deps(
@@ -65,6 +69,10 @@ while ( my ($key, $data) = each %$rv_ref) {
 		if (exists $module_for{$name} ) {
 			say "module: $name";
 			my @all_files = $installation->files($name);
+            my ($main_file) = grep { /\Q$key\E$/ } @all_files;
+            die "Cannot find main file for $key ($name)"
+                unless $main_file;
+            my $module_base = $main_file =~ s/$key//r;
 			#say Dumper(\@all_files);
 			#say Dumper($data);
 			for my $file (@all_files ) {
@@ -72,7 +80,7 @@ while ( my ($key, $data) = each %$rv_ref) {
 					say "skip: $file";
 					next;
 				}
-				my $rel_path = $file =~ s/.+?\blib\b\W(.+)/$1/r;
+				my $rel_path = $file =~ s/\Q$module_base\E//r;
 				my $new_path = path($lib, $rel_path);
 				say "$file ($rel_path) -> $new_path";
 				$new_path->parent->mkpath;
@@ -85,9 +93,7 @@ while ( my ($key, $data) = each %$rv_ref) {
 		}
 	}
 }
-path($base, 'README.txt')->spew('Iston readme file');
-my $resources = path($base, 'iston.rc');
-$resources->spew('ID ICON "iston.ico"');
-path($bin_dir->parent, 'share', 'iston.ico')->copy(path($base, 'iston.ico'));
+
+$executable->copy($output_dir);
 say "Copying complete";
 

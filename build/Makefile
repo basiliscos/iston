@@ -1,5 +1,6 @@
 CC=gcc
-CFLAGS=-Os ${shell perl -MExtUtils::Embed -e ccopts}
+#CFLAGS=-Os ${shell perl -MExtUtils::Embed -e ccopts}
+CFLAGS=-g ${shell perl -MExtUtils::Embed -e ccopts}
 LDFLAGS=${shell perl -MExtUtils::Embed -e ldopts}
 
 UNAME := $(shell uname)
