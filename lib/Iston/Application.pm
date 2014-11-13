@@ -4,6 +4,7 @@ use 5.12.0;
 
 use AntTweakBar qw/:all/;
 use EV;
+use File::ShareDir ':ALL';
 use Function::Parameters qw(:strict);
 use Iston;
 use Iston::Matrix;
@@ -112,8 +113,8 @@ method _init_shaders(@names) {
 	my $supported = OpenGL::Shader::HasType('GLSL');
 	die("GLSL shaders are not supported on this machine") unless $supported;
 	say "GLSL shaders support detected";
-    my $dist_dir = exists $ENV{PAR_TEMP}
-		? path($ENV{PAR_TEMP}, 'inc', 'share')
+    my $dist_dir = exists $ENV{ISTON_PORTABLE}
+		? dist_dir('Iston')
 		: path(path($0)->parent->parent, "share")->absolute;
     say "dist dir: $dist_dir";
     for (0 .. @names-1) {
