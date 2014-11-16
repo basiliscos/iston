@@ -24,9 +24,11 @@ int main (int argc, char **argv, char **env)
        united_argv[i+my_argc-1] = argv[i];
    }
    int united_argc = my_argc + argc - 1;
+   /*
    for(i = 0; i < united_argc; i++) {
        printf("[%d/%d] : %s \n", i, united_argc, united_argv[i]);
    }
+   */
    perl_parse(my_perl, xs_init, united_argc, united_argv, my_env);
    PL_exit_flags |= PERL_EXIT_DESTRUCT_END;
    perl_run(my_perl);

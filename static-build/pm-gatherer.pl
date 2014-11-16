@@ -68,13 +68,15 @@ while ( my ($key, $data) = each %$rv_ref) {
 		$name =~ s/\.pm$//;
 		if (exists $module_for{$name} ) {
 			say "module: $name";
-			my @all_files = $installation->files($name);
+			my @all_files = map { path($_)->absolute } $installation->files($name);
             my ($main_file) = grep { /\Q$key\E$/ } @all_files;
-            die "Cannot find main file for $key ($name)"
-                unless $main_file;
+			if (!$main_file) {
+				say Dumper(\@all_files);
+				say Dumper($data);
+				die "Cannot find main file for $key ($name)";
+			}
             my $module_base = $main_file =~ s/$key//r;
-			#say Dumper(\@all_files);
-			#say Dumper($data);
+			say "module base: $module_base";
 			for my $file (@all_files ) {
 				if ($file !~ /\blib\b/ || $file =~ /\.((pod)|(a)|(h))$/) {
 					say "skip: $file";
