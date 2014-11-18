@@ -1,6 +1,7 @@
 CC=gcc
 CFLAGS=-Os -fdata-sections -ffunction-sections -flto ${shell perl -MExtUtils::Embed -e ccopts}
-LDFLAGS=-Os -Wl,--gc-sections -Wl,--strip-all -flto ${shell perl -MExtUtils::Embed -e ldopts}
+LDFLAGS=-Os -Wl,--gc-sections -Wl,--strip-all -flto ${shell perl -MExtUtils::Embed -e ldopts} -static-libstdc++ -static-libgcc
+LD=g++
 
 UNAME=$(shell perl os.pl)
 ifeq ($(UNAME),linux)
@@ -11,7 +12,7 @@ endif
 
 iston: $(objs)
 	echo "linking ($(UNAME)) ... $^ -> $@";
-	@$(CC) -o $@ $^ $(LDFLAGS)
+	$(LD) -o $@ $^ $(LDFLAGS)
 
 perlxsi.o: perlxsi.c
 	$(CC) -c $(CFLAGS) -o $@ $^

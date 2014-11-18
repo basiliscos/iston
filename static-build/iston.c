@@ -13,6 +13,7 @@ int main (int argc, char **argv, char **env)
    char *my_env[] = {"ISTON_PORTABLE=1", NULL};
    int my_argc = 3;
    int i;
+   fprintf( stderr, "initializing perl...\n");
    PERL_SYS_INIT3(&argc,&argv,&env);
    my_perl = perl_alloc();
    perl_construct( my_perl );
@@ -31,6 +32,7 @@ int main (int argc, char **argv, char **env)
    */
    perl_parse(my_perl, xs_init, united_argc, united_argv, my_env);
    PL_exit_flags |= PERL_EXIT_DESTRUCT_END;
+   fprintf( stderr, "running perl perl...\n");
    perl_run(my_perl);
    perl_destruct(my_perl);
    perl_free(my_perl);

@@ -38,7 +38,8 @@ my $rv_ref = scan_deps(
     compile => 1,
 );
 $rv_ref = add_deps( rv => $rv_ref, modules => [
-	'Digest/MD5.pm',
+    'Digest/MD5.pm',
+    ($^O eq 'MSWin32' ? 'Win32.pm' : ()),
 ]);
 my @modules = sort {$a cmp $b} keys %$rv_ref;
 say Dumper(\@modules);
