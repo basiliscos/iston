@@ -8,6 +8,9 @@ use aliased qw/Iston::Loader/;
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
+plan skip_all => "pdfToolbox isn't found in PATH"
+    unless -e 'share/models';
+
 sub _check_indices {
     my ($indices, $v_count) = @_;
 
