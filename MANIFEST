@@ -7,8 +7,6 @@ META.yml
 Makefile.PL
 bin/iston.pl
 dist.ini
-launch-monkey.bat
-launch-replay.bat
 lib/Iston.pm
 lib/Iston/Analysis/Aberrations.pm
 lib/Iston/Analysis/AngularVelocity.pm
