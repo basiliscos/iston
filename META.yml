@@ -30,7 +30,7 @@ requires:
   File::ShareDir: '0'
   Function::Parameters: '1.0201'
   Guard: '0'
-  Inline::C: '0'
+  Iston::XS: '0.01'
   List::MoreUtils: '0'
   Math::MatrixReal: '2.11'
   Moo: '0'

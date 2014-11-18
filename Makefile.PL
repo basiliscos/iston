@@ -22,9 +22,7 @@ my %WriteMakefileArgs = (
   },
   "DISTNAME" => "Iston",
   "EXE_FILES" => [
-    "bin/win32-builder.pl",
     "bin/iston.pl",
-    "bin/win32-builder.pl",
     "bin/iston.pl"
   ],
   "LICENSE" => "perl",
@@ -40,7 +38,7 @@ my %WriteMakefileArgs = (
     "File::ShareDir" => 0,
     "Function::Parameters" => "1.0201",
     "Guard" => 0,
-    "Inline::C" => 0,
+    "Iston::XS" => "0.01",
     "List::MoreUtils" => 0,
     "Math::MatrixReal" => "2.11",
     "Moo" => 0,
@@ -84,7 +82,7 @@ my %FallbackPrereqs = (
   "Guard" => 0,
   "IO::Handle" => 0,
   "IPC::Open3" => 0,
-  "Inline::C" => 0,
+  "Iston::XS" => "0.01",
   "List::MoreUtils" => 0,
   "Math::MatrixReal" => "2.11",
   "Moo" => 0,
