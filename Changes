@@ -1,5 +1,7 @@
 {{$NEXT}}
 
+0.09      2014-11-19 01:56:13+03:00 Europe/Minsk
+
         Lighting: Use Phong shading model instead of simplifyed Blinn-Phong
         Create and use Iston::XS module for speed-critical calculations 
                (Visibility Analisys now)
