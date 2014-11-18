@@ -46,9 +46,11 @@ static-build/Makefile
 static-build/iston
 static-build/iston.c
 static-build/iston.ico
+static-build/iston.o
 static-build/iston.rc
 static-build/os.pl
 static-build/perlxsi.c
+static-build/perlxsi.o
 static-build/pm-gatherer.pl
 t/000-compile.t
 t/004-vertex.t
