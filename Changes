@@ -1,5 +1,10 @@
 {{$NEXT}}
 
+        Lighting: Use Phong shading model instead of simplifyed Blinn-Phong
+        Create and use Iston::XS module for speed-critical calculations 
+               (Visibility Analisys now)
+        Create static builder for win32 instead of using PAR
+
 0.08      2014-11-03 22:14:02+03:00 Europe/Minsk
 
         UI: Implement capability to mark points of interes
