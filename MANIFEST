@@ -42,16 +42,6 @@ share/models/two-squares.obj
 share/models/two-squares.png
 share/shaders/object.fragment.glsl
 share/shaders/object.vertex.glsl
-static-build/Makefile
-static-build/iston
-static-build/iston.c
-static-build/iston.ico
-static-build/iston.o
-static-build/iston.rc
-static-build/os.pl
-static-build/perlxsi.c
-static-build/perlxsi.o
-static-build/pm-gatherer.pl
 t/000-compile.t
 t/004-vertex.t
 t/005-vector.t
