@@ -33,11 +33,6 @@ lib/Iston/TrianglePath.pm
 lib/Iston/Utils.pm
 lib/Iston/Vector.pm
 lib/Iston/Vertex.pm
-share/models/cube.obj
-share/models/cube.png
-share/models/monkey.obj
-share/models/two-squares.obj
-share/models/two-squares.png
 share/shaders/object.fragment.glsl
 share/shaders/object.vertex.glsl
 t/000-compile.t
