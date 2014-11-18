@@ -35,7 +35,6 @@ lib/Iston/TrianglePath.pm
 lib/Iston/Utils.pm
 lib/Iston/Vector.pm
 lib/Iston/Vertex.pm
-make-exe.bat
 share/models/cube.obj
 share/models/cube.png
 share/models/monkey.obj
