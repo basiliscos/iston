@@ -72,9 +72,7 @@ sub init_app {
     );
     $self->sdl_app( SDLx::App->new(%app_options) );
 
-    glutInit;
     glEnable(GL_DEPTH_TEST);
-    glClearColor(0.0, 0.0, 0.0, 0.0);
     $self->_initGL;
     $self->_init_shaders(qw/object/);
     #$self->object_shader->Enable;
@@ -190,6 +188,10 @@ sub _build_settings_bar {
 
 sub _drawGLScene {
     my $self = shift;
+    my $bg_color = $ENV{INSTON_BG_COLOR} // '000000';
+    my ($r, $g, $b) = map { $_ / 255 }
+        reverse unpack('CCC', pack('L', hex($bg_color)));
+    glClearColor($r, $g, $b, 0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     for(@{ $self->objects }) {
         next if !$_ or !$_->enabled;
