@@ -382,19 +382,19 @@ sub _build_menu {
     my @model_names = ("choose model", map { $_->{path}->basename } @models);
     my $model_type = Type->new("available_models", \@model_names);
     my $model_index = 0;
-    my $already_has_history = 0;
-    my $already_has_regions_of_interes = 0;
     $bar->add_variable(
         mode       => 'rw',
         name       => "model",
         type       => $model_type,
         cb_read    => sub { $model_index },
         cb_write   => sub {
-            $model_index = shift;
-            return if $model_index == 0; # skip "choose model" index;
+            my $new_index = shift;
+            return if $new_index == 0; # skip "choose model" index;
+            my $prev_model_index = $model_index;
+            $model_index = $new_index;
             my $model = $models[ $model_index - 1];
             my $history_type = $model->{history_type};
-            $bar->remove_variable('history') if($already_has_history);
+            $bar->remove_variable('history') if($prev_model_index);
             my $history_index = 0;
             $bar->add_variable(
                 mode       => 'rw',
@@ -413,10 +413,9 @@ sub _build_menu {
                 definition => " group='Model' ",
             );
             $history_index = 0;
-            $already_has_history = 1;
 
             my $region_index = 0;
-            $bar->remove_variable('region_of_interest') if($already_has_regions_of_interes);
+            $bar->remove_variable('region_of_interest') if($prev_model_index);
             $bar->add_variable(
                 mode       => 'rw',
                 name       => "region_of_interest",
