@@ -153,6 +153,7 @@ sub _load_object {
             path($analisys_dir,'points-of-interes.txt')
                 ->spew(join(', ', @$point_of_interes));
         }
+        $history_path->copy(path($analisys_dir, 'history.csv'));
     };
     $self->_analysis_dumper($dumper);
 
