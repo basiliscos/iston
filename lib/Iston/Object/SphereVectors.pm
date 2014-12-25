@@ -9,6 +9,7 @@ use Moo::Role;
 
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
+use aliased qw/Iston::Matrix/;
 
 has draw_function => (is => 'lazy', clearer => 1);
 has model_oga     => (is => 'rw'); # inherited from outer container
@@ -23,6 +24,43 @@ requires('vertex_to_vector_function');
 with('Iston::Drawable');
 
 method has_texture { return 0; };
+
+method detect_spins {
+    my $spin_index = 0;
+    my $vectors = $self->vectors;
+    my $prev_orientation;
+    my $spin_start = 0;
+
+    my $seal_spin = sub {
+        my ($from, $to) = @_;
+        # at least 3 vectors might form spin
+        return if($to - $from < 3);
+        for my $idx ($from .. $to) {
+            $vectors->[$idx]->payload->{spin_index} = $spin_index;
+        }
+    };
+
+    for (my $i = 0; $i < @$vectors-1; $i++) {
+        my ($v1, $v2) = map { $vectors->[$_] } ($i, $i+1);
+        my $n = $v1 * $v2;
+        my $m = Matrix->new_from_rows([
+            [@$n],
+            [@$v1],
+            [@$v2],
+        ]);
+        my $volume_orientation = $m->det;
+        if (defined $prev_orientation) {
+            my $same_sign = ($prev_orientation * $volume_orientation) > 0; # >=0 ?
+            if (!$same_sign) {
+                $seal_spin->($spin_start, $i-1);
+                $spin_index++;
+                $spin_start = $i;
+            }
+        }
+        $prev_orientation = $volume_orientation;
+    }
+    $seal_spin->($spin_start, @$vectors-1);
+};
 
 method _draw_function_constructor($vertices, $indices) {
     my $vertices_oga = as_oga( $vertices );
