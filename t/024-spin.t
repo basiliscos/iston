@@ -64,17 +64,18 @@ subtest "simple spin" => sub {
     is scalar(@{$gv->vectors}), 8;
 
     subtest "gv spins" => sub {
-        $gv->detect_spins;
-        for (@{ $gv->vectors }) {
-            is $_->payload->{spin_index}, 0;
-        }
+        $gv->spin_detection(1);
+        is $_->payload->{spin_index}, 0 for (@{ $gv->vectors });
+        $gv->spin_detection(0);
+        ok !exists $_->payload->{spin_index} for (@{ $gv->vectors });
     };
 
-    subtest "vectorized vertices spins" => sub {
-        $sphere_vectors_original->detect_spins;
-        for (@{ $sphere_vectors_original->vectors }) {
-            is $_->payload->{spin_index}, 0;
-        }
+    subtest "vectorized vertices spins" => sub{
+        my $vv = $sphere_vectors_original;
+        $vv->spin_detection(1);
+        is $_->payload->{spin_index}, 0 for (@{ $vv->vectors });
+        $vv->spin_detection(0);
+        ok !exists $_->payload->{spin_index} for (@{ $vv->vectors });
     };
 };
 
