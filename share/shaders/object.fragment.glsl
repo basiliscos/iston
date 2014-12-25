@@ -4,10 +4,12 @@
 
 varying vec2 f_texcoord;
 varying vec3 normal;
+varying vec4 multicolor;
 
 uniform sampler2D mytexture;
 uniform int has_texture;
 uniform int has_lighting;
+uniform int has_multicolor;
 
 uniform vec4 camera;
 uniform mat4 model;
@@ -83,7 +85,7 @@ void main(void) {
   if(has_texture > 0) {
     color = texture2D(mytexture, f_texcoord);
   } else {
-    color = default_color;
+    color = has_multicolor == 1 ? multicolor : default_color;
   }
   gl_FragColor = compute_color(color);
 }

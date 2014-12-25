@@ -24,6 +24,7 @@ has vertices      => (is => 'rw', required => 0);
 has indices       => (is => 'rw', required => 0);
 has normals       => (is => 'rw', required => 0);
 has texture       => (is => 'rw', clearer => 1);
+has multicolor    => (is => 'rw', clearer => 1, predicate => 1);
 has uv_mappings   => (is => 'rw', required => 0, clearer => 1);
 has mode          => (is => 'rw', default => sub { 'normal' }, trigger => 1);
 has default_color => (is => 'rw', default => sub { [1.0, 1.0, 1.0, 0.0] } );
@@ -59,12 +60,12 @@ method reset_model {
 }
 
 method _trigger_shader($shader) {
-    for (qw/mytexture has_texture has_lighting default_color view_model/) {
+    for (qw/mytexture has_texture has_multicolor has_lighting default_color view_model/) {
         my $id = $shader->Map($_);
         croak "cannot map '$_' uniform" unless defined $id;
         $self->_uniform_for->{$_} = $id;
     }
-    for (qw/texcoord coord3d N/) {
+    for (qw/texcoord coord3d N a_multicolor/) {
         my $id = $shader->MapAttr($_);
         croak "cannot map attribute '$_'" unless defined $id;
         $self->_attribute_for->{$_} = $id;
@@ -227,13 +228,22 @@ method _build_draw_function {
     my ($vertices, $normals) =
         map { as_oga($_) }
         ($p_vertices, $p_normals);
-    my ($vbo_vertices, $vbo_normals) = glGenBuffersARB_p(2);
+    my ($vbo_vertices, $vbo_normals, $vbo_colors) = glGenBuffersARB_p(3);
+
+    my $has_multicolor = $self->has_multicolor;
+    my $multicolors;
 
     $vertices->bind($vbo_vertices);
     glBufferDataARB_p(GL_ARRAY_BUFFER_ARB, $vertices, GL_STATIC_DRAW_ARB);
 
     $normals->bind($vbo_normals);
     glBufferDataARB_p(GL_ARRAY_BUFFER_ARB, $normals, GL_STATIC_DRAW_ARB);
+
+    if ($has_multicolor) {
+        $multicolors = as_oga($self->multicolors);
+        $multicolors->bind($vbo_colors);
+        glBufferDataARB_p(GL_ARRAY_BUFFER_ARB, $multicolors, GL_STATIC_DRAW_ARB);
+    }
 
     my $indices = $self->indices;
     my $indices_size = scalar(@$indices);
@@ -247,10 +257,11 @@ method _build_draw_function {
     );
 
     $self->shader->Enable;
-    my $has_texture_u  = $self->_uniform_for->{has_texture };
-    my $has_lighting_u = $self->_uniform_for->{has_lighting};
-    my $my_texture_u   = $self->_uniform_for->{mytexture};
-    my $view_model_u   = $self->_uniform_for->{view_model};
+    my $has_texture_u     = $self->_uniform_for->{has_texture };
+    my $has_lighting_u   = $self->_uniform_for->{has_lighting};
+    my $has_multicolor_u = $self->_uniform_for->{has_multicolor};
+    my $my_texture_u     = $self->_uniform_for->{mytexture};
+    my $view_model_u     = $self->_uniform_for->{view_model};
 
     my ($texture_id, $default_color);
     if ($self->has_texture) {
@@ -259,9 +270,10 @@ method _build_draw_function {
         $default_color = $self->default_color;
     }
 
-    my $attribute_texcoord = $self->_attribute_for->{texcoord};
-    my $attribute_coord3d  = $self->_attribute_for->{coord3d };
-    my $attribute_normal   = $self->_attribute_for->{N       };
+    my $attribute_texcoord   = $self->_attribute_for->{texcoord    };
+    my $attribute_coord3d    = $self->_attribute_for->{coord3d     };
+    my $attribute_normal     = $self->_attribute_for->{N           };
+    my $attribute_multicolor = $self->_attribute_for->{a_multicolor};
 
     $self->shader->Disable;
 
@@ -270,6 +282,7 @@ method _build_draw_function {
 
         glUniform1iARB($has_lighting_u, $self->lighting);
         glUniform1iARB($has_texture_u, $self->has_texture);
+        glUniform1iARB($has_multicolor_u, $self->has_multicolor);
 
         $self->shader->SetMatrix(model => $self->model_oga);
         $self->shader->SetMatrix(view_model => $self->model_view_oga);
@@ -283,7 +296,13 @@ method _build_draw_function {
             glBindBufferARB(GL_ARRAY_BUFFER, $self->_text_coords_oga->bound);
             glVertexAttribPointerARB_c($attribute_texcoord, 2, GL_FLOAT, 0, 0, 0);
         } else {
-            $self->shader->SetVector('default_color', @$default_color);
+            if ($self->has_multicolor) {
+                glEnableVertexAttribArrayARB($attribute_multicolor);
+                glBindBufferARB(GL_ARRAY_BUFFER, $multicolors->bound);
+                glVertexAttribPointerARB_c($attribute_multicolor, 4, GL_FLOAT, 0, 0, 0);
+            } else {
+                $self->shader->SetVector('default_color', @$default_color);
+            }
         }
 
         glEnableVertexAttribArrayARB($attribute_coord3d);
