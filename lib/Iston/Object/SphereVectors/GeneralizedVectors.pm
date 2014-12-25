@@ -201,7 +201,10 @@ method _build_draw_function {
         push @indices, (map { ($_-2, $_-1) } scalar(@displayed_vertices) );
     }
 
-    return $self->_draw_function_constructor(\@displayed_vertices, \@indices);
+    my $default_color = $self->default_color;
+    my @colors = map { $default_color } (0 .. @indices-1);
+
+    return $self->_draw_function_constructor(\@displayed_vertices, \@indices, \@colors);
 };
 
 1;

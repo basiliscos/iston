@@ -15,7 +15,6 @@ has draw_function  => (is => 'lazy', clearer => 1);
 has model_oga      => (is => 'rw'); # inherited from outer container
 has spin_detection => (is => 'rw', default => sub{ 0 }, trigger => 1);
 
-
 requires('vectors');
 requires('vertex_indices');
 requires('vertices');
@@ -72,13 +71,16 @@ method _trigger_spin_detection($value) {
 method detect_spins {
 };
 
-method _draw_function_constructor($vertices, $indices) {
-    my $vertices_oga = as_oga( $vertices );
-    my ($vbo_vertices) = glGenBuffersARB_p(1);
+method _draw_function_constructor($vertices, $indices, $colors) {
+    my $spin_detection = $self->spin_detection;
+    my ($vertices_oga, $colors_oga) = map { as_oga($_) } ($vertices , $colors);
+    my ($vbo_vertices, $vbo_colors) = glGenBuffersARB_p(2);
 
     $vertices_oga->bind($vbo_vertices);
     glBufferDataARB_p(GL_ARRAY_BUFFER_ARB, $vertices_oga, GL_STATIC_DRAW_ARB);
 
+    $colors_oga->bind($vbo_colors);
+    glBufferDataARB_p(GL_ARRAY_BUFFER_ARB, $colors_oga, GL_STATIC_DRAW_ARB);
 
     my $indices_size = scalar(@$indices);
     my $draw_mode = GL_LINES;
@@ -90,9 +92,11 @@ method _draw_function_constructor($vertices, $indices) {
 
     $self->shader->Enable;
     my $has_texture_u = $self->_uniform_for->{has_texture};
+    my $has_multicolor_u = $self->_uniform_for->{has_multicolor};
     my $default_color = $self->default_color;
     my $has_lighting_u = $self->_uniform_for->{has_lighting};
     my $attribute_coord3d = $self->_attribute_for->{coord3d};
+    my $attribute_multicolor = $self->_attribute_for->{a_multicolor};
     $self->shader->Disable;
 
     my $draw_function = sub {
@@ -100,16 +104,20 @@ method _draw_function_constructor($vertices, $indices) {
 
         glUniform1iARB($has_lighting_u, 0);
         glUniform1iARB($has_texture_u, 0);
+        glUniform1iARB($has_multicolor_u, 1);
         $self->shader->SetMatrix(model => $self->model_oga);
-        $self->shader->SetVector('default_color', @$default_color);
 
         glEnableVertexAttribArrayARB($attribute_coord3d);
         glBindBufferARB(GL_ARRAY_BUFFER, $vertices_oga->bound);
         glVertexAttribPointerARB_c($attribute_coord3d, 3, GL_FLOAT, 0, 0, 0);
 
+        glEnableVertexAttribArrayARB($attribute_multicolor);
+        glBindBufferARB(GL_ARRAY_BUFFER, $colors_oga->bound);
+        glVertexAttribPointerARB_c($attribute_multicolor, 4, GL_FLOAT, 0, 0, 0);
+
         glDrawElements_c(GL_LINES, $indices_size, GL_UNSIGNED_INT, $indices_oga->ptr);
 
-        glDisableVertexAttribArrayARB($attribute_coord3d);
+        glDisableVertexAttribArrayARB($_) for($attribute_coord3d, $attribute_multicolor);
         $self->shader->Disable;
     };
     return $draw_function;

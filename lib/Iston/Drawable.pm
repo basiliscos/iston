@@ -280,6 +280,7 @@ method _build_draw_function {
     my $draw_function = sub {
         $self->shader->Enable;
 
+        my @enabled_attributes;
         glUniform1iARB($has_lighting_u, $self->lighting);
         glUniform1iARB($has_texture_u, $self->has_texture);
         glUniform1iARB($has_multicolor_u, $self->has_multicolor);
@@ -295,11 +296,13 @@ method _build_draw_function {
             glEnableVertexAttribArrayARB($attribute_texcoord);
             glBindBufferARB(GL_ARRAY_BUFFER, $self->_text_coords_oga->bound);
             glVertexAttribPointerARB_c($attribute_texcoord, 2, GL_FLOAT, 0, 0, 0);
+            push @enabled_attributes, $attribute_texcoord;
         } else {
             if ($self->has_multicolor) {
                 glEnableVertexAttribArrayARB($attribute_multicolor);
                 glBindBufferARB(GL_ARRAY_BUFFER, $multicolors->bound);
                 glVertexAttribPointerARB_c($attribute_multicolor, 4, GL_FLOAT, 0, 0, 0);
+                push @enabled_attributes, $attribute_multicolor;
             } else {
                 $self->shader->SetVector('default_color', @$default_color);
             }
@@ -308,6 +311,7 @@ method _build_draw_function {
         glEnableVertexAttribArrayARB($attribute_coord3d);
         glBindBufferARB(GL_ARRAY_BUFFER, $vertices->bound);
         glVertexAttribPointerARB_c($attribute_coord3d, 3, GL_FLOAT, 0, 0, 0);
+        push @enabled_attributes, $attribute_coord3d;
 
         glEnableVertexAttribArrayARB($attribute_normal);
         glBindBufferARB(GL_ARRAY_BUFFER, $normals->bound);
@@ -315,8 +319,7 @@ method _build_draw_function {
 
         glDrawElements_c(GL_TRIANGLES, $indices_size, GL_UNSIGNED_INT, $indices_oga->ptr);
 
-        glDisableVertexAttribArrayARB($attribute_coord3d);
-        glDisableVertexAttribArrayARB($attribute_texcoord) if (defined $texture_id);
+        glDisableVertexAttribArrayARB($_) for(@enabled_attributes);
         $self->shader->Disable;
     };
     return $draw_function;
