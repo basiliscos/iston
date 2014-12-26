@@ -4,7 +4,7 @@ use 5.16.0;
 
 use Function::Parameters qw(:strict);
 use OpenGL qw(:all);
-use Iston::Utils qw/as_oga/;
+use Iston::Utils qw/as_oga maybe_zero/;
 use Moo::Role;
 
 use aliased qw/Iston::Vector/;
@@ -40,39 +40,51 @@ method _trigger_spin_detection($value) {
             for my $idx ($from .. $to) {
                 $vectors->[$idx]->payload->{spin_index} = $spin_index;
             }
+            $spin_index++;
         };
 
-        for (my $i = 0; $i < @$vectors-1; $i++) {
-            my ($v1, $v2) = map { $vectors->[$_] } ($i, $i+1);
-            my $n = $v1 * $v2;
+        for (my $i = 1; $i < @$vectors; $i++) {
+            my ($n1, $n2) = map {
+                $vectors->[$_]->payload->{great_arc_normal}
+            } ($i-1, $i);
+            my $v = Vector->new($vectors->[$i]->payload->{start_vertex});
             my $m = Matrix->new_from_rows([
-                [@$n],
-                [@$v1],
-                [@$v2],
+                [@$n1],
+                [@$n2],
+                [@$v ],
             ]);
-            my $volume_orientation = $m->det;
+            my $volume_orientation = maybe_zero($m->det);
             if (defined $prev_orientation) {
-                my $same_sign = ($prev_orientation * $volume_orientation) > 0; # >=0 ?
+                my $same_sign = ($prev_orientation * $volume_orientation) >= 0;
                 if (!$same_sign) {
                     $seal_spin->($spin_start, $i-1);
-                    $spin_index++;
                     $spin_start = $i;
                 }
             }
+            # say "[$i]  n1: $n1, n2: $n2";
+            # say( ($prev_orientation // ''), ' -> ', $volume_orientation);
             $prev_orientation = $volume_orientation;
         }
         $seal_spin->($spin_start, @$vectors-1);
+        say "Spins detected: ", $spin_index;
     }
     else {
         delete $_->payload->{spin_index} for(@$vectors);
     }
+    $self->clear_draw_function;
 };
 
-method detect_spins {
-};
+method _spin_color($vector) {
+    my $spin_index = $vector->payload->{spin_index};
+    return $self->default_color unless defined $spin_index;
+    my $off_component = $spin_index % 3;
+    my @white = ( (1.0) x 3 );
+    $white[$off_component] = 0;
+    my $color = [@white, 0.0];
+    return $color;
+}
 
 method _draw_function_constructor($vertices, $indices, $colors) {
-    my $spin_detection = $self->spin_detection;
     my ($vertices_oga, $colors_oga) = map { as_oga($_) } ($vertices , $colors);
     my ($vbo_vertices, $vbo_colors) = glGenBuffersARB_p(2);
 
@@ -122,7 +134,6 @@ method _draw_function_constructor($vertices, $indices, $colors) {
     };
     return $draw_function;
 }
-
 
 
 1;

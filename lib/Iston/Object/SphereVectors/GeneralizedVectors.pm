@@ -162,11 +162,13 @@ method arrow_vertices($index) {
 }
 
 method _build_draw_function {
+    my $default_color = $self->default_color;
 
     # main sphere vector drawing
     my $vertex_indices = $self->vertex_indices;
     my @displayed_vertices;
     my @indices;
+    my @colors;
 
     # arrays for sphere vertices calculations
     for my $i (0 .. @$vertex_indices - 1 ) {
@@ -178,6 +180,7 @@ method _build_draw_function {
             map { $last_v_index + 1 + $_ }
             (0, 2, 1, 3, 0, 1, 2, 3);
         push @indices, @arrow_indices;
+        push @colors, (($default_color) x @arrow_indices);
     }
 
     # build auxilary vertices to show the actual path
@@ -189,20 +192,22 @@ method _build_draw_function {
         my $axis = $start_v * $v;
         my $angle = $start_v->angle_with($end_v);
         my $rotation = rotation_matrix(@$axis, $_vizualization_step);
+        my $color = $self->_spin_color($v);
         push @displayed_vertices, $start_v;
         for(my $phi = $_vizualization_step; $phi < $angle; $phi += $_vizualization_step) {
             my $r = $rotation * Iston::Matrix->new_from_cols([ [@$start_v] ]);
             my $result_vector = Vector->new( [map { $r->element($_, 1) } (1 .. 3) ] );
             push @displayed_vertices, $result_vector;
             push @indices, (map { ($_-2, $_-1) } scalar(@displayed_vertices) );
+            push @colors, ( ($color) x 2 );
             $start_v = $result_vector;
         }
         push @displayed_vertices, $end_v;
         push @indices, (map { ($_-2, $_-1) } scalar(@displayed_vertices) );
+        push @colors, ( ($color) x 2 );
     }
 
-    my $default_color = $self->default_color;
-    my @colors = map { $default_color } (0 .. @indices-1);
+    #my @colors = map { $default_color } (0 .. @indices-1);
 
     return $self->_draw_function_constructor(\@displayed_vertices, \@indices, \@colors);
 };

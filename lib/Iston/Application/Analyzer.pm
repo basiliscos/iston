@@ -442,11 +442,13 @@ sub _build_menu {
         cb_read    => sub { $angular_distance },
         cb_write   => sub {
             $angular_distance = shift;
+            return unless $self->observation_path;
+
             my $sv = $angular_distance
                 ? GeneralizedVectors->new(
                     distance       => deg2rad($angular_distance),
                     source_vectors => $self->_source_sphere_vectors,
-                    default_color  => [0.75, 0.0, 0.75, 0.0]
+                    default_color  => [0.0, 0.0, 0.75, 0.0]
                 )
                 : $self->_source_sphere_vectors;
             $self->observation_path->sphere_vectors($sv);
@@ -455,6 +457,27 @@ sub _build_menu {
             min   => '0',
             max   => '360',
             label => 'distance',
+            group => 'Analysis',
+        },
+    );
+
+    $bar->add_variable(
+        mode       => 'rw',
+        name       => "spin_detection",
+        type       => 'bool',
+        cb_read    => sub {
+            my $observation_path = $self->observation_path;
+            return $observation_path && $observation_path->sphere_vectors->spin_detection;
+        },
+        cb_write   => sub {
+            my $observation_path = $self->observation_path;
+            if($observation_path) {
+                my $value = shift;
+                $observation_path->sphere_vectors->spin_detection($value);
+            }
+        },
+        definition => {
+            label => 'spin detection',
             group => 'Analysis',
         },
     );

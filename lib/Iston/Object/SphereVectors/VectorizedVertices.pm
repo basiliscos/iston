@@ -64,8 +64,7 @@ method _build_vertex_to_vector_function {
     return $mapper;
 }
 
-method arrow_vertices($index_to, $index_from) {
-    my ($start, $end) = map { $self->vertices->[$_] } ($index_from, $index_to);
+method arrow_vertices($start, $end) {
     my $direction =  $start->vector_to($end);
     my $d_normal = Vector->new([@$direction])->normalize;
     my $n = Vector->new([0, 1, 0]);
@@ -96,28 +95,38 @@ method arrow_vertices($index_to, $index_from) {
 }
 
 method _build_draw_function {
-    my $vertex_indices = $self->vertex_indices;
-    my @displayed_vertices =
-        map { $self->vertices->[$_] }
-        @$vertex_indices;
-    my @indices = map{ ($_-1, $_) }(1 .. @displayed_vertices-1);
-    # arrays for sphere vertices calculations
-    for my $i (0 .. @$vertex_indices - 2 ) {
-        my $v_index = $vertex_indices->[$i];
-        my $last_v_index = $indices[-1];
-        my @arrow_vertices = $self->arrow_vertices($v_index+1, $v_index);
-        push @displayed_vertices, @arrow_vertices;
-        # should be like (1, 0, 2, 0, 3, 0, 4, 0);
-        my @arrow_indices =
-            map { ($i+1, $_) }
-            map { $last_v_index + 1 + $_ }
-            (0 .. @arrow_vertices - 1);
-        push @indices, @arrow_indices;
-    }
-
     my $default_color = $self->default_color;
-    my @colors = map { $default_color } (0 .. @indices-1);
+    my $vertices = $self->vertices;
+    my $spin_detection = $self->spin_detection;
+    my $vectors = $self->vectors;
+    my @displayed_vertices =
+        map { ($_->{start_vertex}, $_->{end_vertex}) }
+        map { $_->payload } @$vectors
+        ;
+    my @indices = map{ ($_-1, $_) }(1 .. @displayed_vertices-1);
+    my @colors  = !$spin_detection
+        ? map { $default_color } (0 .. @indices-1)
+        : map { ($_, $_) }
+          map { $self->_spin_color($_) }
+        @$vectors;
 
+    # arrays for sphere vertices calculations
+    if (!$spin_detection) {
+        for my $i (0 .. @$vectors - 1 ) {
+            my $vector = $vectors->[$i];
+            my $last_v_index = $indices[-1];
+            my ($start, $end) = map { ($_->{start_vertex}, $_->{end_vertex}) } $vector->payload;
+            my @arrow_vertices = $self->arrow_vertices($start, $end);
+            push @displayed_vertices, @arrow_vertices;
+            # should be like (1, 0, 2, 0, 3, 0, 4, 0);
+            my @arrow_indices =
+                map { ($i*2+1, $_) }
+                map { $last_v_index + 1 + $_ }
+                (0 .. @arrow_vertices - 1);
+            push @indices, @arrow_indices;
+            push @colors, (($default_color) x scalar(@arrow_indices));
+        }
+    }
     return $self->_draw_function_constructor(\@displayed_vertices, \@indices, \@colors);
 }
 

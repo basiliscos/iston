@@ -63,20 +63,49 @@ subtest "simple spin" => sub {
     );
     is scalar(@{$gv->vectors}), 8;
 
-    subtest "gv spins" => sub {
-        $gv->spin_detection(1);
-        is $_->payload->{spin_index}, 0 for (@{ $gv->vectors });
-        $gv->spin_detection(0);
-        ok !exists $_->payload->{spin_index} for (@{ $gv->vectors });
-    };
-
     subtest "vectorized vertices spins" => sub{
         my $vv = $sphere_vectors_original;
         $vv->spin_detection(1);
-        is $_->payload->{spin_index}, 0 for (@{ $vv->vectors });
+        is $vv->vectors->[$_]->payload->{spin_index}, 0, "0-th spin for $_ vv"
+            for (0 .. @{ $vv->vectors } - 1);
         $vv->spin_detection(0);
-        ok !exists $_->payload->{spin_index} for (@{ $vv->vectors });
+        ok !exists $vv->vectors->[$_]->payload->{spin_index}, "no spin for $_ vv"
+            for (0 .. @{ $vv->vectors } - 1);
     };
+
+    subtest "gv spins" => sub {
+        $gv->spin_detection(1);
+        is $gv->vectors->[$_]->payload->{spin_index}, 0, "0-th spin for $_ gv"
+            for (0 .. @{ $gv->vectors } - 1);
+        $gv->spin_detection(0);
+        ok !exists $gv->vectors->[$_]->payload->{spin_index},  "no spin for $_ gv"
+            for (0 .. @{ $gv->vectors } - 1);
+    };
+
 };
+
+subtest "no spin" => sub {
+    my $h = History->new;
+    # rotation like:
+    #  →↗↘
+    my @angels = (
+        [0, 0],   # start
+        [0, 10],  # →
+        [5, 15],  # ↗
+        [-5, 20], # ↘
+        [5, 25],  # ↗
+    );
+    my $records = $_a2r->(\@angels);
+    push @{$h->records}, @$records;
+    my $o = ObservationPath->new(history => $h);
+    my $vv = VectorizedVertices->new(
+        vertices       => $o->vertices,
+        vertex_indices => $o->sphere_vertex_indices,
+        hilight_color  => [0.0, 0.0, 0.0, 0.0], # does not matter
+    );
+    $vv->spin_detection(1);
+    ok !exists $_->payload->{spin_index} for (@{ $vv->vectors });
+};
+
 
 done_testing;
