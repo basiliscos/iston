@@ -10,6 +10,7 @@ use List::MoreUtils qw/pairwise all/;
 use List::Util qw/first reduce/;
 use Moo;
 
+use aliased qw/Iston::Matrix/;
 use aliased qw/Iston::Triangle/;
 use aliased qw/Iston::TrianglePath/;
 use aliased qw/Iston::Vector/;
@@ -113,13 +114,25 @@ method intersects_with($vertex_on_sphere) {
     my $t = $r0->scalar_multiplication($n) / $an;
     my $vertex_on_triangle = Vertex->new($a*$t);
 
-    # now, check, wheather the vertex is inside the triangle
+    # # now, check, wheather the vertex is inside the triangle
     my @indices = (
         [0, 1],
         [1, 2],
         [2, 0],
     );
-    # planes, formed by the tringle sidies
+
+    # this works, while this is more elegant, but it is more slower too :(
+    # my $to_a = Vector->new($a);
+    # my @orientations = map {
+    #     my ($a, $b) = map {$self->vertices->[$_]} @$_;
+    #     my $orientation = Matrix->new_from_rows([
+    #         [@$a],
+    #         [@$b],
+    #         [@$to_a],
+    #     ])->det
+    # } @indices;
+    # my @values = map { maybe_zero($_) } @orientations;
+    # # planes, formed by the tringle sidies
     my @planes = map {
         my ($a, $b) = map {$self->vertices->[$_]} @$_;
         my $normal = $a->vector_to($b)*$n;
@@ -133,9 +146,13 @@ method intersects_with($vertex_on_sphere) {
             my ($normal, $alpha) = @$_;
             $vector_to_triangle->scalar_multiplication($normal) - $alpha;
         } @planes;
-    my @signes = map { $_ > 0 ? 1 : $_ < 0 ? -1 : 0 } @values;
-    my $any_non_zero = first { $_  } @signes;
-    my $is_inside = all { $_ == 0 or $_ == $any_non_zero } @signes;
+
+    # redundant checks
+    # my @signes = map { $_ > 0 ? 1 : $_ < 0 ? -1 : 0 } @values;
+    # my $any_non_zero = first { $_  } @signes;
+    # my $is_inside = all { $_ == 0 or $_ == $any_non_zero } @signes;
+    my $is_inside = all { $_ <= 0 } @values;
+
     return $is_inside ? $vertex_on_triangle : undef;
 }
 

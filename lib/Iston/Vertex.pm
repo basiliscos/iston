@@ -27,16 +27,14 @@ sub BUILDARGS {
 }
 
 method vector_to($vertex_b) {
-    my ($a, $b) = ($self, $vertex_b);
-    my $v;
+    my ($a, $b) = map {$_->values} ($self, $vertex_b);
     my @values = map { $b->[$_] - $a->[$_] } (0 .. 2);
-    $v = Vector->new(\@values);
-    return $v;
+    return Vector->new(\@values);
 };
 
 sub _stringify {
-    my $self = shift;
-    return sprintf('vertex[%0.7f, %0.7f, %0.7f]', @{$self}[0 .. 2]);
+    my $values = shift->values;
+    return sprintf('vertex[%0.7f, %0.7f, %0.7f]', @$values);
 }
 
 1;

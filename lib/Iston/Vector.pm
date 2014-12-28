@@ -6,7 +6,7 @@ use Carp;
 use Function::Parameters qw(:strict);
 use List::Util qw/reduce/;
 use List::MoreUtils qw/pairwise/;
-use Math::Trig;
+use Math::Trig qw/acos_real/;
 
 use Moo;
 
@@ -47,7 +47,7 @@ sub _values {
 }
 
 sub _mul_vector {
-    my ($a, $b) = @_;
+    my ($a, $b) = map { $_->values} @_;
     my @values = (
         $a->[1]*$b->[2] - $a->[2]*$b->[1],
         $a->[2]*$b->[0] - $a->[0]*$b->[2],
@@ -73,7 +73,7 @@ sub _mul {
 };
 
 sub scalar_multiplication {
-    my ($p, $q) = @_;
+    my ($p, $q) = map {$_->values } @_;
     return
         reduce   { $a + $b }
         pairwise { $a * $b }
@@ -81,19 +81,18 @@ sub scalar_multiplication {
 }
 
 sub _add {
-    my ($a, $b) = @_;
+    my ($a, $b) = map {$_->values } @_[0,1];
     my @r = map { $a->[$_] + $b->[$_] } (0 .. 2);
     return Iston::Vector->new(\@r);
 }
 
 sub _sub {
-    my ($a, $b) = @_;
+    my ($a, $b) = map {$_->values } @_[0,1];
     my @r = map { $a->[$_] - $b->[$_] } (0 .. 2);
     return Iston::Vector->new(\@r);
 }
 
 sub _equal {
-    my ($a, $b) = @_;
     my $r = 1;
     for (0 .. 2) {
         $r &= $a->[$_] == $b->[$_];
@@ -103,10 +102,10 @@ sub _equal {
 
 sub length {
     my $self = shift;
+    my $values = $self->values;
     return sqrt(
         reduce  { $a + $b }
-            map { $_ * $_ }
-            map {$self->[$_] }
+            map {$values->[$_]**2 }
             (0 .. 2)
     );
 }
@@ -115,26 +114,24 @@ sub normalize {
     my $self = shift;
     my $length = $self->length;
     return $self if($length == 0);
+
+    my $values = $self->values;
     my @r =
-        map { $_ / $length  }
-        map {$self->[$_] }
+        map {$self->[$_] / $length }
         (0 .. 2);
-    for (0 .. 2) {
-        $self->[$_] = $r[$_];
-    }
-    $self;
+    return Iston::Vector->new(\@r);
 }
 
 sub _stringify {
-    my $self = shift;
-    return sprintf('vector[%0.4f, %0.4f, %0.4f]', @{$self}[0 .. 2]);
+    my $values = shift->values;
+    return sprintf('vector[%0.4f, %0.4f, %0.4f]', @$values);
 }
 
 sub smart_2string {
-    my $self = shift;
+    my $values = shift->values;
     my @values =
         map { $_ eq '-0.0000' ? '0.0000' : $_ }
-        map { sprintf('%0.4f', $_) } @{$self}[0 .. 2];
+        map { sprintf('%0.4f', $_) } @$values;
     sprintf('vector[%s, %s, %s]', @values);
 }
 
@@ -148,12 +145,13 @@ sub angle_with {
     my $cos_a = $a->scalar_multiplication($b) / ($a->length * $b->length);
     # take care of accurracy to do not jump accidently
     # to complex plane
-    $cos_a = $cos_a > 1
-        ? 1
-        : $cos_a < -1
-        ? -1
-        : $cos_a;
-    return acos($cos_a);
+    # $cos_a = $cos_a > 1
+    #     ? 1
+    #     : $cos_a < -1
+    #     ? -1
+    #     : $cos_a;
+    # return acos($cos_a);
+    return acos_real($cos_a);
 }
 
 sub _build_rotation_angles {
