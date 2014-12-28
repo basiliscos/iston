@@ -128,24 +128,38 @@ my $_initial_point = [0, 0, 1];
 my $_current_point =  Iston::Matrix->new_from_cols([ $_initial_point ]);
 
 fun as_cartesian($dx, $dy) {
-    my $x_axis_degree = $dx * -1;
-    my $y_axis_degree = $dy * -1;
-    my $x_rads = deg2rad($x_axis_degree);
-    my $y_rads = deg2rad($y_axis_degree);
-    my $r_a = Iston::Matrix->new_from_rows([
-        [1, 0,            0            ],
-        [0, cos($x_rads), -sin($x_rads)],
-        [0, sin($x_rads), cos($x_rads) ],
-    ]);
-    my $r_b = Iston::Matrix->new_from_rows([
-        [cos($y_rads),  0, sin($y_rads)],
-        [0,          ,  1, 0           ],
-        [-sin($y_rads), 0, cos($y_rads)],
-    ]);
-    my $rotation = $r_b * $r_a; # reverse order!
-    my $result = $rotation * $_current_point;
-    my @xyz = map { $result->element($_, 1) } (1 .. 3);
-    return \@xyz;
+
+    # my $x_axis_degree = $dx * -1;
+    # my $y_axis_degree = $dy * -1;
+    # my $x_rads = deg2rad($x_axis_degree);
+    # my $y_rads = deg2rad($y_axis_degree);
+    # my $r_a = Iston::Matrix->new_from_rows([
+    #     [1, 0,            0            ],
+    #     [0, cos($x_rads), -sin($x_rads)],
+    #     [0, sin($x_rads), cos($x_rads) ],
+    # ]);
+    # my $r_b = Iston::Matrix->new_from_rows([
+    #     [cos($y_rads),  0, sin($y_rads)],
+    #     [0,          ,  1, 0           ],
+    #     [-sin($y_rads), 0, cos($y_rads)],
+    # ]);
+    # my $rotation = $r_b * $r_a; # reverse order!
+    # my $result = $rotation * $_current_point;
+    # my @xyz = map { $result->element($_, 1) } (1 .. 3);
+    # return \@xyz;
+
+
+    # simplified version of the above:
+
+    my $da = deg2rad $dx;
+    my $db = deg2rad $dy;
+    my $cos_a = cos($da);
+    my @values = (
+        - $cos_a * sin($db),
+        sin($da),
+        cos($da) * cos($db),
+    );
+    return \@values;  # [ map { maybe_zero($_) } @values ];
 };
 
 1;

@@ -26,6 +26,7 @@ our @EXPORT_OK = qw/normal/;
 with('Iston::Payload');
 
 has 'values' => (is => 'ro', required => 1);
+has 'rotation_angles' => (is => 'lazy');
 
 sub BUILDARGS {
     my ( $class, $values ) = @_;
@@ -154,5 +155,18 @@ sub angle_with {
         : $cos_a;
     return acos($cos_a);
 }
+
+sub _build_rotation_angles {
+    my $self = shift;
+    my ($a, $b) = map { $self->payload->{$_} } qw/start_vertex end_vertex/;
+    die("no start vertex payload") unless $a;
+    die("no end vertex payload") unless $a;
+
+    my ($rot_a, $rot_b) = map {
+        $_->payload->{rotation} // die("No rotation payload for vertex")
+    } ($a, $b);
+    my @rot_diff = map {$rot_b->[$_] - $rot_a->[$_]} (0, 1);
+    return \@rot_diff;
+};
 
 1;

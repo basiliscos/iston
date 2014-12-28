@@ -50,7 +50,7 @@ method _trigger_spin_detection($value) {
                 $vectors->[$_]->payload->{great_arc_normal}
             } ($i-1, $i);
             my ($ra1, $ra2) = map {
-                $vectors->[$_]->payload->{rotation_angles}
+                $vectors->[$_]->rotation_angles;
             } ($i-1, $i);
             # pseudo-scalar multiplication will be zero in case
             # of collinearity. % 360 is needed to "wrap" sphere surface

@@ -48,7 +48,7 @@ subtest "up: 45, counter-clock-wise: 90" => sub {
 
     is @{$o->vertices}, 3;
     is $o->vertices->[0], "vertex[0.0000000, 0.0000000, 1.0000000]";
-    is $o->vertices->[1], "vertex[0.0000000, 0.7071068, 0.7071068]";
+    is $o->vertices->[1], "vertex[-0.0000000, 0.7071068, 0.7071068]";
     is $o->vertices->[2], "vertex[0.7071068, 0.7071068, 0.0000000]";
 
     is $o->index_at->{ $h->records->[-1]->timestamp }, 2;
