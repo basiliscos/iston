@@ -3,6 +3,7 @@ package Iston::Matrix;
 use 5.16.0;
 
 use parent qw/Math::MatrixReal/;
+#use parent qw/Math::Matrix::MaybeGSL/;
 
 sub as_list {
     my $self = shift;
