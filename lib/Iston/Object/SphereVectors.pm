@@ -38,7 +38,7 @@ method _trigger_spin_detection($value) {
         my $seal_spin = sub {
             my ($from, $to) = @_;
             # at least 3 vectors might form spin
-            return if($to - $from < 3);
+            return if(($to - $from + 1) < 3);
             for my $idx ($from .. $to) {
                 $vectors->[$idx]->payload->{spin_index} = $spin_index;
             }

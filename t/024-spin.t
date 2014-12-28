@@ -84,6 +84,26 @@ subtest "simple spin" => sub {
 
 };
 
+subtest "minimal spin" => sub {
+    my $h = History->new;
+    my @angels = (
+        [0, 0],
+        [0, 26],
+        [16, 42],
+        [20, 42],
+    );
+    my $records = $_a2r->(\@angels);
+    push @{$h->records}, @$records;
+    my $o = ObservationPath->new(history => $h);
+    my $vv = VectorizedVertices->new(
+        vertices       => $o->vertices,
+        vertex_indices => $o->sphere_vertex_indices,
+        hilight_color  => [0.0, 0.0, 0.0, 0.0], # does not matter
+    );
+    $vv->spin_detection(1);
+    is $_->payload->{spin_index}, 0 for (@{ $vv->vectors });
+};
+
 subtest "no spin" => sub {
     my $h = History->new;
     # rotation like:
