@@ -4,27 +4,34 @@ use 5.12.0;
 
 use Carp;
 use Function::Parameters qw(:strict);
+use Iston::Utils qw/as_cartesian/;
+use Moo;
 
 use aliased qw/Iston::Vector/;
 
 use overload
     '""' => '_stringify',
+    '@{}' => '_values',
      fallback => 1,
    ;
 
-sub new {
-    my ($class, $values) = @_;
-    croak "Vertex is defined exactly by 3 values"
-        unless @$values == 3;
+with('Iston::Payload');
 
-    my $copy = [@$values];
-    bless $copy => $class;
-};
+has 'values' => (is => 'ro', required => 1);
+
+sub _values { return shift->values; }
+
+sub BUILDARGS {
+    my ( $class, $values ) = @_;
+    return { values => [@$values] };
+}
 
 method vector_to($vertex_b) {
     my ($a, $b) = ($self, $vertex_b);
+    my $v;
     my @values = map { $b->[$_] - $a->[$_] } (0 .. 2);
-    return Vector->new(\@values);
+    $v = Vector->new(\@values);
+    return $v;
 };
 
 sub _stringify {

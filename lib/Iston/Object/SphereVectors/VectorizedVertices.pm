@@ -3,14 +3,14 @@ package Iston::Object::SphereVectors::VectorizedVertices;
 use 5.16.0;
 
 use Function::Parameters qw(:strict);
-use Iston::Matrix;
-use Iston::Utils qw/rotation_matrix generate_list_id/;
+use Iston::Utils qw/rotation_matrix generate_list_id as_cartesian/;
 use List::Util qw/reduce/;
 use List::MoreUtils qw/pairwise/;
 use Moo;
 use Math::Trig;
 use OpenGL qw(:all);
 
+use aliased qw/Iston::Matrix/;
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
@@ -29,6 +29,9 @@ method _build_vectors {
         my @uniq_indices = @{$indices}[$_, $_+1];
         my ($a, $b) = map { $vertices->[$_] } @uniq_indices;
         my $v = $a->vector_to($b);
+        my ($rot_a, $rot_b) = map { $_->payload->{rotation} } ($a, $b);
+        my @rot_diff = map {$rot_b->[$_] - $rot_a->[$_]} (0, 1);
+        $v->payload->{rotation_angles} = \@rot_diff;
         my $great_arc_normal = $v * $center->vector_to($a);
         $v->payload->{start_vertex    } = $a;
         $v->payload->{end_vertex      } = $b;
@@ -88,7 +91,7 @@ method arrow_vertices($start, $end) {
         }
         map { $_ * $length }
         map {
-            my $r = $rotation * Iston::Matrix->new_from_cols([ [@$_] ]);
+            my $r = $rotation * Matrix->new_from_cols([ [@$_] ]);
             my $result_vector = Vector->new( [map { $r->element($_, 1) } (1 .. 3) ] );
         } @normals;
     return @results;

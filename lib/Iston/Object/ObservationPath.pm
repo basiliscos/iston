@@ -6,12 +6,13 @@ use warnings;
 use utf8;
 
 use Function::Parameters qw(:strict);
-use Iston::Utils qw/rotation_matrix identity/;
+use Iston::Utils qw/rotation_matrix identity as_cartesian/;
 use Iston::Matrix;
 use List::Util qw/reduce/;
 use List::MoreUtils qw/pairwise/;
 use Moo;
 use Math::Trig;
+use Math::Trig ':radial', ':pi';
 use OpenGL qw(:all);
 
 use aliased qw/Iston::Vector/;
@@ -49,30 +50,13 @@ method has_texture { return 0; }
 method _build_vertices_and_indices {
     my $history = $self->history;
     my $current_point =  Iston::Matrix->new_from_cols([ [0, 0, 1] ]);
-    my ($x_axis_degree, $y_axis_degree) = (0, 0);
     my @vertices;
     for my $i (0 .. $history->elements-1) {
         my $record = $history->records->[$i];
         my ($dx, $dy, $timestamp) = map { $record->$_ }
             qw/x_axis_degree y_axis_degree timestamp/;
-        $x_axis_degree = $dx * -1;
-        $y_axis_degree = $dy * -1;
-        my $x_rads = deg2rad($x_axis_degree);
-        my $y_rads = deg2rad($y_axis_degree);
-        my $r_a = Iston::Matrix->new_from_rows([
-            [1, 0,            0            ],
-            [0, cos($x_rads), -sin($x_rads)],
-            [0, sin($x_rads), cos($x_rads) ],
-        ]);
-        my $r_b = Iston::Matrix->new_from_rows([
-            [cos($y_rads),  0, sin($y_rads)],
-            [0,          ,  1, 0           ],
-            [-sin($y_rads), 0, cos($y_rads)],
-        ]);
-        my $rotation = $r_b * $r_a; # reverse order!
-        my $result = $rotation * $current_point;
-        my ($x, $y, $z) = map { $result->element($_, 1) } (1 .. 3);
-        my $v = Vertex->new([$x, $y, $z]);
+        my $v = Vertex->new(as_cartesian($dx, $dy));
+        $v->payload->{rotation} = [$dx, $dy];
         push @vertices, $v;
         $self->index_at->{$timestamp} = $i;
     }

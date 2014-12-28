@@ -1,8 +1,10 @@
 package Iston::Object::SphereVectors;
 
 use 5.16.0;
+use warnings;
 
 use Function::Parameters qw(:strict);
+use List::Util qw/all/;
 use OpenGL qw(:all);
 use Iston::Utils qw/as_oga maybe_zero/;
 use Moo::Role;
@@ -47,13 +49,31 @@ method _trigger_spin_detection($value) {
             my ($n1, $n2) = map {
                 $vectors->[$_]->payload->{great_arc_normal}
             } ($i-1, $i);
-            my $v = Vector->new($vectors->[$i]->payload->{start_vertex});
-            my $m = Matrix->new_from_rows([
-                [@$n1],
-                [@$n2],
-                [@$v ],
-            ]);
-            my $volume_orientation = maybe_zero($m->det);
+            my ($ra1, $ra2) = map {
+                $vectors->[$_]->payload->{rotation_angles}
+            } ($i-1, $i);
+            # pseudo-scalar multiplication will be zero in case
+            # of collinearity. % 360 is needed to "wrap" sphere surface
+            my $collinear
+                = (defined $ra1 && defined $ra2)
+                ? ( ($ra1->[0] * $ra2->[1] % 360) - ($ra1->[1] * $ra2->[0] % 360) == 0)
+                : 0
+                ;
+            my $volume_orientation;
+
+            if ($collinear) {
+                $volume_orientation = $prev_orientation;
+            }
+            else {
+                my $v = Vector->new($vectors->[$i]->payload->{start_vertex});
+                my $m = Matrix->new_from_rows([
+                    [@$n1],
+                    [@$n2],
+                    [@$v ],
+                ]);
+                $volume_orientation = maybe_zero($m->det);
+            }
+
             if (defined $prev_orientation) {
                 my $same_sign = ($prev_orientation * $volume_orientation) >= 0;
                 if (!$same_sign) {
