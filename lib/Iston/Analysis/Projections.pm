@@ -28,36 +28,25 @@ method _build_projections_map {
             my $examined_triangles = $examined_triangles_at{$level}->{$vertex_index};
             my $vertex_on_sphere = $sphere_vertices->[$vertex_index];
             my @vertices =
+                grep { Vector->new($_->{intersection})->length <= 1 }
+                grep { defined $_->{intersection} }
                 map {
-                    my $vertex = $_;
-                    if (defined $vertex) {
-                        $vertex =
-                            Vector->new($_)->length <= 1
-                            ? $_
-                            : undef;
-                    }
-                    $vertex;
-                }
-                map {
-                    my $intersection = $_->intersects_with($vertex_on_sphere);
-                    $intersection;
-                } @$examined_triangles;
+                    my $v = $examined_triangles->[$_]->intersects_with($vertex_on_sphere);
+                    $v ?
+                        ({
+                            index        => $_,
+                            intersection => $v
+                        })
+                        : ();
+                } (0 .. @$examined_triangles -1 );
+            $_->{distance} = maybe_zero( $_->{intersection}->vector_to($vertex_on_sphere)->length )
+                for (@vertices);
             my @distances =
-                map {
-                    defined $_
-                        ? $_->vector_to($vertex_on_sphere)->length
-                        : undef;
-                } @vertices;
-            @distances =  map { maybe_zero($_) } @distances;
-            my $min_distance = min grep { defined($_) } @distances;
-            @vertices = map {
-                (defined($vertices[$_]) && $distances[$_] == $min_distance)
-                    ? $vertices[$_]
-                    : undef;
-            } (0 .. @vertices - 1);
-            my @triangle_indices =
-                grep { defined $vertices[$_] }
-                (0 .. @vertices-1);
+                map { $_->{distance} }
+                @vertices;
+            my $min_distance = min @distances;
+            @vertices = grep { $_->{distance} == $min_distance } @vertices;
+            my @triangle_indices = map { $_->{index} } @vertices;
             my @paths =
                 map  { $examined_triangles->[$_]->path }
                 @triangle_indices;

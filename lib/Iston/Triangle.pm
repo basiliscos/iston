@@ -133,10 +133,13 @@ method intersects_with($vertex_on_sphere) {
     # } @indices;
     # my @values = map { maybe_zero($_) } @orientations;
     # # planes, formed by the tringle sidies
+    my @cache;
     my @planes = map {
+        my ($i1, $i2) = @$_;
         my ($a, $b) = map {$self->vertices->[$_]} @$_;
         my $normal = $a->vector_to($b)*$n;
-        my $alpha = Vector->new($a)->scalar_multiplication($normal);
+        my $to_a = $cache[$i1] //= Vector->new($a);
+        my $alpha = $to_a->scalar_multiplication($normal);
         [$normal, $alpha];
     } @indices;
     my $vector_to_triangle = Vector->new($vertex_on_triangle);
