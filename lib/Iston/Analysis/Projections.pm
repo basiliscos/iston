@@ -35,27 +35,20 @@ method _build_projections_map {
                     $v ?
                         ({
                             index        => $_,
-                            intersection => $v
+                            intersection => $v,
+                            distance     => maybe_zero( $v->vector_to($vertex_on_sphere)->length ),
                         })
                         : ();
                 } (0 .. @$examined_triangles -1 );
-            $_->{distance} = maybe_zero( $_->{intersection}->vector_to($vertex_on_sphere)->length )
-                for (@vertices);
-            my @distances =
-                map { $_->{distance} }
-                @vertices;
-            my $min_distance = min @distances;
+            my $min_distance = min map { $_->{distance} } @vertices;
             @vertices = grep { $_->{distance} == $min_distance } @vertices;
             my @triangle_indices = map { $_->{index} } @vertices;
-            my @paths =
-                map  { $examined_triangles->[$_]->path }
-                @triangle_indices;
+            my @triangles = map { $examined_triangles->[$_] } @triangle_indices;
+            my @paths = map  { $_->path } @triangles;
             $projections_for{$vertex_index}->{$level} = \@paths;
             if ($level < $max_level) {
                 $examined_triangles_at{$level+1}->{$vertex_index} = [
-                    map {
-                        @{ $examined_triangles->[$_]->subtriangles }
-                    } @triangle_indices
+                    map { @{ $_->subtriangles } } @triangles
                 ];
             }
         }
