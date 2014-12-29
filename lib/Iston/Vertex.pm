@@ -11,7 +11,6 @@ use aliased qw/Iston::Vector/;
 
 use overload
     '""' => '_stringify',
-    '@{}' => '_values',
      fallback => 1,
    ;
 
@@ -19,17 +18,10 @@ with('Iston::Payload');
 
 has 'values' => (is => 'ro', required => 1);
 
-sub _values { return shift->values; }
-
-sub BUILDARGS {
-    my ( $class, $values ) = @_;
-    return { values => [@$values] };
-}
-
 method vector_to($vertex_b) {
     my ($a, $b) = map {$_->values} ($self, $vertex_b);
     my @values = map { $b->[$_] - $a->[$_] } (0 .. 2);
-    return Vector->new(\@values);
+    return Vector->new(values => \@values);
 };
 
 sub _stringify {

@@ -74,10 +74,11 @@ fun scale($v) {
 }
 
 fun translate($vector) {
+    my $values = $vector->values;
     return Iston::Matrix->new_from_rows([
-        [1, 0, 0, $vector->[0]],
-        [0, 1, 0, $vector->[1]],
-        [0, 0, 1, $vector->[2]],
+        [1, 0, 0, $values->[0]],
+        [0, 1, 0, $values->[1]],
+        [0, 0, 1, $values->[2]],
         [0, 0, 0, 1],
     ]);
 };
@@ -108,7 +109,7 @@ fun as_oga($source) {
     my $source = shift;
     return OpenGL::Array->new_list(
         GL_FLOAT,
-        map { @$_ } @$source
+        map { @{ ref eq 'ARRAY' ? $_ : $_->values } } @$source
     );
 };
 

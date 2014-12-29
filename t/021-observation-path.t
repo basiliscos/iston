@@ -63,8 +63,8 @@ subtest "simple arrow vertices" => sub {
 
     is @{$o->vertices}, 2;
     # for simplification
-    $o->vertices->[0] = Vertex->new([2, 0, 0]);
-    $o->vertices->[1] = Vertex->new([4, 0, 0]);
+    $o->vertices->[0] = Vertex->new(values => [2, 0, 0]);
+    $o->vertices->[1] = Vertex->new(values => [4, 0, 0]);
     is $o->vertices->[0], "vertex[2.0000000, 0.0000000, 0.0000000]";
     is $o->vertices->[1], "vertex[4.0000000, 0.0000000, 0.0000000]";
     my @arrows = $o->arrow_vertices(1, 0);

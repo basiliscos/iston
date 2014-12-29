@@ -49,9 +49,9 @@ method _build_center {
     croak "Count of vertices must match count of normals"
         unless $v_size == $n_size;
 
-    my($mins, $maxs) = map { $self->boundaries->[$_] } (0, 1);
+    my($mins, $maxs) = map { $self->boundaries->[$_]->values } (0, 1);
     my @avgs = map { ($mins->[$_] + $maxs->[$_]) /2  } (0 .. 2);
-    return Vertex->new(\@avgs);
+    return Vertex->new(values => \@avgs);
 };
 
 method radius {

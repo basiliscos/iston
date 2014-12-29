@@ -31,6 +31,7 @@ use aliased qw/Iston::Object::ObservationPath/;
 use aliased qw/Iston::Object::SphereVectors::GeneralizedVectors/;
 use aliased qw/Iston::Object::SphereVectors::VectorizedVertices/;
 use aliased qw/Iston::Vertex/;
+use aliased qw/Iston::Vector/;
 
 with('Iston::Application');
 
@@ -65,7 +66,7 @@ sub _build_htm {
     my $self = shift;
     my $htm = HTM->new;
     # $htm->mode('mesh');
-    my $r = Vertex->new([0, 0, 0])->vector_to($htm->triangles->[0]->vertices->[0])->length;
+    my $r = Vector->new(values => $htm->triangles->[0]->vertices->[0]->values)->length;
     my $scale_to = 1/($r/$self->max_boundary);
     $htm->scale($scale_to);
     $htm->level(3);
@@ -543,9 +544,8 @@ method _rotate_objects($idx) {
         $_->rotate(0, $x_axis_degree);
         $_->rotate(1, $y_axis_degree);
     }
-    $self->camera_position([
-        map { $record->$_ } qw/camera_x camera_y camera_z/
-    ]);
+    my $position = [ map { $record->$_ } map{ "camera_${_}" } qw/x y z/ ];
+    $self->camera_position(Vector->new(values => $position));
 }
 
 sub _rotate_active {

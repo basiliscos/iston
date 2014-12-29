@@ -20,7 +20,7 @@ method _build_values {
     my $sphere_vectors = $self->sphere_vectors->vectors;
     my @normal_degrees = map {
         my ($v1, $v2) = map { $sphere_vectors->[$_] } $_, $_+1;
-        my ($n1, $n2) = map { $_->payload->{great_arc_normal} } $v1, $v2;
+        my ($n1, $n2) = map { $_->payload->{great_arc_normal} } ($v1, $v2);
         my $angle = $n1->angle_with($n2);
         if ($angle) {
             my $sign =
@@ -28,9 +28,9 @@ method _build_values {
                 map {
                     my $idx = $_;
                     my ($c, $c0) =
-                        map { $_->payload->{end_vertex}->[$idx] }
+                        map { $_->payload->{end_vertex}->values->[$idx] }
                         ($v2, $v1);
-                    $n1->[$_]*($c-$c0);
+                    $n1->values->[$_]*($c-$c0);
                 } (0 .. 2);
             $angle *= ($sign > 0) ? 1 : -1;
         }

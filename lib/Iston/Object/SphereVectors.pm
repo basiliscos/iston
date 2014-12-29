@@ -65,11 +65,12 @@ method _trigger_spin_detection($value) {
                 $volume_orientation = $prev_orientation;
             }
             else {
-                my $v = Vector->new($vectors->[$i]->payload->{start_vertex});
+                my $values = $vectors->[$i]->payload->{start_vertex}->values;
+                my $v = Vector->new(values => $values);
                 my $m = Matrix->new_from_rows([
-                    [@$n1],
-                    [@$n2],
-                    [@$v ],
+                    $n1->values,
+                    $n2->values,
+                    $v->values,
                 ]);
                 $volume_orientation = maybe_zero($m->det);
             }

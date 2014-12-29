@@ -6,12 +6,12 @@ use Test::Warnings;
 use aliased qw/Iston::Vertex/;
 
 subtest "precision_equality" => sub{
-    my $v1 = Vertex->new([
+    my $v1 = Vertex->new(values => [
         '-0.288675134594813',
          '0.408248290463863',
          '0.866025403784439',
     ]);
-    my $v2 = Vertex->new([
+    my $v2 = Vertex->new(values => [
         '-0.288675134594813',
          '0.408248290463863',
          '0.866025403784438',

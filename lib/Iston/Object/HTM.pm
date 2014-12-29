@@ -26,12 +26,12 @@ use aliased qw/Iston::Vertex/;
 my $_R  = 1;
 
 my $_vertices = [
-    Vertex->new([0,  $_R, 0]), # top
-    Vertex->new([0, -$_R, 0]), # bottom
-    Vertex->new([$_R * sin(deg2rad 45) , 0, $_R * sin(deg2rad  45)]),  # front left
-    Vertex->new([$_R * sin(deg2rad -45), 0, $_R * sin(deg2rad  45)]),  # front righ
-    Vertex->new([$_R * sin(deg2rad -45), 0, $_R * sin(deg2rad -45)]),  # back right
-    Vertex->new([$_R * sin(deg2rad 45) , 0, $_R * sin(deg2rad -45)]),  # back left
+    Vertex->new(values => [0,  $_R, 0]), # top
+    Vertex->new(values => [0, -$_R, 0]), # bottom
+    Vertex->new(values => [$_R * sin(deg2rad 45) , 0, $_R * sin(deg2rad  45)]),  # front left
+    Vertex->new(values => [$_R * sin(deg2rad -45), 0, $_R * sin(deg2rad  45)]),  # front righ
+    Vertex->new(values => [$_R * sin(deg2rad -45), 0, $_R * sin(deg2rad -45)]),  # back right
+    Vertex->new(values => [$_R * sin(deg2rad 45) , 0, $_R * sin(deg2rad -45)]),  # back left
 ];
 
 my $_indices = [

@@ -76,7 +76,7 @@ sub init_app {
     $self->_initGL;
     $self->_init_shaders(qw/object/);
     #$self->object_shader->Enable;
-    $self->camera_position([0, 0, -7]);
+    $self->camera_position(Vector->new(values => [0, 0, -7]));
     # $self->view( look_at(
     #         Vector->new([0.0, 2.0, 0.0]),
     #         $self->camera_position,
@@ -153,7 +153,7 @@ method _update_view {
         $shader->SetMatrix(
             view => OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list)
         );
-        $shader->SetVector('camera', @$camera, 0.0);
+        $shader->SetVector('camera', @{ $camera->values }, 0.0);
         $shader->Disable;
     }
 }

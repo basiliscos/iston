@@ -55,7 +55,7 @@ method _build_vertices_and_indices {
         my $record = $history->records->[$i];
         my ($dx, $dy, $timestamp) = map { $record->$_ }
             qw/x_axis_degree y_axis_degree timestamp/;
-        my $v = Vertex->new(as_cartesian($dx, $dy));
+        my $v = Vertex->new(values => as_cartesian($dx, $dy));
         $v->payload->{rotation} = [$dx, $dy];
         push @vertices, $v;
         $self->index_at->{$timestamp} = $i;
@@ -86,30 +86,32 @@ method _build_vertices_on_sphere {
 method arrow_vertices($index_to, $index_from) {
     my ($start, $end) = map { $self->vertices->[$_] } ($index_from, $index_to);
     my $direction =  $start->vector_to($end);
-    my $d_normal = Vector->new([@$direction])->normalize;
-    my $n = Vector->new([0, 1, 0]);
-    my $scalar = reduce { $a + $b } pairwise { $a * $b} @$d_normal, @$n;
-    my $f = acos($scalar);
-    my $axis = ($n * $d_normal)->normalize;
-    my $rotation = rotation_matrix(@$axis, $f);
+    #my $d_normal = Vector->new(values => [@{ $direction->values }])->normalize;
+    my $n = Vector->new(values => [0, 1, 0]);
+    # $f = $d_normal->angle_with($n);
+    #my $scalar = reduce { $a + $b } pairwise { $a * $b} @$d_normal, @$n;
+    my $scalar = $n->values->[1] * $direction->values->[1];
+    my $f =  acos($scalar);
+    my $axis = ($n * $direction)->normalize;
+    my $rotation = rotation_matrix(@{ $axis->values}, $f);
     my $normal_distance = 0.5;
-    my @normals = map { Vector->new($_) }
+    my @normals = map { Vector->new(values => $_) }
         ( [$normal_distance, 0, 0 ],
           [0, 0, -$normal_distance],
           [-$normal_distance, 0, 0],
           [0, 0, $normal_distance ], );
     my $length = $direction->length;
     my @results =
+        map { Vector->new( values => $_ ) }
         map {
             for my $i (0 .. 2) {
-                $_->[$i] += $start->[$i]
+                $_->[$i] += $start->values->[$i]
             }
             $_;
         }
-        map { $_ * $length }
         map {
-            my $r = $rotation * Iston::Matrix->new_from_cols([ [@$_] ]);
-            my $result_vector = Vector->new( [map { $r->element($_, 1) } (1 .. 3) ] );
+            my $r = $rotation * Iston::Matrix->new_from_cols([ $_->values ]);
+            my $values = [map { $r->element($_, 1) * $length } (1 .. 3) ]
         } @normals;
     return @results;
 }

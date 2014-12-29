@@ -28,7 +28,7 @@ has '_source_to_generalized'    => (is => 'rw');
 with('Iston::Object::SphereVectors');
 
 
-my $_center = Vertex->new([0, 0, 0]);
+my $_center = Vertex->new(values => [0, 0, 0]);
 my $_halfpi = pi/2;
 my $_vizualization_step = deg2rad(0.5);
 
@@ -133,30 +133,30 @@ method _build_vertex_indices {
 method arrow_vertices($index) {
     my $end = $self->vertices->[$index];
     my $direction =  $_center->vector_to($end);
-    my $d_normal = Vector->new([@$direction])->normalize;
-    my $n = Vector->new([0, 1, 0]);
-    my $scalar = reduce { $a + $b } pairwise { $a * $b} @$d_normal, @$n;
+    my $n = Vector->new(values => [0, 1, 0]);
+    # f = $n->angle_with($direction
+    my $scalar = $n->values->[1] * $direction->values->[1];
     my $f = acos($scalar);
-    my $axis = ($n * $d_normal)->normalize;
-    my $rotation = rotation_matrix(@$axis, $f);
+    my $axis = ($n * $direction)->normalize;
+    my $rotation = rotation_matrix(@{$axis->values}, $f);
     my $normal_distance = 0.03;
-    my @normals = map { Vector->new($_) }
+    my @normals =
         ( [$normal_distance, 0, 0 ],
           [0, 0, -$normal_distance],
           [-$normal_distance, 0, 0],
           [0, 0, $normal_distance ], );
     my $length = $direction->length;
     my @results =
+        map { Vector->new( values => $_ ) }
         map {
             for my $i (0 .. 2) {
-                $_->[$i] += $end->[$i]
+                $_->[$i] += $end->values->[$i]
             }
             $_;
         }
-        map { $_ * $length }
         map {
             my $r = $rotation * Iston::Matrix->new_from_cols([ [@$_] ]);
-            my $result_vector = Vector->new( [map { $r->element($_, 1) } (1 .. 3) ] );
+            my $values = [map { $r->element($_, 1) * $length } (1 .. 3)];
         } @normals;
     return @results;
 }
@@ -191,13 +191,13 @@ method _build_draw_function {
         my $end_v   = $_center->vector_to($v->payload->{end_vertex});
         my $axis = $start_v * $v;
         my $angle = $start_v->angle_with($end_v);
-        my $rotation = rotation_matrix(@$axis, $_vizualization_step);
+        my $rotation = rotation_matrix(@{$axis->values}, $_vizualization_step);
         my $color = $self->_spin_color($v);
         push @displayed_vertices, $start_v;
         push @colors, ( $color );
         for(my $phi = $_vizualization_step; $phi < $angle; $phi += $_vizualization_step) {
-            my $r = $rotation * Iston::Matrix->new_from_cols([ [@$start_v] ]);
-            my $result_vector = Vector->new( [map { $r->element($_, 1) } (1 .. 3) ] );
+            my $r = $rotation * Iston::Matrix->new_from_cols([ $start_v->values ]);
+            my $result_vector = Vector->new( values => [map { $r->element($_, 1) } (1 .. 3) ] );
             push @displayed_vertices, $result_vector;
             push @colors, ( $color );
             push @indices, (map { ($_-2, $_-1) } scalar(@displayed_vertices) );

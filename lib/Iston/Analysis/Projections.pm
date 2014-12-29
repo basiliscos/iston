@@ -28,11 +28,9 @@ method _build_projections_map {
             my $examined_triangles = $examined_triangles_at{$level}->{$vertex_index};
             my $vertex_on_sphere = $sphere_vertices->[$vertex_index];
             my @vertices =
-                grep { Vector->new($_->{intersection})->length <= 1 }
-                grep { defined $_->{intersection} }
                 map {
                     my $v = $examined_triangles->[$_]->intersects_with($vertex_on_sphere);
-                    $v ?
+                    $v && Vector->new(values => $v->values)->length <= 1 ?
                         ({
                             index        => $_,
                             intersection => $v,

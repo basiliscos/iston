@@ -83,8 +83,8 @@ method _trigger_rotation($values) {
         if($angle) {
             my @axis_components = (0) x scalar(@$values);
             $axis_components[$idx] = 1;
-            my $axis = Vector->new(\@axis_components);
-            $m *= Iston::Utils::rotate($angle, $axis);
+            my $axis = Vector->new(values => \@axis_components);
+            $m *= Iston::Utils::rotate($angle, $axis->values);
         }
     }
     $self->model_rotation($m);
@@ -166,16 +166,16 @@ method _triangle_2_lines_indices {
 
 method _build_boundaries {
     my $first_vertex = $self->vertices->[0];
-    my ($mins, $maxs) = map { Vertex->new($first_vertex) } (0 .. 1);
+    my ($mins, $maxs) = map { [@{ $first_vertex->values }] } (0 .. 1);
     my $vertices_count = scalar(@{$self->vertices});
     for my $vertex_index (0 .. $vertices_count-1) {
-        my $v = $self->vertices->[$vertex_index];
+        my $v = $self->vertices->[$vertex_index]->values;
         for my $c (0 .. 2) {
             $mins->[$c] = $v->[$c] if($mins->[$c] > $v->[$c]);
             $maxs->[$c] = $v->[$c] if($maxs->[$c] < $v->[$c]);
         }
     }
-    return [$mins, $maxs];
+    return [map {Vertex->new(values => $_)} $mins, $maxs];
 };
 
 method _build__text_coords_oga {

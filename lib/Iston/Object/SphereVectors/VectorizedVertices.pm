@@ -24,12 +24,11 @@ with('Iston::Object::SphereVectors');
 method _build_vectors {
     my $vertices = $self->vertices;
     my $indices = $self->vertex_indices;
-    my $center = Vertex->new([0, 0, 0]);
     my @vectors = map {
         my @uniq_indices = @{$indices}[$_, $_+1];
         my ($a, $b) = map { $vertices->[$_] } @uniq_indices;
         my $v = $a->vector_to($b);
-        my $great_arc_normal = $v * $center->vector_to($a);
+        my $great_arc_normal = $v * Vector->new(values => $a->values);
         $v->payload->{start_vertex    } = $a;
         $v->payload->{end_vertex      } = $b;
         $v->payload->{start_vertex_idx} = $uniq_indices[0];
@@ -66,30 +65,30 @@ method _build_vertex_to_vector_function {
 
 method arrow_vertices($start, $end) {
     my $direction =  $start->vector_to($end);
-    my $d_normal = Vector->new([@$direction])->normalize;
-    my $n = Vector->new([0, 1, 0]);
-    my $scalar = reduce { $a + $b } pairwise { $a * $b} @$d_normal, @$n;
+    my $n = Vector->new(values => [0, 1, 0]);
+    # f = $n->angle_with($direction
+    my $scalar = $n->values->[1] * $direction->values->[1];
     my $f = acos($scalar);
-    my $axis = ($n * $d_normal)->normalize;
-    my $rotation = rotation_matrix(@$axis, $f);
+    my $axis = ($n * $direction)->normalize;
+    my $rotation = rotation_matrix(@{$axis->values}, $f);
     my $normal_distance = 0.5;
-    my @normals = map { Vector->new($_) }
+    my @normals =
         ( [$normal_distance, 0, 0 ],
           [0, 0, -$normal_distance],
           [-$normal_distance, 0, 0],
           [0, 0, $normal_distance ], );
     my $length = $direction->length;
     my @results =
+        map { Vector->new( values => $_ ) }
         map {
             for my $i (0 .. 2) {
-                $_->[$i] += $start->[$i]
+                $_->[$i] += $start->values->[$i]
             }
             $_;
         }
-        map { $_ * $length }
         map {
             my $r = $rotation * Matrix->new_from_cols([ [@$_] ]);
-            my $result_vector = Vector->new( [map { $r->element($_, 1) } (1 .. 3) ] );
+            my $values = [map { $r->element($_, 1) * $length } (1 .. 3)];
         } @normals;
     return @results;
 }

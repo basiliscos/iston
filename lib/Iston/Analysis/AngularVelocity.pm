@@ -21,8 +21,8 @@ method _build_values {
     my @angles = map {
         my $v = $_;
         my ($a, $b) =
-            map { Vector->new($_) }
-            map { $v->payload->{$_} }
+            map { Vector->new(values => $_) }
+            map { $v->payload->{$_}->values }
             qw/start_vertex end_vertex/;
         my $angle = $a->angle_with($b);
         $angle;

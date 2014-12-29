@@ -1,6 +1,7 @@
 package Iston::Triangle;
 
 use 5.12.0;
+use warnings;
 
 use Carp;
 use Function::Parameters qw(:strict);
@@ -50,11 +51,11 @@ method _build_subtriangles {
     my $do_tesselation = $self->tesselation;
     my $vertices = $self->vertices;
     my $example_radius = $do_tesselation
-        ? sqrt(reduce {$a + $b} map { $_**2 } @{$vertices->[0]})
+        ? sqrt(reduce {$a + $b} map { $_**2 } @{ $vertices->[0]->values })
         : 0;
     my @mediate_vectors = map {
         my ($A, $B) = map {
-            my ($v1, $v2) = map { $vertices->[$_] } @$_;
+            my ($v1, $v2) = map { $vertices->[$_]->values } @$_;
             my @vector = pairwise { $b - $a } @$v1, @$v2;
             #$v1->vector_to($v2);
             \@vector;
@@ -65,7 +66,7 @@ method _build_subtriangles {
     } @vertex_pairs;
     my @new_vertices = map {
         my $vector = $mediate_vectors[$_];
-        my $base_vertex = $vertices->[ $vertex_pairs[$_]->[0]->[0] ];
+        my $base_vertex = $vertices->[ $vertex_pairs[$_]->[0]->[0] ]->values;
         # move vector to at the base vertex
         my @values = pairwise { $a + $b } @$vector, @$base_vertex;
         if ($do_tesselation) {
@@ -73,7 +74,7 @@ method _build_subtriangles {
             my $scale = $example_radius / $radius;
             $_ *= $scale for (@values);
         }
-        Iston::Vertex->new(\@values);
+        Iston::Vertex->new(values => \@values);
     } (0 .. 2);
     my @new_triangle_vertices = (
         # reserve vertices traverse order
@@ -107,12 +108,12 @@ undef is returned
 
 method intersects_with($vertex_on_sphere) {
     my $n = $self->normal;
-    my $a = Vector->new([@$vertex_on_sphere]); # guide vector
+    my $a = Vector->new(values => $vertex_on_sphere->values); # guide vector
     my $an = $a->scalar_multiplication($n);
     return if maybe_zero(abs($an)) == 0;
-    my $r0 = Vector->new($self->vertices->[0]);
+    my $r0 = Vector->new(values => $self->vertices->[0]->values);
     my $t = $r0->scalar_multiplication($n) / $an;
-    my $vertex_on_triangle = Vertex->new($a*$t);
+    my $vertex_on_triangle = Vertex->new(values => ($a*$t)->values);
 
     # # now, check, wheather the vertex is inside the triangle
     my @indices = (
@@ -138,11 +139,11 @@ method intersects_with($vertex_on_sphere) {
         my ($i1, $i2) = @$_;
         my ($a, $b) = map {$self->vertices->[$_]} @$_;
         my $normal = $a->vector_to($b)*$n;
-        my $to_a = $cache[$i1] //= Vector->new($a);
+        my $to_a = $cache[$i1] //= Vector->new(values => $a->values);
         my $alpha = $to_a->scalar_multiplication($normal);
         [$normal, $alpha];
     } @indices;
-    my $vector_to_triangle = Vector->new($vertex_on_triangle);
+    my $vector_to_triangle = Vector->new(values => $vertex_on_triangle->values);
     my @values =
         map { maybe_zero($_) }
         map {

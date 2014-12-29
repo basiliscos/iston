@@ -10,14 +10,14 @@ use aliased qw/Iston::Vertex/;
 subtest "1 triangle to mesh" => sub {
     my $t = Object->new(
         normals  => [
-            Vector->new([0, 0, 1]),
-            Vector->new([1, 0, 0]),
-            Vector->new([0, 1, 0]),
+            Vector->new(values => [0, 0, 1]),
+            Vector->new(values => [1, 0, 0]),
+            Vector->new(values => [0, 1, 0]),
         ],
         vertices => [
-            Vertex->new([0, 0, 0]),
-            Vertex->new([1, 1, 1]),
-            Vertex->new([2, 2, 2]),
+            Vertex->new(values => [0, 0, 0]),
+            Vertex->new(values => [1, 1, 1]),
+            Vertex->new(values => [2, 2, 2]),
         ],
         indices => [ 0, 1, 2 ],
     );
@@ -37,20 +37,20 @@ subtest "1 triangle to mesh" => sub {
 subtest "2 triangles to mesh" => sub {
     my $t = Object->new(
         vertices => [
-            Vertex->new([0, 0, 0]),
-            Vertex->new([1, 1, 1]),
-            Vertex->new([2, 2, 2]),
-            Vertex->new([3, 3, 3]),
-            Vertex->new([4, 4, 4]),
-            Vertex->new([5, 5, 5]),
+            Vertex->new(values => [0, 0, 0]),
+            Vertex->new(values => [1, 1, 1]),
+            Vertex->new(values => [2, 2, 2]),
+            Vertex->new(values => [3, 3, 3]),
+            Vertex->new(values => [4, 4, 4]),
+            Vertex->new(values => [5, 5, 5]),
         ],
         normals  => [
-            Vector->new([0, 0, 1]),
-            Vector->new([1, 0, 0]),
-            Vector->new([0, 1, 0]),
-            Vector->new([3, 3, 3]),
-            Vector->new([4, 4, 4]),
-            Vector->new([5, 5, 5]),
+            Vector->new(values => [0, 0, 1]),
+            Vector->new(values => [1, 0, 0]),
+            Vector->new(values => [0, 1, 0]),
+            Vector->new(values => [3, 3, 3]),
+            Vector->new(values => [4, 4, 4]),
+            Vector->new(values => [5, 5, 5]),
         ],
         indices => [
             0, 1, 2,

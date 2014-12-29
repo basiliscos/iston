@@ -16,7 +16,6 @@ use overload
     '*'   => '_mul',
     '=='  => '_equal',
     '""'  => '_stringify',
-    '@{}' => '_values',
     fallback => 1,
     ;
 
@@ -25,13 +24,9 @@ our @EXPORT_OK = qw/normal/;
 
 with('Iston::Payload');
 
-has 'values' => (is => 'ro', required => 1);
+#has 'values' => (is => 'ro', required => 1, isa => sub { croak("not array") unless ref($_[0]) eq 'ARRAY' });
+has 'values' => (is => 'ro', required => 1, );
 has 'rotation_angles' => (is => 'lazy');
-
-sub BUILDARGS {
-    my ( $class, $values ) = @_;
-    return { values => $values };
-}
 
 fun normal($vertices, $indices) {
     croak "Normal vector is defined exactly by 3 vertices"
@@ -42,10 +37,6 @@ fun normal($vertices, $indices) {
     return ($a * $b)->normalize;
 }
 
-sub _values {
-    return shift->values;
-}
-
 sub _mul_vector {
     my ($a, $b) = map { $_->values} @_;
     my @values = (
@@ -53,13 +44,13 @@ sub _mul_vector {
         $a->[2]*$b->[0] - $a->[0]*$b->[2],
         $a->[0]*$b->[1] - $a->[1]*$b->[0],
     );
-    return Iston::Vector->new(\@values);
+    return Iston::Vector->new(values =>\@values);
 }
 
 sub _mul_scalar {
     my ($a, $s) = @_;
-    my @values = map { $_ * $s } @$a;
-    return Iston::Vector->new(\@values);
+    my @values = map { $_ * $s } @{ $a->values };
+    return Iston::Vector->new(values => \@values);
 }
 
 # does either vector multiplicaiton or vector to scalar
@@ -83,13 +74,13 @@ sub scalar_multiplication {
 sub _add {
     my ($a, $b) = map {$_->values } @_[0,1];
     my @r = map { $a->[$_] + $b->[$_] } (0 .. 2);
-    return Iston::Vector->new(\@r);
+    return Iston::Vector->new(values => \@r);
 }
 
 sub _sub {
     my ($a, $b) = map {$_->values } @_[0,1];
     my @r = map { $a->[$_] - $b->[$_] } (0 .. 2);
-    return Iston::Vector->new(\@r);
+    return Iston::Vector->new(values => \@r);
 }
 
 sub _equal {
@@ -116,10 +107,8 @@ sub normalize {
     return $self if($length == 0);
 
     my $values = $self->values;
-    my @r =
-        map {$self->[$_] / $length }
-        (0 .. 2);
-    return Iston::Vector->new(\@r);
+    my @r =map { $values->[$_] / $length } (0 .. 2);
+    return Iston::Vector->new(values => \@r);
 }
 
 sub _stringify {
