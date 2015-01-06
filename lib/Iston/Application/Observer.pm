@@ -173,7 +173,7 @@ sub process_event {
         if ($button == SDL_BUTTON_WHEELDOWN || $button == SDL_BUTTON_WHEELUP) {
             # say "mouse wheel?";
             my $step = 0.1 * ( ($button == SDL_BUTTON_WHEELUP) ? 1: -1);
-            $self->camera_position->[2] += $step;
+            $self->camera_position->values->[2] += $step;
             $self->_update_view;
         }
     }
