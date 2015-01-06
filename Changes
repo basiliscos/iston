@@ -1,5 +1,9 @@
 {{$NEXT}}
 
+	Add spin detection
+        No operator overload for Vector/Vertex class ( => x4 performance
+        boost)
+
 0.09      2014-11-19 01:56:13+03:00 Europe/Minsk
 
         Lighting: Use Phong shading model instead of simplifyed Blinn-Phong
