@@ -1,5 +1,7 @@
 {{$NEXT}}
 
+0.10      2015-01-06 15:48:14+03:00 Europe/Minsk
+
 	Add spin detection
         No operator overload for Vector/Vertex class ( => x4 performance
         boost)
