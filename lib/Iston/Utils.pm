@@ -1,5 +1,5 @@
 package Iston::Utils;
-$Iston::Utils::VERSION = '0.09';
+$Iston::Utils::VERSION = '0.10';
 use 5.12.0;
 
 use Guard;
@@ -9,10 +9,12 @@ use List::Util qw/reduce/;
 use Math::Trig;
 use OpenGL qw(:all);
 
+use aliased qw/Iston::Vector/;
+
 use parent qw/Exporter/;
 
 our @EXPORT = qw/maybe_zero rotation_matrix generate_list_id translate perspective
-                 look_at identity rotate scale as_oga/;
+                 look_at identity rotate scale as_oga as_cartesian initial_vector/;
 
 my $_accuracy_format = '%0.6f';
 my $_accuracy_zero   = sprintf($_accuracy_format, 0);
@@ -72,10 +74,11 @@ fun scale($v) {
 }
 
 fun translate($vector) {
+    my $values = $vector->values;
     return Iston::Matrix->new_from_rows([
-        [1, 0, 0, $vector->[0]],
-        [0, 1, 0, $vector->[1]],
-        [0, 0, 1, $vector->[2]],
+        [1, 0, 0, $values->[0]],
+        [0, 1, 0, $values->[1]],
+        [0, 0, 1, $values->[2]],
         [0, 0, 0, 1],
     ]);
 };
@@ -106,7 +109,7 @@ fun as_oga($source) {
     my $source = shift;
     return OpenGL::Array->new_list(
         GL_FLOAT,
-        map { @$_ } @$source
+        map { @{ ref eq 'ARRAY' ? $_ : $_->values } } @$source
     );
 };
 
@@ -120,7 +123,45 @@ my $_identity = Iston::Matrix->new_from_rows([
 
 fun identity {
     return $_identity;
-}
+};
+
+my $_initial_point = [0, 0, 1];
+my $_current_point =  Iston::Matrix->new_from_cols([ $_initial_point ]);
+
+fun as_cartesian($dx, $dy) {
+
+    # my $x_axis_degree = $dx * -1;
+    # my $y_axis_degree = $dy * -1;
+    # my $x_rads = deg2rad($x_axis_degree);
+    # my $y_rads = deg2rad($y_axis_degree);
+    # my $r_a = Iston::Matrix->new_from_rows([
+    #     [1, 0,            0            ],
+    #     [0, cos($x_rads), -sin($x_rads)],
+    #     [0, sin($x_rads), cos($x_rads) ],
+    # ]);
+    # my $r_b = Iston::Matrix->new_from_rows([
+    #     [cos($y_rads),  0, sin($y_rads)],
+    #     [0,          ,  1, 0           ],
+    #     [-sin($y_rads), 0, cos($y_rads)],
+    # ]);
+    # my $rotation = $r_b * $r_a; # reverse order!
+    # my $result = $rotation * $_current_point;
+    # my @xyz = map { $result->element($_, 1) } (1 .. 3);
+    # return \@xyz;
+
+
+    # simplified version of the above:
+
+    my $da = deg2rad $dx;
+    my $db = deg2rad $dy;
+    my $cos_a = cos($da);
+    my @values = (
+        - $cos_a * sin($db),
+        sin($da),
+        cos($da) * cos($db),
+    );
+    return \@values;  # [ map { maybe_zero($_) } @values ];
+};
 
 1;
 
@@ -136,7 +177,7 @@ Iston::Utils
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 AUTHOR
 
@@ -144,7 +185,7 @@ Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2014 by Ivan Baidakou.
+This software is copyright (c) 2015 by Ivan Baidakou.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

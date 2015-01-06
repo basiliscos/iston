@@ -1,5 +1,5 @@
 package Iston::Object::SphereVectors::GeneralizedVectors;
-$Iston::Object::SphereVectors::GeneralizedVectors::VERSION = '0.09';
+$Iston::Object::SphereVectors::GeneralizedVectors::VERSION = '0.10';
 use 5.16.0;
 
 use Function::Parameters qw(:strict);
@@ -28,7 +28,7 @@ has '_source_to_generalized'    => (is => 'rw');
 with('Iston::Object::SphereVectors');
 
 
-my $_center = Vertex->new([0, 0, 0]);
+my $_center = Vertex->new(values => [0, 0, 0]);
 my $_halfpi = pi/2;
 my $_vizualization_step = deg2rad(0.5);
 
@@ -133,40 +133,42 @@ method _build_vertex_indices {
 method arrow_vertices($index) {
     my $end = $self->vertices->[$index];
     my $direction =  $_center->vector_to($end);
-    my $d_normal = Vector->new([@$direction])->normalize;
-    my $n = Vector->new([0, 1, 0]);
-    my $scalar = reduce { $a + $b } pairwise { $a * $b} @$d_normal, @$n;
+    my $n = Vector->new(values => [0, 1, 0]);
+    # f = $n->angle_with($direction
+    my $scalar = $n->values->[1] * $direction->values->[1];
     my $f = acos($scalar);
-    my $axis = ($n * $d_normal)->normalize;
-    my $rotation = rotation_matrix(@$axis, $f);
+    my $axis = ($n * $direction)->normalize;
+    my $rotation = rotation_matrix(@{$axis->values}, $f);
     my $normal_distance = 0.03;
-    my @normals = map { Vector->new($_) }
+    my @normals =
         ( [$normal_distance, 0, 0 ],
           [0, 0, -$normal_distance],
           [-$normal_distance, 0, 0],
           [0, 0, $normal_distance ], );
     my $length = $direction->length;
     my @results =
+        map { Vector->new( values => $_ ) }
         map {
             for my $i (0 .. 2) {
-                $_->[$i] += $end->[$i]
+                $_->[$i] += $end->values->[$i]
             }
             $_;
         }
-        map { $_ * $length }
         map {
             my $r = $rotation * Iston::Matrix->new_from_cols([ [@$_] ]);
-            my $result_vector = Vector->new( [map { $r->element($_, 1) } (1 .. 3) ] );
+            my $values = [map { $r->element($_, 1) * $length } (1 .. 3)];
         } @normals;
     return @results;
 }
 
 method _build_draw_function {
+    my $default_color = $self->default_color;
 
     # main sphere vector drawing
     my $vertex_indices = $self->vertex_indices;
     my @displayed_vertices;
     my @indices;
+    my @colors;
 
     # arrays for sphere vertices calculations
     for my $i (0 .. @$vertex_indices - 1 ) {
@@ -178,6 +180,7 @@ method _build_draw_function {
             map { $last_v_index + 1 + $_ }
             (0, 2, 1, 3, 0, 1, 2, 3);
         push @indices, @arrow_indices;
+        push @colors, (($default_color) x @arrow_vertices);
     }
 
     # build auxilary vertices to show the actual path
@@ -188,20 +191,26 @@ method _build_draw_function {
         my $end_v   = $_center->vector_to($v->payload->{end_vertex});
         my $axis = $start_v * $v;
         my $angle = $start_v->angle_with($end_v);
-        my $rotation = rotation_matrix(@$axis, $_vizualization_step);
+        my $rotation = rotation_matrix(@{$axis->values}, $_vizualization_step);
+        my $color = $self->_spin_color($v);
         push @displayed_vertices, $start_v;
+        push @colors, ( $color );
         for(my $phi = $_vizualization_step; $phi < $angle; $phi += $_vizualization_step) {
-            my $r = $rotation * Iston::Matrix->new_from_cols([ [@$start_v] ]);
-            my $result_vector = Vector->new( [map { $r->element($_, 1) } (1 .. 3) ] );
+            my $r = $rotation * Iston::Matrix->new_from_cols([ $start_v->values ]);
+            my $result_vector = Vector->new( values => [map { $r->element($_, 1) } (1 .. 3) ] );
             push @displayed_vertices, $result_vector;
+            push @colors, ( $color );
             push @indices, (map { ($_-2, $_-1) } scalar(@displayed_vertices) );
             $start_v = $result_vector;
         }
         push @displayed_vertices, $end_v;
+        push @colors, ( $color );
         push @indices, (map { ($_-2, $_-1) } scalar(@displayed_vertices) );
     }
 
-    return $self->_draw_function_constructor(\@displayed_vertices, \@indices);
+    #my @colors = map { $default_color } (0 .. @indices-1);
+
+    return $self->_draw_function_constructor(\@displayed_vertices, \@indices, \@colors);
 };
 
 1;
@@ -218,7 +227,7 @@ Iston::Object::SphereVectors::GeneralizedVectors
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 AUTHOR
 
@@ -226,7 +235,7 @@ Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2014 by Ivan Baidakou.
+This software is copyright (c) 2015 by Ivan Baidakou.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

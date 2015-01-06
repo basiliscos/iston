@@ -1,5 +1,5 @@
 package Iston::Application::Observer;
-$Iston::Application::Observer::VERSION = '0.09';
+$Iston::Application::Observer::VERSION = '0.10';
 use 5.12.0;
 
 use Moo;
@@ -46,13 +46,14 @@ sub _log_state {
     my $self = shift;
 
     return unless $self->history;
+    my $camera_position = $self->camera_position->values;
     my $record = Record->new(
         timestamp     => tv_interval ( $self->started_at, [gettimeofday]),
         x_axis_degree => $self->main_object->rotate(0),
         y_axis_degree => $self->main_object->rotate(1),
-        camera_x      => $self->camera_position->[0],
-        camera_y      => $self->camera_position->[1],
-        camera_z      => $self->camera_position->[2],
+        camera_x      => $camera_position->[0],
+        camera_y      => $camera_position->[1],
+        camera_z      => $camera_position->[2],
     );
     push @{ $self->history->records }, $record;
 }
@@ -196,7 +197,7 @@ Iston::Application::Observer
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 AUTHOR
 
@@ -204,7 +205,7 @@ Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2014 by Ivan Baidakou.
+This software is copyright (c) 2015 by Ivan Baidakou.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

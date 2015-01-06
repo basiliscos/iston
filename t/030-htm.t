@@ -12,13 +12,13 @@ subtest "simple creation" => sub {
     my $o = HTM->new;
     ok $o, "octahedron instance successfully has been created";
     is scalar( @{$o->triangles} ), 8, "initally we have 8 triangles";
-    my $top = Vertex->new([0, 1, 0]);
-    my $bottom = Vertex->new([0, -1, 0]);
+    my $top = Vertex->new(values => [0, 1, 0]);
+    my $bottom = Vertex->new(values => [0, -1, 0]);
     my $top_idx = first_index {$top eq $_ } @{ $o->triangles->[0]->vertices };
-    is $o->triangles->[0]->normals->[$top_idx], Vector->new([0, 1, 0]),
+    is $o->triangles->[0]->normals->[$top_idx], Vector->new(values => [0, 1, 0]),
         "normal for top of octachedron has top direction";
     my $bottom_idx = first_index {$bottom eq $_} @{ $o->triangles->[-1]->vertices };
-    is $o->triangles->[-1]->normals->[$bottom_idx], Vector->new([0, -1, 0]),
+    is $o->triangles->[-1]->normals->[$bottom_idx], Vector->new(values => [0, -1, 0]),
         "normal for bottom of octachedron has bottom direction";
     $o->level($o->level+1);
     is scalar( @{$o->triangles} ), 8*4, "correct number of triangles after subdivision";

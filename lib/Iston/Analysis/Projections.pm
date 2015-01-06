@@ -1,6 +1,6 @@
 package Iston::Analysis::Projections;
 # Abstract: The projections from ObservationPath points to the HTM's triangles
-$Iston::Analysis::Projections::VERSION = '0.09';
+$Iston::Analysis::Projections::VERSION = '0.10';
 use 5.12.0;
 
 use Function::Parameters qw(:strict);
@@ -29,44 +29,24 @@ method _build_projections_map {
             my $vertex_on_sphere = $sphere_vertices->[$vertex_index];
             my @vertices =
                 map {
-                    my $vertex = $_;
-                    if (defined $vertex) {
-                        $vertex =
-                            Vector->new($_)->length <= 1
-                            ? $_
-                            : undef;
-                    }
-                    $vertex;
-                }
-                map {
-                    my $intersection = $_->intersects_with($vertex_on_sphere);
-                    $intersection;
-                } @$examined_triangles;
-            my @distances =
-                map {
-                    defined $_
-                        ? $_->vector_to($vertex_on_sphere)->length
-                        : undef;
-                } @vertices;
-            @distances =  map { maybe_zero($_) } @distances;
-            my $min_distance = min grep { defined($_) } @distances;
-            @vertices = map {
-                (defined($vertices[$_]) && $distances[$_] == $min_distance)
-                    ? $vertices[$_]
-                    : undef;
-            } (0 .. @vertices - 1);
-            my @triangle_indices =
-                grep { defined $vertices[$_] }
-                (0 .. @vertices-1);
-            my @paths =
-                map  { $examined_triangles->[$_]->path }
-                @triangle_indices;
+                    my $v = $examined_triangles->[$_]->intersects_with($vertex_on_sphere);
+                    $v && Vector->new(values => $v->values)->length <= 1 ?
+                        ({
+                            index        => $_,
+                            intersection => $v,
+                            distance     => maybe_zero( $v->vector_to($vertex_on_sphere)->length ),
+                        })
+                        : ();
+                } (0 .. @$examined_triangles -1 );
+            my $min_distance = min map { $_->{distance} } @vertices;
+            @vertices = grep { $_->{distance} == $min_distance } @vertices;
+            my @triangle_indices = map { $_->{index} } @vertices;
+            my @triangles = map { $examined_triangles->[$_] } @triangle_indices;
+            my @paths = map  { $_->path } @triangles;
             $projections_for{$vertex_index}->{$level} = \@paths;
             if ($level < $max_level) {
                 $examined_triangles_at{$level+1}->{$vertex_index} = [
-                    map {
-                        @{ $examined_triangles->[$_]->subtriangles }
-                    } @triangle_indices
+                    map { @{ $_->subtriangles } } @triangles
                 ];
             }
         }
@@ -145,7 +125,7 @@ Iston::Analysis::Projections
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 AUTHOR
 
@@ -153,7 +133,7 @@ Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2014 by Ivan Baidakou.
+This software is copyright (c) 2015 by Ivan Baidakou.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

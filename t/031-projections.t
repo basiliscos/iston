@@ -84,9 +84,9 @@ subtest "unique vertex on sphere hit to just 1 trianle" => sub {
         },
     };
     $projections->distribute_observation_timings;
-    is $projections_map->{0}->{0}->[0]->triangle->payload->{total_time},
+    is $projections_map->{0}{0}[0]->triangle->payload->{total_time},
         1, "right time on NF triangle";
-    is $projections_map->{0}->{1}->[0]->triangle->payload->{total_time},
+    is $projections_map->{0}{1}[0]->triangle->payload->{total_time},
         1, "right time on NF sub-triangle";
 };
 

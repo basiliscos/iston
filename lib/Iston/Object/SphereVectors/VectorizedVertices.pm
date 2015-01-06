@@ -1,16 +1,16 @@
 package Iston::Object::SphereVectors::VectorizedVertices;
-$Iston::Object::SphereVectors::VectorizedVertices::VERSION = '0.09';
+$Iston::Object::SphereVectors::VectorizedVertices::VERSION = '0.10';
 use 5.16.0;
 
 use Function::Parameters qw(:strict);
-use Iston::Matrix;
-use Iston::Utils qw/rotation_matrix generate_list_id/;
+use Iston::Utils qw/rotation_matrix generate_list_id as_cartesian/;
 use List::Util qw/reduce/;
 use List::MoreUtils qw/pairwise/;
 use Moo;
 use Math::Trig;
 use OpenGL qw(:all);
 
+use aliased qw/Iston::Matrix/;
 use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
@@ -24,12 +24,11 @@ with('Iston::Object::SphereVectors');
 method _build_vectors {
     my $vertices = $self->vertices;
     my $indices = $self->vertex_indices;
-    my $center = Vertex->new([0, 0, 0]);
     my @vectors = map {
         my @uniq_indices = @{$indices}[$_, $_+1];
         my ($a, $b) = map { $vertices->[$_] } @uniq_indices;
         my $v = $a->vector_to($b);
-        my $great_arc_normal = $v * $center->vector_to($a);
+        my $great_arc_normal = $v * Vector->new(values => $a->values);
         $v->payload->{start_vertex    } = $a;
         $v->payload->{end_vertex      } = $b;
         $v->payload->{start_vertex_idx} = $uniq_indices[0];
@@ -64,58 +63,70 @@ method _build_vertex_to_vector_function {
     return $mapper;
 }
 
-method arrow_vertices($index_to, $index_from) {
-    my ($start, $end) = map { $self->vertices->[$_] } ($index_from, $index_to);
+method arrow_vertices($start, $end) {
     my $direction =  $start->vector_to($end);
-    my $d_normal = Vector->new([@$direction])->normalize;
-    my $n = Vector->new([0, 1, 0]);
-    my $scalar = reduce { $a + $b } pairwise { $a * $b} @$d_normal, @$n;
+    my $n = Vector->new(values => [0, 1, 0]);
+    # f = $n->angle_with($direction
+    my $scalar = $n->values->[1] * $direction->values->[1];
     my $f = acos($scalar);
-    my $axis = ($n * $d_normal)->normalize;
-    my $rotation = rotation_matrix(@$axis, $f);
+    my $axis = ($n * $direction)->normalize;
+    my $rotation = rotation_matrix(@{$axis->values}, $f);
     my $normal_distance = 0.5;
-    my @normals = map { Vector->new($_) }
+    my @normals =
         ( [$normal_distance, 0, 0 ],
           [0, 0, -$normal_distance],
           [-$normal_distance, 0, 0],
           [0, 0, $normal_distance ], );
     my $length = $direction->length;
     my @results =
+        map { Vector->new( values => $_ ) }
         map {
             for my $i (0 .. 2) {
-                $_->[$i] += $start->[$i]
+                $_->[$i] += $start->values->[$i]
             }
             $_;
         }
-        map { $_ * $length }
         map {
-            my $r = $rotation * Iston::Matrix->new_from_cols([ [@$_] ]);
-            my $result_vector = Vector->new( [map { $r->element($_, 1) } (1 .. 3) ] );
+            my $r = $rotation * Matrix->new_from_cols([ [@$_] ]);
+            my $values = [map { $r->element($_, 1) * $length } (1 .. 3)];
         } @normals;
     return @results;
 }
 
 method _build_draw_function {
-    my $vertex_indices = $self->vertex_indices;
+    my $default_color = $self->default_color;
+    my $vertices = $self->vertices;
+    my $spin_detection = $self->spin_detection;
+    my $vectors = $self->vectors;
     my @displayed_vertices =
-        map { $self->vertices->[$_] }
-        @$vertex_indices;
+        map { ($_->{start_vertex}, $_->{end_vertex}) }
+        map { $_->payload } @$vectors
+        ;
     my @indices = map{ ($_-1, $_) }(1 .. @displayed_vertices-1);
-    # arrays for sphere vertices calculations
-    for my $i (0 .. @$vertex_indices - 2 ) {
-        my $v_index = $vertex_indices->[$i];
-        my $last_v_index = $indices[-1];
-        my @arrow_vertices = $self->arrow_vertices($v_index+1, $v_index);
-        push @displayed_vertices, @arrow_vertices;
-        # should be like (1, 0, 2, 0, 3, 0, 4, 0);
-        my @arrow_indices =
-            map { ($i+1, $_) }
-            map { $last_v_index + 1 + $_ }
-            (0 .. @arrow_vertices - 1);
-        push @indices, @arrow_indices;
-    }
+    my @colors  = !$spin_detection
+        ? map { $default_color } (0 .. @indices-1)
+        : map { ($_, $_) }
+          map { $self->_spin_color($_) }
+        @$vectors;
 
-    return $self->_draw_function_constructor(\@displayed_vertices, \@indices);
+    # arrays for sphere vertices calculations
+    if (!$spin_detection) {
+        for my $i (0 .. @$vectors - 1 ) {
+            my $vector = $vectors->[$i];
+            my $last_v_index = $indices[-1];
+            my ($start, $end) = map { ($_->{start_vertex}, $_->{end_vertex}) } $vector->payload;
+            my @arrow_vertices = $self->arrow_vertices($start, $end);
+            push @displayed_vertices, @arrow_vertices;
+            # should be like (1, 0, 2, 0, 3, 0, 4, 0);
+            my @arrow_indices =
+                map { ($i*2+1, $_) }
+                map { $last_v_index + 1 + $_ }
+                (0 .. @arrow_vertices - 1);
+            push @indices, @arrow_indices;
+            push @colors, (($default_color) x scalar(@arrow_indices));
+        }
+    }
+    return $self->_draw_function_constructor(\@displayed_vertices, \@indices, \@colors);
 }
 
 1;
@@ -132,7 +143,7 @@ Iston::Object::SphereVectors::VectorizedVertices
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 AUTHOR
 
@@ -140,7 +151,7 @@ Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2014 by Ivan Baidakou.
+This software is copyright (c) 2015 by Ivan Baidakou.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

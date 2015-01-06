@@ -48,7 +48,7 @@ subtest "up: 45, counter-clock-wise: 90" => sub {
 
     is @{$o->vertices}, 3;
     is $o->vertices->[0], "vertex[0.0000000, 0.0000000, 1.0000000]";
-    is $o->vertices->[1], "vertex[0.0000000, 0.7071068, 0.7071068]";
+    is $o->vertices->[1], "vertex[-0.0000000, 0.7071068, 0.7071068]";
     is $o->vertices->[2], "vertex[0.7071068, 0.7071068, 0.0000000]";
 
     is $o->index_at->{ $h->records->[-1]->timestamp }, 2;
@@ -63,8 +63,8 @@ subtest "simple arrow vertices" => sub {
 
     is @{$o->vertices}, 2;
     # for simplification
-    $o->vertices->[0] = Vertex->new([2, 0, 0]);
-    $o->vertices->[1] = Vertex->new([4, 0, 0]);
+    $o->vertices->[0] = Vertex->new(values => [2, 0, 0]);
+    $o->vertices->[1] = Vertex->new(values => [4, 0, 0]);
     is $o->vertices->[0], "vertex[2.0000000, 0.0000000, 0.0000000]";
     is $o->vertices->[1], "vertex[4.0000000, 0.0000000, 0.0000000]";
     my @arrows = $o->arrow_vertices(1, 0);

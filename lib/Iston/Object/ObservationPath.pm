@@ -1,17 +1,18 @@
 package Iston::Object::ObservationPath;
-$Iston::Object::ObservationPath::VERSION = '0.09';
+$Iston::Object::ObservationPath::VERSION = '0.10';
 use 5.16.0;
 use strict;
 use warnings;
 use utf8;
 
 use Function::Parameters qw(:strict);
-use Iston::Utils qw/rotation_matrix identity/;
+use Iston::Utils qw/rotation_matrix identity as_cartesian/;
 use Iston::Matrix;
 use List::Util qw/reduce/;
 use List::MoreUtils qw/pairwise/;
 use Moo;
 use Math::Trig;
+use Math::Trig ':radial', ':pi';
 use OpenGL qw(:all);
 
 use aliased qw/Iston::Vector/;
@@ -49,30 +50,13 @@ method has_texture { return 0; }
 method _build_vertices_and_indices {
     my $history = $self->history;
     my $current_point =  Iston::Matrix->new_from_cols([ [0, 0, 1] ]);
-    my ($x_axis_degree, $y_axis_degree) = (0, 0);
     my @vertices;
     for my $i (0 .. $history->elements-1) {
         my $record = $history->records->[$i];
         my ($dx, $dy, $timestamp) = map { $record->$_ }
             qw/x_axis_degree y_axis_degree timestamp/;
-        $x_axis_degree = $dx * -1;
-        $y_axis_degree = $dy * -1;
-        my $x_rads = deg2rad($x_axis_degree);
-        my $y_rads = deg2rad($y_axis_degree);
-        my $r_a = Iston::Matrix->new_from_rows([
-            [1, 0,            0            ],
-            [0, cos($x_rads), -sin($x_rads)],
-            [0, sin($x_rads), cos($x_rads) ],
-        ]);
-        my $r_b = Iston::Matrix->new_from_rows([
-            [cos($y_rads),  0, sin($y_rads)],
-            [0,          ,  1, 0           ],
-            [-sin($y_rads), 0, cos($y_rads)],
-        ]);
-        my $rotation = $r_b * $r_a; # reverse order!
-        my $result = $rotation * $current_point;
-        my ($x, $y, $z) = map { $result->element($_, 1) } (1 .. 3);
-        my $v = Vertex->new([$x, $y, $z]);
+        my $v = Vertex->new(values => as_cartesian($dx, $dy));
+        $v->payload->{rotation} = [$dx, $dy];
         push @vertices, $v;
         $self->index_at->{$timestamp} = $i;
     }
@@ -102,30 +86,32 @@ method _build_vertices_on_sphere {
 method arrow_vertices($index_to, $index_from) {
     my ($start, $end) = map { $self->vertices->[$_] } ($index_from, $index_to);
     my $direction =  $start->vector_to($end);
-    my $d_normal = Vector->new([@$direction])->normalize;
-    my $n = Vector->new([0, 1, 0]);
-    my $scalar = reduce { $a + $b } pairwise { $a * $b} @$d_normal, @$n;
-    my $f = acos($scalar);
-    my $axis = ($n * $d_normal)->normalize;
-    my $rotation = rotation_matrix(@$axis, $f);
+    #my $d_normal = Vector->new(values => [@{ $direction->values }])->normalize;
+    my $n = Vector->new(values => [0, 1, 0]);
+    # $f = $d_normal->angle_with($n);
+    #my $scalar = reduce { $a + $b } pairwise { $a * $b} @$d_normal, @$n;
+    my $scalar = $n->values->[1] * $direction->values->[1];
+    my $f =  acos($scalar);
+    my $axis = ($n * $direction)->normalize;
+    my $rotation = rotation_matrix(@{ $axis->values}, $f);
     my $normal_distance = 0.5;
-    my @normals = map { Vector->new($_) }
+    my @normals = map { Vector->new(values => $_) }
         ( [$normal_distance, 0, 0 ],
           [0, 0, -$normal_distance],
           [-$normal_distance, 0, 0],
           [0, 0, $normal_distance ], );
     my $length = $direction->length;
     my @results =
+        map { Vector->new( values => $_ ) }
         map {
             for my $i (0 .. 2) {
-                $_->[$i] += $start->[$i]
+                $_->[$i] += $start->values->[$i]
             }
             $_;
         }
-        map { $_ * $length }
         map {
-            my $r = $rotation * Iston::Matrix->new_from_cols([ [@$_] ]);
-            my $result_vector = Vector->new( [map { $r->element($_, 1) } (1 .. 3) ] );
+            my $r = $rotation * Iston::Matrix->new_from_cols([ $_->values ]);
+            my $values = [map { $r->element($_, 1) * $length } (1 .. 3) ]
         } @normals;
     return @results;
 }
@@ -186,7 +172,7 @@ Iston::Object::ObservationPath
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 AUTHOR
 
@@ -194,7 +180,7 @@ Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2014 by Ivan Baidakou.
+This software is copyright (c) 2015 by Ivan Baidakou.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

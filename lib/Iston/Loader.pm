@@ -1,5 +1,5 @@
 package Iston::Loader;
-$Iston::Loader::VERSION = '0.09';
+$Iston::Loader::VERSION = '0.10';
 use 5.12.0;
 
 use Carp;
@@ -34,12 +34,12 @@ method load {
             my @coordinates = split(/\s+/, $1);
             croak "There should be exactly 3 coordinates for vertex: $line"
                 unless @coordinates == 3;
-            my $vertex = Vertex->new(\@coordinates);
+            my $vertex = Vertex->new(values => \@coordinates);
             push @vertices, $vertex;
 
             # calculate boundaries
-            $v_min //= Vertex->new([@coordinates]);
-            $v_max //= Vertex->new([@coordinates]);
+            $v_min //= [@coordinates];
+            $v_max //= [@coordinates];
             for (my $idx = 0 ; $idx < @coordinates; $idx++) {
                 $v_min->[$idx] = $coordinates[$idx] if $v_min->[$idx] > $coordinates[$idx];
                 $v_max->[$idx] = $coordinates[$idx] if $v_max->[$idx] < $coordinates[$idx];
@@ -71,7 +71,7 @@ method load {
             my @coordinates = split(/\s+/, $1);
             croak "There should be exactly 3 coordinates for normal: $line"
                 unless @coordinates == 3;
-            push @normals, Vector->new(\@coordinates);
+            push @normals, Vector->new(values => \@coordinates);
         } elsif ($line =~ /^vt (.+)$/) {
             my @components = split /\s+/, $1;
             croak "There should be exactly 2 components for texture: $line"
@@ -109,7 +109,7 @@ method load {
                 ($n, $t) = ($n_new, $t_new);
                 push @vertices_normals, $normals[$n];
                 push @vertices_mappings, $uv_mappings[$t] if(defined $t);
-                push @final_vertices, Vertex->new($vertices[$source_idx]); # use copy!
+                push @final_vertices, Vertex->new(values => [@{ $vertices[$source_idx]->values }]); # use copy!
                 my $new_index = @final_vertices - 1;
                 $processed_vertex{$key_string} = $new_index;
             }
@@ -122,7 +122,7 @@ method load {
         ($texture_file = path($self->file)) =~ s/(\.obj)$/.png/;
         $texture_file = undef unless -s $texture_file;
     }
-    my $boundaries = [$v_min, $v_max];
+    my $boundaries = [map {Vertex->new(values => $_)} ($v_min, $v_max)];
     my $object = Object->new(
         vertices     => \@final_vertices,
         indices      => \@face_indices,
@@ -133,12 +133,12 @@ method load {
         (defined $texture_file ? (texture_file => $texture_file) : ()),
     );
     my $center = $object->center;
-    my $to_center = -1 * Vector->new([@$center]);
+    my $to_center = -1 * Vector->new(values => $center->values);
     say "Shifting object $to_center";
     $object->model_translate(translate($to_center));
     # hack, this should be recalculated indirectly via matrices
     for (0 .. @$boundaries-1) {
-        Vertex->new([ @{ $boundaries->[$_] + $to_center } ]);
+        Vertex->new(values => ($boundaries->[$_] + $to_center)->values );
     }
     return $object;
 };
@@ -157,7 +157,7 @@ Iston::Loader
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 AUTHOR
 
@@ -165,7 +165,7 @@ Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2014 by Ivan Baidakou.
+This software is copyright (c) 2015 by Ivan Baidakou.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

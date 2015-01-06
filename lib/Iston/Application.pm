@@ -1,5 +1,5 @@
 package Iston::Application;
-$Iston::Application::VERSION = '0.09';
+$Iston::Application::VERSION = '0.10';
 use 5.12.0;
 
 use AntTweakBar qw/:all/;
@@ -72,13 +72,11 @@ sub init_app {
     );
     $self->sdl_app( SDLx::App->new(%app_options) );
 
-    glutInit;
     glEnable(GL_DEPTH_TEST);
-    glClearColor(0.0, 0.0, 0.0, 0.0);
     $self->_initGL;
     $self->_init_shaders(qw/object/);
     #$self->object_shader->Enable;
-    $self->camera_position([0, 0, -7]);
+    $self->camera_position(Vector->new(values => [0, 0, -7]));
     # $self->view( look_at(
     #         Vector->new([0.0, 2.0, 0.0]),
     #         $self->camera_position,
@@ -155,7 +153,7 @@ method _update_view {
         $shader->SetMatrix(
             view => OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list)
         );
-        $shader->SetVector('camera', @$camera, 0.0);
+        $shader->SetVector('camera', @{ $camera->values }, 0.0);
         $shader->Disable;
     }
 }
@@ -190,6 +188,10 @@ sub _build_settings_bar {
 
 sub _drawGLScene {
     my $self = shift;
+    my $bg_color = $ENV{INSTON_BG_COLOR} // '000000';
+    my ($r, $g, $b) = map { $_ / 255 }
+        reverse unpack('CCC', pack('L', hex($bg_color)));
+    glClearColor($r, $g, $b, 0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     for(@{ $self->objects }) {
         next if !$_ or !$_->enabled;
@@ -240,7 +242,7 @@ Iston::Application
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 AUTHOR
 
@@ -248,7 +250,7 @@ Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2014 by Ivan Baidakou.
+This software is copyright (c) 2015 by Ivan Baidakou.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

@@ -1,5 +1,5 @@
 package Iston::Object;
-$Iston::Object::VERSION = '0.09';
+$Iston::Object::VERSION = '0.10';
 use 5.16.0;
 
 use Carp;
@@ -49,9 +49,9 @@ method _build_center {
     croak "Count of vertices must match count of normals"
         unless $v_size == $n_size;
 
-    my($mins, $maxs) = map { $self->boundaries->[$_] } (0, 1);
+    my($mins, $maxs) = map { $self->boundaries->[$_]->values } (0, 1);
     my @avgs = map { ($mins->[$_] + $maxs->[$_]) /2  } (0 .. 2);
-    return Vertex->new(\@avgs);
+    return Vertex->new(values => \@avgs);
 };
 
 method radius {
@@ -80,7 +80,7 @@ Iston::Object
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 AUTHOR
 
@@ -88,7 +88,7 @@ Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2014 by Ivan Baidakou.
+This software is copyright (c) 2015 by Ivan Baidakou.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

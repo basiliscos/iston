@@ -1,5 +1,5 @@
 package Iston::History;
-$Iston::History::VERSION = '0.09';
+$Iston::History::VERSION = '0.10';
 use 5.12.0;
 
 use Function::Parameters qw(:strict);
@@ -76,7 +76,7 @@ Iston::History
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 AUTHOR
 
@@ -84,7 +84,7 @@ Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2014 by Ivan Baidakou.
+This software is copyright (c) 2015 by Ivan Baidakou.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

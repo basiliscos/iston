@@ -1,6 +1,6 @@
 package Iston::Analysis::Aberrations;
 # Abstract: Tracks the (angle) direction changes of the observation path
-$Iston::Analysis::Aberrations::VERSION = '0.09';
+$Iston::Analysis::Aberrations::VERSION = '0.10';
 use 5.12.0;
 
 use Function::Parameters qw(:strict);
@@ -20,7 +20,7 @@ method _build_values {
     my $sphere_vectors = $self->sphere_vectors->vectors;
     my @normal_degrees = map {
         my ($v1, $v2) = map { $sphere_vectors->[$_] } $_, $_+1;
-        my ($n1, $n2) = map { $_->payload->{great_arc_normal} } $v1, $v2;
+        my ($n1, $n2) = map { $_->payload->{great_arc_normal} } ($v1, $v2);
         my $angle = $n1->angle_with($n2);
         if ($angle) {
             my $sign =
@@ -28,9 +28,9 @@ method _build_values {
                 map {
                     my $idx = $_;
                     my ($c, $c0) =
-                        map { $_->payload->{end_vertex}->[$idx] }
+                        map { $_->payload->{end_vertex}->values->[$idx] }
                         ($v2, $v1);
-                    $n1->[$_]*($c-$c0);
+                    $n1->values->[$_]*($c-$c0);
                 } (0 .. 2);
             $angle *= ($sign > 0) ? 1 : -1;
         }
@@ -72,7 +72,7 @@ Iston::Analysis::Aberrations
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 AUTHOR
 
@@ -80,7 +80,7 @@ Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2014 by Ivan Baidakou.
+This software is copyright (c) 2015 by Ivan Baidakou.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

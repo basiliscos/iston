@@ -1,5 +1,5 @@
 package Iston::Application::Analyzer;
-$Iston::Application::Analyzer::VERSION = '0.09';
+$Iston::Application::Analyzer::VERSION = '0.10';
 use 5.16.0;
 
 use AntTweakBar qw/:all/;
@@ -31,6 +31,7 @@ use aliased qw/Iston::Object::ObservationPath/;
 use aliased qw/Iston::Object::SphereVectors::GeneralizedVectors/;
 use aliased qw/Iston::Object::SphereVectors::VectorizedVertices/;
 use aliased qw/Iston::Vertex/;
+use aliased qw/Iston::Vector/;
 
 with('Iston::Application');
 
@@ -65,7 +66,7 @@ sub _build_htm {
     my $self = shift;
     my $htm = HTM->new;
     # $htm->mode('mesh');
-    my $r = Vertex->new([0, 0, 0])->vector_to($htm->triangles->[0]->vertices->[0])->length;
+    my $r = Vector->new(values => $htm->triangles->[0]->vertices->[0]->values)->length;
     my $scale_to = 1/($r/$self->max_boundary);
     $htm->scale($scale_to);
     $htm->level(3);
@@ -153,6 +154,7 @@ sub _load_object {
             path($analisys_dir,'points-of-interes.txt')
                 ->spew(join(', ', @$point_of_interes));
         }
+        $history_path->copy(path($analisys_dir, 'history.csv'));
     };
     $self->_analysis_dumper($dumper);
 
@@ -381,19 +383,19 @@ sub _build_menu {
     my @model_names = ("choose model", map { $_->{path}->basename } @models);
     my $model_type = Type->new("available_models", \@model_names);
     my $model_index = 0;
-    my $already_has_history = 0;
-    my $already_has_regions_of_interes = 0;
     $bar->add_variable(
         mode       => 'rw',
         name       => "model",
         type       => $model_type,
         cb_read    => sub { $model_index },
         cb_write   => sub {
-            $model_index = shift;
-            return if $model_index == 0; # skip "choose model" index;
+            my $new_index = shift;
+            return if $new_index == 0; # skip "choose model" index;
+            my $prev_model_index = $model_index;
+            $model_index = $new_index;
             my $model = $models[ $model_index - 1];
             my $history_type = $model->{history_type};
-            $bar->remove_variable('history') if($already_has_history);
+            $bar->remove_variable('history') if($prev_model_index);
             my $history_index = 0;
             $bar->add_variable(
                 mode       => 'rw',
@@ -412,10 +414,9 @@ sub _build_menu {
                 definition => " group='Model' ",
             );
             $history_index = 0;
-            $already_has_history = 1;
 
             my $region_index = 0;
-            $bar->remove_variable('region_of_interest') if($already_has_regions_of_interes);
+            $bar->remove_variable('region_of_interest') if($prev_model_index);
             $bar->add_variable(
                 mode       => 'rw',
                 name       => "region_of_interest",
@@ -442,11 +443,13 @@ sub _build_menu {
         cb_read    => sub { $angular_distance },
         cb_write   => sub {
             $angular_distance = shift;
+            return unless $self->observation_path;
+
             my $sv = $angular_distance
                 ? GeneralizedVectors->new(
                     distance       => deg2rad($angular_distance),
                     source_vectors => $self->_source_sphere_vectors,
-                    default_color  => [0.75, 0.0, 0.75, 0.0]
+                    default_color  => [0.0, 0.0, 0.75, 0.0]
                 )
                 : $self->_source_sphere_vectors;
             $self->observation_path->sphere_vectors($sv);
@@ -455,6 +458,27 @@ sub _build_menu {
             min   => '0',
             max   => '360',
             label => 'distance',
+            group => 'Analysis',
+        },
+    );
+
+    $bar->add_variable(
+        mode       => 'rw',
+        name       => "spin_detection",
+        type       => 'bool',
+        cb_read    => sub {
+            my $observation_path = $self->observation_path;
+            return $observation_path && $observation_path->sphere_vectors->spin_detection;
+        },
+        cb_write   => sub {
+            my $observation_path = $self->observation_path;
+            if($observation_path) {
+                my $value = shift;
+                $observation_path->sphere_vectors->spin_detection($value);
+            }
+        },
+        definition => {
+            label => 'spin detection',
             group => 'Analysis',
         },
     );
@@ -520,9 +544,8 @@ method _rotate_objects($idx) {
         $_->rotate(0, $x_axis_degree);
         $_->rotate(1, $y_axis_degree);
     }
-    $self->camera_position([
-        map { $record->$_ } qw/camera_x camera_y camera_z/
-    ]);
+    my $position = [ map { $record->$_ } map{ "camera_${_}" } qw/x y z/ ];
+    $self->camera_position(Vector->new(values => $position));
 }
 
 sub _rotate_active {
@@ -748,7 +771,7 @@ Iston::Application::Analyzer
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 AUTHOR
 
@@ -756,7 +779,7 @@ Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2014 by Ivan Baidakou.
+This software is copyright (c) 2015 by Ivan Baidakou.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

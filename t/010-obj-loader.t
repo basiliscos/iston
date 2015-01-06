@@ -30,7 +30,7 @@ subtest "load cube" => sub {
 
     is scalar(@{ $c->vertices }), 26;
     is_deeply $c->vertices->[0],
-        Vertex->new([qw/1.000000 -1.000000 -1.000000/]);
+        Vertex->new(values => [qw/1.000000 -1.000000 -1.000000/]);
 
     is scalar(@{ $c->indices }), 6*2*3; # every square = 2 triangles
 

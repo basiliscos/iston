@@ -1,6 +1,6 @@
 package Iston::Object::HTM;
 # Abstract: Hierarchical Triangular Map
-$Iston::Object::HTM::VERSION = '0.09';
+$Iston::Object::HTM::VERSION = '0.10';
 use 5.12.0;
 
 use Carp;
@@ -26,12 +26,12 @@ use aliased qw/Iston::Vertex/;
 my $_R  = 1;
 
 my $_vertices = [
-    Vertex->new([0,  $_R, 0]), # top
-    Vertex->new([0, -$_R, 0]), # bottom
-    Vertex->new([$_R * sin(deg2rad 45) , 0, $_R * sin(deg2rad  45)]),  # front left
-    Vertex->new([$_R * sin(deg2rad -45), 0, $_R * sin(deg2rad  45)]),  # front righ
-    Vertex->new([$_R * sin(deg2rad -45), 0, $_R * sin(deg2rad -45)]),  # back right
-    Vertex->new([$_R * sin(deg2rad 45) , 0, $_R * sin(deg2rad -45)]),  # back left
+    Vertex->new(values => [0,  $_R, 0]), # top
+    Vertex->new(values => [0, -$_R, 0]), # bottom
+    Vertex->new(values => [$_R * sin(deg2rad 45) , 0, $_R * sin(deg2rad  45)]),  # front left
+    Vertex->new(values => [$_R * sin(deg2rad -45), 0, $_R * sin(deg2rad  45)]),  # front righ
+    Vertex->new(values => [$_R * sin(deg2rad -45), 0, $_R * sin(deg2rad -45)]),  # back right
+    Vertex->new(values => [$_R * sin(deg2rad 45) , 0, $_R * sin(deg2rad -45)]),  # back left
 ];
 
 my $_indices = [
@@ -229,7 +229,7 @@ Iston::Object::HTM
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 AUTHOR
 
@@ -237,7 +237,7 @@ Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2014 by Ivan Baidakou.
+This software is copyright (c) 2015 by Ivan Baidakou.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

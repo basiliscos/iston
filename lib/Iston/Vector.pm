@@ -1,12 +1,12 @@
 package Iston::Vector;
-$Iston::Vector::VERSION = '0.09';
+$Iston::Vector::VERSION = '0.10';
 use 5.12.0;
 
 use Carp;
 use Function::Parameters qw(:strict);
 use List::Util qw/reduce/;
 use List::MoreUtils qw/pairwise/;
-use Math::Trig;
+use Math::Trig qw/acos_real/;
 
 use Moo;
 
@@ -16,7 +16,6 @@ use overload
     '*'   => '_mul',
     '=='  => '_equal',
     '""'  => '_stringify',
-    '@{}' => '_values',
     fallback => 1,
     ;
 
@@ -25,12 +24,9 @@ our @EXPORT_OK = qw/normal/;
 
 with('Iston::Payload');
 
-has 'values' => (is => 'ro', required => 1);
-
-sub BUILDARGS {
-    my ( $class, $values ) = @_;
-    return { values => $values };
-}
+#has 'values' => (is => 'ro', required => 1, isa => sub { croak("not array") unless ref($_[0]) eq 'ARRAY' });
+has 'values' => (is => 'ro', required => 1, );
+has 'rotation_angles' => (is => 'lazy');
 
 fun normal($vertices, $indices) {
     croak "Normal vector is defined exactly by 3 vertices"
@@ -41,24 +37,20 @@ fun normal($vertices, $indices) {
     return ($a * $b)->normalize;
 }
 
-sub _values {
-    return shift->values;
-}
-
 sub _mul_vector {
-    my ($a, $b) = @_;
+    my ($a, $b) = map { $_->values} @_;
     my @values = (
         $a->[1]*$b->[2] - $a->[2]*$b->[1],
         $a->[2]*$b->[0] - $a->[0]*$b->[2],
         $a->[0]*$b->[1] - $a->[1]*$b->[0],
     );
-    return Iston::Vector->new(\@values);
+    return Iston::Vector->new(values =>\@values);
 }
 
 sub _mul_scalar {
     my ($a, $s) = @_;
-    my @values = map { $_ * $s } @$a;
-    return Iston::Vector->new(\@values);
+    my @values = map { $_ * $s } @{ $a->values };
+    return Iston::Vector->new(values => \@values);
 }
 
 # does either vector multiplicaiton or vector to scalar
@@ -72,7 +64,7 @@ sub _mul {
 };
 
 sub scalar_multiplication {
-    my ($p, $q) = @_;
+    my ($p, $q) = map {$_->values } @_;
     return
         reduce   { $a + $b }
         pairwise { $a * $b }
@@ -80,19 +72,18 @@ sub scalar_multiplication {
 }
 
 sub _add {
-    my ($a, $b) = @_;
+    my ($a, $b) = map {$_->values } @_[0,1];
     my @r = map { $a->[$_] + $b->[$_] } (0 .. 2);
-    return Iston::Vector->new(\@r);
+    return Iston::Vector->new(values => \@r);
 }
 
 sub _sub {
-    my ($a, $b) = @_;
+    my ($a, $b) = map {$_->values } @_[0,1];
     my @r = map { $a->[$_] - $b->[$_] } (0 .. 2);
-    return Iston::Vector->new(\@r);
+    return Iston::Vector->new(values => \@r);
 }
 
 sub _equal {
-    my ($a, $b) = @_;
     my $r = 1;
     for (0 .. 2) {
         $r &= $a->[$_] == $b->[$_];
@@ -102,10 +93,10 @@ sub _equal {
 
 sub length {
     my $self = shift;
+    my $values = $self->values;
     return sqrt(
         reduce  { $a + $b }
-            map { $_ * $_ }
-            map {$self->[$_] }
+            map {$values->[$_]**2 }
             (0 .. 2)
     );
 }
@@ -114,26 +105,22 @@ sub normalize {
     my $self = shift;
     my $length = $self->length;
     return $self if($length == 0);
-    my @r =
-        map { $_ / $length  }
-        map {$self->[$_] }
-        (0 .. 2);
-    for (0 .. 2) {
-        $self->[$_] = $r[$_];
-    }
-    $self;
+
+    my $values = $self->values;
+    my @r =map { $values->[$_] / $length } (0 .. 2);
+    return Iston::Vector->new(values => \@r);
 }
 
 sub _stringify {
-    my $self = shift;
-    return sprintf('vector[%0.4f, %0.4f, %0.4f]', @{$self}[0 .. 2]);
+    my $values = shift->values;
+    return sprintf('vector[%0.4f, %0.4f, %0.4f]', @$values);
 }
 
 sub smart_2string {
-    my $self = shift;
+    my $values = shift->values;
     my @values =
         map { $_ eq '-0.0000' ? '0.0000' : $_ }
-        map { sprintf('%0.4f', $_) } @{$self}[0 .. 2];
+        map { sprintf('%0.4f', $_) } @$values;
     sprintf('vector[%s, %s, %s]', @values);
 }
 
@@ -147,13 +134,27 @@ sub angle_with {
     my $cos_a = $a->scalar_multiplication($b) / ($a->length * $b->length);
     # take care of accurracy to do not jump accidently
     # to complex plane
-    $cos_a = $cos_a > 1
-        ? 1
-        : $cos_a < -1
-        ? -1
-        : $cos_a;
-    return acos($cos_a);
+    # $cos_a = $cos_a > 1
+    #     ? 1
+    #     : $cos_a < -1
+    #     ? -1
+    #     : $cos_a;
+    # return acos($cos_a);
+    return acos_real($cos_a);
 }
+
+sub _build_rotation_angles {
+    my $self = shift;
+    my ($a, $b) = map { $self->payload->{$_} } qw/start_vertex end_vertex/;
+    die("no start vertex payload") unless $a;
+    die("no end vertex payload") unless $a;
+
+    my ($rot_a, $rot_b) = map {
+        $_->payload->{rotation} // die("No rotation payload for vertex")
+    } ($a, $b);
+    my @rot_diff = map {$rot_b->[$_] - $rot_a->[$_]} (0, 1);
+    return \@rot_diff;
+};
 
 1;
 
@@ -169,7 +170,7 @@ Iston::Vector
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 AUTHOR
 
@@ -177,7 +178,7 @@ Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2014 by Ivan Baidakou.
+This software is copyright (c) 2015 by Ivan Baidakou.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

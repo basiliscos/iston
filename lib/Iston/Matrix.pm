@@ -1,8 +1,9 @@
 package Iston::Matrix;
-$Iston::Matrix::VERSION = '0.09';
+$Iston::Matrix::VERSION = '0.10';
 use 5.16.0;
 
 use parent qw/Math::MatrixReal/;
+#use parent qw/Math::Matrix::MaybeGSL/;
 
 sub as_list {
     my $self = shift;
@@ -30,7 +31,7 @@ Iston::Matrix
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 AUTHOR
 
@@ -38,7 +39,7 @@ Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2014 by Ivan Baidakou.
+This software is copyright (c) 2015 by Ivan Baidakou.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

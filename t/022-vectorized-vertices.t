@@ -87,4 +87,21 @@ subtest "duplications on the end check" => sub {
     is $mapper->(4), 1;
 };
 
+subtest "correct values for VV" => sub {
+    my $h = History->new;
+    my @angels = ([0, 0], [0, 90], [90, 90] );
+    my $records = $_a2r->(\@angels);
+    push @{$h->records}, @$records;
+    my $o = ObservationPath->new(history => $h);
+    my $vv = VectorizedVertices->new(
+        vertices       => $o->vertices,
+        vertex_indices => $o->sphere_vertex_indices,
+        hilight_color  => [0.0, 0.0, 0.0, 0.0], # does not matter
+    );
+    my $vectors = $vv->vectors;
+    is scalar(@$vectors), 2;
+    is $vectors->[0], "vector[-1.0000, 0.0000, -1.0000]";
+    is $vectors->[1], "vector[1.0000, 1.0000, -0.0000]";
+};
+
 done_testing;

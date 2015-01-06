@@ -1,6 +1,7 @@
 package Iston::Triangle;
-$Iston::Triangle::VERSION = '0.09';
+$Iston::Triangle::VERSION = '0.10';
 use 5.12.0;
+use warnings;
 
 use Carp;
 use Function::Parameters qw(:strict);
@@ -10,6 +11,7 @@ use List::MoreUtils qw/pairwise all/;
 use List::Util qw/first reduce/;
 use Moo;
 
+use aliased qw/Iston::Matrix/;
 use aliased qw/Iston::Triangle/;
 use aliased qw/Iston::TrianglePath/;
 use aliased qw/Iston::Vector/;
@@ -49,11 +51,11 @@ method _build_subtriangles {
     my $do_tesselation = $self->tesselation;
     my $vertices = $self->vertices;
     my $example_radius = $do_tesselation
-        ? sqrt(reduce {$a + $b} map { $_**2 } @{$vertices->[0]})
+        ? sqrt(reduce {$a + $b} map { $_**2 } @{ $vertices->[0]->values })
         : 0;
     my @mediate_vectors = map {
         my ($A, $B) = map {
-            my ($v1, $v2) = map { $vertices->[$_] } @$_;
+            my ($v1, $v2) = map { $vertices->[$_]->values } @$_;
             my @vector = pairwise { $b - $a } @$v1, @$v2;
             #$v1->vector_to($v2);
             \@vector;
@@ -64,7 +66,7 @@ method _build_subtriangles {
     } @vertex_pairs;
     my @new_vertices = map {
         my $vector = $mediate_vectors[$_];
-        my $base_vertex = $vertices->[ $vertex_pairs[$_]->[0]->[0] ];
+        my $base_vertex = $vertices->[ $vertex_pairs[$_]->[0]->[0] ]->values;
         # move vector to at the base vertex
         my @values = pairwise { $a + $b } @$vector, @$base_vertex;
         if ($do_tesselation) {
@@ -72,7 +74,7 @@ method _build_subtriangles {
             my $scale = $example_radius / $radius;
             $_ *= $scale for (@values);
         }
-        Iston::Vertex->new(\@values);
+        Iston::Vertex->new(values => \@values);
     } (0 .. 2);
     my @new_triangle_vertices = (
         # reserve vertices traverse order
@@ -96,36 +98,55 @@ method _build_subtriangles {
 
 method intersects_with($vertex_on_sphere) {
     my $n = $self->normal;
-    my $a = Vector->new([@$vertex_on_sphere]); # guide vector
+    my $a = Vector->new(values => $vertex_on_sphere->values); # guide vector
     my $an = $a->scalar_multiplication($n);
     return if maybe_zero(abs($an)) == 0;
-    my $r0 = Vector->new($self->vertices->[0]);
+    my $r0 = Vector->new(values => $self->vertices->[0]->values);
     my $t = $r0->scalar_multiplication($n) / $an;
-    my $vertex_on_triangle = Vertex->new($a*$t);
+    my $vertex_on_triangle = Vertex->new(values => ($a*$t)->values);
 
-    # now, check, wheather the vertex is inside the triangle
+    # # now, check, wheather the vertex is inside the triangle
     my @indices = (
         [0, 1],
         [1, 2],
         [2, 0],
     );
-    # planes, formed by the tringle sidies
+
+    # this works, while this is more elegant, but it is more slower too :(
+    # my $to_a = Vector->new($a);
+    # my @orientations = map {
+    #     my ($a, $b) = map {$self->vertices->[$_]} @$_;
+    #     my $orientation = Matrix->new_from_rows([
+    #         [@$a],
+    #         [@$b],
+    #         [@$to_a],
+    #     ])->det
+    # } @indices;
+    # my @values = map { maybe_zero($_) } @orientations;
+    # # planes, formed by the tringle sidies
+    my @cache;
     my @planes = map {
+        my ($i1, $i2) = @$_;
         my ($a, $b) = map {$self->vertices->[$_]} @$_;
         my $normal = $a->vector_to($b)*$n;
-        my $alpha = Vector->new($a)->scalar_multiplication($normal);
+        my $to_a = $cache[$i1] //= Vector->new(values => $a->values);
+        my $alpha = $to_a->scalar_multiplication($normal);
         [$normal, $alpha];
     } @indices;
-    my $vector_to_triangle = Vector->new($vertex_on_triangle);
+    my $vector_to_triangle = Vector->new(values => $vertex_on_triangle->values);
     my @values =
         map { maybe_zero($_) }
         map {
             my ($normal, $alpha) = @$_;
             $vector_to_triangle->scalar_multiplication($normal) - $alpha;
         } @planes;
-    my @signes = map { $_ > 0 ? 1 : $_ < 0 ? -1 : 0 } @values;
-    my $any_non_zero = first { $_  } @signes;
-    my $is_inside = all { $_ == 0 or $_ == $any_non_zero } @signes;
+
+    # redundant checks
+    # my @signes = map { $_ > 0 ? 1 : $_ < 0 ? -1 : 0 } @values;
+    # my $any_non_zero = first { $_  } @signes;
+    # my $is_inside = all { $_ == 0 or $_ == $any_non_zero } @signes;
+    my $is_inside = all { $_ <= 0 } @values;
+
     return $is_inside ? $vertex_on_triangle : undef;
 }
 
@@ -143,7 +164,7 @@ Iston::Triangle
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 METHODS
 
@@ -162,7 +183,7 @@ Ivan Baidakou <dmol@gmx.com>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2014 by Ivan Baidakou.
+This software is copyright (c) 2015 by Ivan Baidakou.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
