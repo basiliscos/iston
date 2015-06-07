@@ -72,6 +72,7 @@ sub _build_htm {
     $htm->level(3);
     $htm->shader($self->shader_for->{object});
     $htm->notifyer($self->_notifyer);
+    $htm->enabled(0);
     return $htm;
 }
 
