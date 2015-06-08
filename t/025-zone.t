@@ -13,7 +13,7 @@ subtest "polar vercices" => sub {
     my $z = Zone->new(
         xz     => 0,
         yz     => 0,
-        spread => 90,
+        spread => 180,
     );
 
     my ($c1, $v1, $v2) = $z->sphere_points(0);

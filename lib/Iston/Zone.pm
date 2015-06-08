@@ -27,7 +27,8 @@ sub _build__transformation {
 };
 
 sub sphere_points {
-    my ($self, $angle) = @_;
+    my ($self, $angle, $need_center) = @_;
+    $need_center //= 1;
     my $center = Iston::Matrix->new_from_cols([ [0, 0, 1] ]);
     my $shifted_center = $self->_transformation * $center;
     my $shifted_center_vx = Vertex->new(values => [ map { $shifted_center->element($_, 1) } (1, 2, 3) ]);
@@ -37,8 +38,8 @@ sub sphere_points {
     my $rotation_axis = $self->_transformation * Iston::Matrix->new_from_cols([ [-1, 0, 0] ]);
     my @rotation_coordinages = map { $rotation_axis->element($_, 1) } (1, 2, 3);
     my $spread = $self->spread;
-    my $rotate_pos = rotation_matrix(@rotation_coordinages, deg2rad($spread));
-    my $rotate_neg = rotation_matrix(@rotation_coordinages, deg2rad(-1 * $spread));
+    my $rotate_pos = rotation_matrix(@rotation_coordinages, deg2rad($spread/2));
+    my $rotate_neg = rotation_matrix(@rotation_coordinages, deg2rad(-1 * $spread/2));
 
     my $pos_mx = $angle_rotation * $rotate_pos * $shifted_center;
     my $neg_mx = $angle_rotation * $rotate_neg * $shifted_center;
@@ -46,7 +47,7 @@ sub sphere_points {
     my $pos_vx = Vertex->new(values => [ map { $pos_mx->element($_, 1) } (1, 2, 3) ]);
     my $neg_vx = Vertex->new(values => [ map { $neg_mx->element($_, 1) } (1, 2, 3) ]);
 
-    return ($shifted_center_vx, $pos_vx, $neg_vx);
+    return ($need_center ? ($shifted_center_vx): (), $pos_vx, $neg_vx);
 }
 
 1;
