@@ -71,50 +71,81 @@ sub _build_menu {
         }
     );
 
-    my $direction = [0.0, 0.0, 1.0];
-    my $initial_direction = [0.0, 0.0, 1.0];
-    my $x_start = Vector->new(values => [$initial_direction->[0], 0, $initial_direction->[2]]);
-    my $y_start = Vector->new(values => [0, $initial_direction->[1], $initial_direction->[2]]);
+    my $direction_xz = [0.0, 0.0, 1.0];
+    my $initial_direction_xz = [0.0, 0.0, 1.0];
+    my $xz_start = Vector->new(values => [$initial_direction_xz->[0], 0, $initial_direction_xz->[2]]);
+    my $xz_angle = 0;
 
     $bar->add_variable(
         mode       => 'rw',
-        name       => "ObjRotation",
+        name       => "zx-orientation",
         type       => 'direction',
-        definition => " label='Object rotation' opened=true ",
-        cb_read    => sub { $direction },
+        definition => " label='zx-orientation' opened=true ",
+        cb_read    => sub { $direction_xz },
         cb_write   => sub {
-            $direction = shift;
-            my $x_axis = Vector->new(values => [$direction->[0], 0, $direction->[2]]);
-            my $x_angle = $x_axis->is_zero
+            $direction_xz = shift;
+            $direction_xz->[1] = 0;
+            $direction_xz = Vector->new(values => $direction_xz)->normalize->values;
+
+            my $xz_axis = Vector->new(values => [$direction_xz->[0], 0, $direction_xz->[2]]);
+            $xz_angle = $xz_axis->is_zero
                 ? 0
                 : do {
-                    my $x_angle = $x_start->angle_with($x_axis);
-                    my $x_sign = Vector->new(values => [0, 1, 0])->scalar_multiplication($x_start * $x_axis);
-                    $x_sign = ($x_sign < 0) ? -1 : ($x_sign > 0) ? 1 : 0;
-                    $x_angle *= $x_sign;
+                    my $xz_angle = $xz_start->angle_with($xz_axis);
+                    my $xz_sign = Vector->new(values => [0, 1, 0])->scalar_multiplication($xz_start * $xz_axis);
+                    $xz_sign = ($xz_sign < 0) ? -1 : ($xz_sign > 0) ? 1 : 0;
+                    $xz_angle *= $xz_sign;
+                };
+            $self->settings_bar->refresh;
+            if ($self->main_object) {
+                $self->main_object->rotate(1, rad2deg $xz_angle);
+            }
+        }
+    );
+    $bar->add_variable(
+        mode       => 'ro',
+        name       => "zx-angle",
+        type       => 'number',
+        cb_read    => sub { rad2deg $xz_angle },
+    );
+
+    my $direction_yz = [0.0, 0.0, 1.0];
+    my $initial_direction_yz = [0.0, 0.0, 1.0];
+    my $yz_start = Vector->new(values => [$initial_direction_yz->[0], 0, $initial_direction_yz->[2]]);
+    my $yz_angle = 0;
+
+    $bar->add_variable(
+        mode       => 'rw',
+        name       => "yx-orientation",
+        type       => 'direction',
+        definition => " label='yx-orientation' opened=true ",
+        cb_read    => sub { $direction_yz },
+        cb_write   => sub {
+            $direction_yz = shift;
+            $direction_yz->[0] = 0;
+            $direction_yz = Vector->new(values => $direction_yz)->normalize->values;
+
+            my $yz_axis = Vector->new(values => [0, $direction_yz->[1], $direction_yz->[2]]);
+            $yz_angle = $yz_axis->is_zero
+                ? 0
+                : do {
+                    my $yz_angle = $yz_start->angle_with($yz_axis);
+                    my $yz_sign = Vector->new(values => [1, 0, 0])->scalar_multiplication($yz_start * $yz_axis);
+                    $yz_sign = ($yz_sign < 0) ? -1 : ($yz_sign > 0) ? 1 : 0;
+                    $yz_angle *= $yz_sign;
                 }
                 ;
 
-            my $rotation_matrix = rotation_matrix(0, 1, 0, -1 * $x_angle);
-
-            my $direction = Vector->new(values => [@$direction]);
-            my $rolled_back_matrix = $rotation_matrix * Iston::Matrix->new_from_cols([ $direction->values ]);
-            my $rolled_back = Vector->new(values => [map { $rolled_back_matrix->element($_, 1) } (1..3) ]);
-            say "rb = $rolled_back";
-
-            my $y_angle = $y_start->angle_with($rolled_back);
-            say "y angle = ", rad2deg($y_angle);
-            my $y_sign = Vector->new(values => [1, 0, 0])->scalar_multiplication($rolled_back * $y_start) * -1;
-            $y_sign = ($y_sign < 0) ? -1 : ($y_sign > 0) ? 1 : 0;
-            $y_angle *= $y_sign;
-            say "y angle = ", rad2deg($y_angle);
-
             if ($self->main_object) {
-                $self->main_object->rotate(0, rad2deg $y_angle);
-                $self->main_object->rotate(1, rad2deg $x_angle);
-                say "x = ", rad2deg($x_angle), ", y = ", rad2deg($y_angle);
+                $self->main_object->rotate(0, rad2deg $yz_angle);
             }
         }
+    );
+    $bar->add_variable(
+        mode       => 'ro',
+        name       => "zy-angle",
+        type       => 'number',
+        cb_read    => sub { rad2deg $yz_angle },
     );
 }
 
