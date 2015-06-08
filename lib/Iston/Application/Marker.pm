@@ -18,12 +18,15 @@ use aliased qw/AntTweakBar::Type/;
 use aliased qw/Iston::Triangle/;
 use aliased qw/Iston::Vertex/;
 use aliased qw/Iston::Vector/;
+use aliased qw/Iston::Zone/;
+use aliased qw/Iston::Object::MarkerContainer/;
 
 with('Iston::Application');
 
 has models_path    => (is => 'ro', required => 1);
 has main_object    => (is => 'rw');
 has _commands      => (is => 'lazy');
+has _markers       => (is => 'lazy');
 
 sub BUILD {
     my $self = shift;
@@ -31,9 +34,23 @@ sub BUILD {
     $self->_build_menu;
 };
 
+sub _build__markers {
+    my ($self) = @_;
+    my $mc = MarkerContainer->new(
+        shader => $self->shader_for->{object},
+    );
+    $mc->scale($self->max_boundary * 1.1);
+    push @{ $mc->zones }, Zone->new(
+        xz => 0,
+        yz => 0,
+        spread => 10,
+    );
+    return $mc;
+}
+
 sub objects {
     my $self = shift;
-    return [ ($self->main_object ? ($self->main_object) : ())  ];
+    return [ $self->_markers, ($self->main_object ? ($self->main_object) : ())  ];
 }
 
 sub _load_model {
@@ -42,6 +59,14 @@ sub _load_model {
     my $object = $self->load_object($model_path);
     $self->main_object($object);
     $self->settings_bar->refresh;
+}
+
+sub _rotate {
+    my ($self, $xz, $yz) = @_;
+    for (@{ $self->objects }) {
+        $_->rotate(1, $xz);
+        $_->rotate(0, $yz);
+    }
 }
 
 sub _build_menu {
@@ -75,6 +100,12 @@ sub _build_menu {
     my $initial_direction_xz = [0.0, 0.0, 1.0];
     my $xz_start = Vector->new(values => [$initial_direction_xz->[0], 0, $initial_direction_xz->[2]]);
     my $xz_angle = 0;
+    my $yz_angle = 0;
+
+    my $rotate_objects = sub {
+        $self->_rotate($xz_angle, $yz_angle);
+        $self->settings_bar->refresh;
+    };
 
     $bar->add_variable(
         mode       => 'rw',
@@ -96,23 +127,20 @@ sub _build_menu {
                     $xz_sign = ($xz_sign < 0) ? -1 : ($xz_sign > 0) ? 1 : 0;
                     $xz_angle *= $xz_sign;
                 };
-            $self->settings_bar->refresh;
-            if ($self->main_object) {
-                $self->main_object->rotate(1, rad2deg $xz_angle);
-            }
+            $xz_angle = rad2deg $xz_angle;
+            $rotate_objects->();
         }
     );
     $bar->add_variable(
         mode       => 'ro',
         name       => "zx-angle",
         type       => 'number',
-        cb_read    => sub { rad2deg $xz_angle },
+        cb_read    => sub { $xz_angle },
     );
 
     my $direction_yz = [0.0, 0.0, 1.0];
     my $initial_direction_yz = [0.0, 0.0, 1.0];
     my $yz_start = Vector->new(values => [$initial_direction_yz->[0], 0, $initial_direction_yz->[2]]);
-    my $yz_angle = 0;
 
     $bar->add_variable(
         mode       => 'rw',
@@ -135,17 +163,15 @@ sub _build_menu {
                     $yz_angle *= $yz_sign;
                 }
                 ;
-
-            if ($self->main_object) {
-                $self->main_object->rotate(0, rad2deg $yz_angle);
-            }
+            $yz_angle = rad2deg $yz_angle;
+            $rotate_objects->();
         }
     );
     $bar->add_variable(
         mode       => 'ro',
         name       => "zy-angle",
         type       => 'number',
-        cb_read    => sub { rad2deg $yz_angle },
+        cb_read    => sub { $yz_angle },
     );
 }
 
