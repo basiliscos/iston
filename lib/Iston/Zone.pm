@@ -13,7 +13,7 @@ use aliased qw/Iston::Vertex/;
 has xz => (is => 'ro', required => 1);
 has yz => (is => 'ro', required => 1);
 
-has spread => (is => 'ro', required => 1);
+has spread => (is => 'rw', required => 1);
 has active => (is => 'rw', default => sub { 0 });
 
 has _transformation => (is => 'lazy');

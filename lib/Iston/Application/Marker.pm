@@ -254,15 +254,42 @@ sub _activate_next {
     $mc->clear_draw_function;
 }
 
+sub _enlarge_zone {
+    my ($self) = @_;
+    return unless $self->_current_zone >= 0;
+
+    my $zone = $self->_markers->zones->[$self->_current_zone];
+    my $spread = $zone->spread;
+    $spread++;
+    $spread %= 180;
+    $zone->spread($spread);
+    $self->settings_bar->refresh;
+    $self->_markers->clear_draw_function;
+}
+
+sub _shrink_zone {
+    my ($self) = @_;
+    return unless $self->_current_zone >= 0;
+
+    my $zone = $self->_markers->zones->[$self->_current_zone];
+    my $spread = $zone->spread;
+    $spread--;
+    $spread = 2 if ($spread < 2);
+    $zone->spread($spread);
+    $self->settings_bar->refresh;
+    $self->_markers->clear_draw_function;
+}
 
 sub _build__commands {
     my ($self) = @_;
     my $commands = {
-        'add_zone'          => sub { $self->_add_zone; },
-        'remove_zone'       => sub { $self->_remove_zone; },
+        'add_zone'          => sub { $self->_add_zone;      },
+        'remove_zone'       => sub { $self->_remove_zone;   },
         'activate_next'     => sub { $self->_activate_next; },
         'activate_prev'     => sub { $self->_activate_prev; },
-        'terminate_program' => sub { $self->sdl_app->stop },
+        'enlarge_zone'      => sub { $self->_enlarge_zone;  },
+        'shrink_zone'       => sub { $self->_shrink_zone;   },
+        'terminate_program' => sub { $self->sdl_app->stop   },
     };
     return $commands;
 }
@@ -278,6 +305,8 @@ sub process_event {
             SDLK_BACKSPACE() => 'remove_zone',
             SDLK_LEFT()      => 'activate_prev',
             SDLK_RIGHT()     => 'activate_next',
+            SDLK_UP()        => 'enlarge_zone',
+            SDLK_DOWN()      => 'shrink_zone',
         };
         my $key = $event->key_sym;
         my $command = $dispatch_table->{$key};
