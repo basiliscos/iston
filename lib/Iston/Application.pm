@@ -187,7 +187,8 @@ sub _build_settings_bar {
 }
 
 sub _drawGLScene {
-    my $self = shift;
+    my ($self, $do_flush) = @_;
+    $do_flush //= 1;
     my $bg_color = $ENV{INSTON_BG_COLOR} // '000000';
     my ($r, $g, $b) = map { $_ / 255 }
         reverse unpack('CCC', pack('L', hex($bg_color)));
@@ -198,7 +199,7 @@ sub _drawGLScene {
         $_->draw_function->();
     }
     AntTweakBar::draw;
-    glFlush;
+    glFlush if ($do_flush);
 }
 
 sub _handle_polls {

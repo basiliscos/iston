@@ -192,6 +192,24 @@ sub _build_menu {
     );
 }
 
+around _drawGLScene => sub {
+    my $orig = shift;
+    my $self = shift;
+    $orig->($self, 0);
+
+    my $distance = 0.1;
+    glColor3f(1.0, 0.0, 0.0);
+    glBegin(GL_LINES);
+      glVertex2f(-$distance, 0.0);
+      glVertex2f(+$distance, 0.0);
+    glEnd();
+    glBegin(GL_LINES);
+      glVertex2f(0, -$distance);
+      glVertex2f(0, +$distance);
+    glEnd();
+    glFlush;
+};
+
 sub _add_zone {
     my ($self) = @_;
     my $mc = $self->_markers;
