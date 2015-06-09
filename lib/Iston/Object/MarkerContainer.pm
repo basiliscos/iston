@@ -21,7 +21,7 @@ method _build_draw_function {
     my $active_color = [1.0, 1.0, 1.0, 0.0];
 
     my $rotations = 16;
-    my $step = 360 / $rotations;
+    my $step = 180 / $rotations;
 
     my @vertices = [0, 0, 0];
     my @indices;

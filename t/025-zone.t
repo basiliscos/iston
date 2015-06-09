@@ -27,4 +27,23 @@ subtest "polar vercices" => sub {
     is $v2, Vertex->new(values => [1.0,  -0.0, 0.0]), "negative vertex is east pole";
 };
 
+
+subtest "non-polar vercices" => sub {
+    my $z = Zone->new(
+        xz     => 45,
+        yz     => 45,
+        spread => 90,
+    );
+
+    my ($c1, $v1, $v2) = $z->sphere_points(0);
+    is $c1, "vertex[0.5000000, 0.7071068, 0.5000000]", "central pt is correct";
+    is $v1, "vertex[0.0000000, 1.0000000, 0.0000000]";
+    is $v2, "vertex[0.7071068, 0.0000000, 0.7071068]";
+
+    ($c1, $v1, $v2) = $z->sphere_points(90);
+    is $c1, "vertex[0.5000000, 0.7071068, 0.5000000]", "central pt is correct";
+    is $v1, "vertex[-0.1464466, 0.5000000, 0.8535534]";
+    is $v2, "vertex[0.8535534, 0.5000000, -0.1464466]";
+};
+
 done_testing;

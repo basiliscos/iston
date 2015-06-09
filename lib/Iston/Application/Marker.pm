@@ -197,7 +197,7 @@ sub _add_zone {
     my $mc = $self->_markers;
     push @{ $mc->zones }, Zone->new(
         xz => -1 * $self->xz_angle,
-        yz => -1 * $self->yz_angle,
+        yz => $self->yz_angle,
         spread => 10,
         active => 1,
     );

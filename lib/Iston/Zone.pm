@@ -8,6 +8,7 @@ use Iston::Utils qw/rotation_matrix/;
 use Math::Trig;
 use Moo;
 
+use aliased qw/Iston::Vector/;
 use aliased qw/Iston::Vertex/;
 
 has xz => (is => 'ro', required => 1);
@@ -21,33 +22,36 @@ has _transformation => (is => 'lazy');
 sub _build__transformation {
     my ($self) = @_;
     my $rotate_xz = rotation_matrix(0, 1, 0, deg2rad($self->xz));
-    my $rotate_yz = rotation_matrix(1, 0, 0, deg2rad($self->yz));
-    my $m = $rotate_yz * $rotate_xz;
+    my $rotate_yz = rotation_matrix(-1, 0, 0, deg2rad($self->yz));
+    my $m = $rotate_xz * $rotate_yz;
     return $m;
 };
 
 sub sphere_points {
     my ($self, $angle, $need_center) = @_;
     $need_center //= 1;
-    my $center = Iston::Matrix->new_from_cols([ [0, 0, 1] ]);
-    my $shifted_center = $self->_transformation * $center;
-    my $shifted_center_vx = Vertex->new(values => [ map { $shifted_center->element($_, 1) } (1, 2, 3) ]);
 
-    my $angle_rotation = rotation_matrix(@{ $shifted_center_vx->values }, deg2rad($angle));
-
-    my $rotation_axis = $self->_transformation * Iston::Matrix->new_from_cols([ [-1, 0, 0] ]);
-    my @rotation_coordinages = map { $rotation_axis->element($_, 1) } (1, 2, 3);
     my $spread = $self->spread;
-    my $rotate_pos = rotation_matrix(@rotation_coordinages, deg2rad($spread/2));
-    my $rotate_neg = rotation_matrix(@rotation_coordinages, deg2rad(-1 * $spread/2));
+    my $center = Iston::Matrix->new_from_cols([ [0, 0, 1] ]);
+    my $angle_rotation = rotation_matrix(0, 0, 1, deg2rad($angle));
 
-    my $pos_mx = $angle_rotation * $rotate_pos * $shifted_center;
-    my $neg_mx = $angle_rotation * $rotate_neg * $shifted_center;
+    my $v1 = $angle_rotation * rotation_matrix(-1, 0, 0, deg2rad($spread/2)) * $center;
+    my $v2 = $angle_rotation * rotation_matrix(-1, 0, 0, deg2rad(-1 * $spread/2)) * $center;
 
-    my $pos_vx = Vertex->new(values => [ map { $pos_mx->element($_, 1) } (1, 2, 3) ]);
-    my $neg_vx = Vertex->new(values => [ map { $neg_mx->element($_, 1) } (1, 2, 3) ]);
+    my $t = $self->_transformation;
+    ($center, $v1, $v2) = map { $t * $_ } ($center, $v1, $v2);
 
-    return ($need_center ? ($shifted_center_vx): (), $pos_vx, $neg_vx);
+    my $as_vertex = sub {
+        my ($m) = @_;
+        my $v = Vertex->new(values => [map {$m->element($_, 1)} (1, 2, 3)]);
+        return $v;
+    };
+
+    my $c_vx = $center->$as_vertex;
+    my $pos_vx = $v1->$as_vertex;
+    my $neg_vx = $v2->$as_vertex;
+
+    return ($need_center ? ($c_vx): (), $pos_vx, $neg_vx);
 }
 
 1;
