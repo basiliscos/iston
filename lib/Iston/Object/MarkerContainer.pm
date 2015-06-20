@@ -10,11 +10,20 @@ use OpenGL qw(:all);
 use Iston::Utils qw/as_oga maybe_zero/;
 
 has draw_function  => (is => 'lazy', clearer => 1);
+has name  => (is => 'rw', default => sub { "markers-1" });
 has zones => (is => 'ro', default => sub { [] });
 
 with('Iston::Drawable');
 
 method has_texture { return 0; };
+
+sub as_hash {
+    my ($self) = @_;
+    return {
+        name  => $self->name,
+        zones =>  [ map { $_->as_hash }@{ $self->zones }],
+    };
+}
 
 method _build_draw_function {
     my $default_color = [102.0/255, 0.0, 204.0/255, 0.0];

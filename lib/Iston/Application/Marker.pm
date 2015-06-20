@@ -194,16 +194,16 @@ sub _build_menu {
         cb_read    => sub { $self->_current_zone + 1 },
     );
 
-    my $name = "maker1";
     $bar->add_variable(
         mode       => 'rw',
         name       => "name",
         type       => 'string',
-        value      => \$name,
+        cb_read    => sub { $self->_markers->name },
+        cb_write   => sub { $self->_markers->name(shift) },
     );
     $bar->add_button(
         name       => "save",
-        cb         => sub { $self->_save($name) },
+        cb         => sub { $self->_save },
     );
 }
 
@@ -226,18 +226,13 @@ around _drawGLScene => sub {
 };
 
 sub _save {
-    my ($self, $name) = @_;
-    return unless $name;
-    my $zones = $self->_markers->zones;
+    my ($self) = @_;
+    my $mc = $self->_markers;
+    my $zones = $mc->zones;
     return unless @$zones;
 
-    my @items = map { $_->as_hash } @$zones;
-
-    my $data = JSON::XS->new->pretty->encode({
-        name  => $name,
-        zones => \@items,
-    });
-    my $basename = 'marker-' . $self->model_file . '-' . $name . '.json';
+    my $data = JSON::XS->new->pretty->encode($mc->as_hash);
+    my $basename = 'marker-' . $self->model_file . '-' . $mc->name . '.json';
     my $marker_file = path($self->models_path,  $basename);
     $marker_file->spew_utf8($data);
 }

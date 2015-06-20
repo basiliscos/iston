@@ -6,6 +6,7 @@ use AntTweakBar qw/:all/;
 use AnyEvent;
 use Carp;
 use Iston;
+use JSON::XS;
 use File::Find::Rule;
 use Function::Parameters qw(:strict);
 use List::MoreUtils qw/any uniq/;
@@ -27,11 +28,13 @@ use aliased qw/Iston::Analysis::AngularVelocity/;
 use aliased qw/Iston::Analysis::Projections/;
 use aliased qw/Iston::Analysis::Visibility/;
 use aliased qw/Iston::Object::HTM/;
+use aliased qw/Iston::Object::MarkerContainer/;
 use aliased qw/Iston::Object::ObservationPath/;
 use aliased qw/Iston::Object::SphereVectors::GeneralizedVectors/;
 use aliased qw/Iston::Object::SphereVectors::VectorizedVertices/;
 use aliased qw/Iston::Vertex/;
 use aliased qw/Iston::Vector/;
+use aliased qw/Iston::Zone/;
 
 with('Iston::Application');
 
@@ -52,6 +55,7 @@ has _htm_visualizer_index  => (is => 'rw', default => sub { 0 });
 has _analysis_dumper       => (is => 'rw', default => sub { sub{ } });
 has _source_sphere_vectors => (is => 'rw');
 has _region_path           => (is => 'rw');
+has _marker_container      => (is => 'rw');
 has _points_of_interes     => (is => 'rw', default => sub { [] });
 
 sub _build_menu;
@@ -78,7 +82,7 @@ sub _build_htm {
 
 sub objects {
     my $self = shift;
-    [map { $_ ? $_ : () } ($self->main_object, $self->htm, $self->observation_path) ];
+    [map { $_ ? $_ : () } (map { $self->$_} qw/main_object htm observation_path _marker_container/) ];
 }
 
 sub _load_object {
@@ -335,8 +339,7 @@ sub _build_menu {
         sort { $a cmp $b }
         grep { /\.obj$/i }
         path($self->models_path)->children;
-    my %history_of = map { $_->{path}->basename => $_ }
-        @models;
+    my %data_for = map { $_->{path}->basename => $_ } @models;
 
     my @histories = map { path($_) }
         File::Find::Rule->file
@@ -345,16 +348,33 @@ sub _build_menu {
     for my $h (@histories) {
         if($h->basename =~ /^history_(\d+)_(.+)\.csv$/) {
             my $model_name = $2;
-            if ( exists $history_of{$model_name} ) {
-                push @{ $history_of{$model_name}->{histories} }, $h;
+            if ( exists $data_for{$model_name} ) {
+                push @{ $data_for{$model_name}->{histories} }, $h;
             }
         }
     };
-    @models = grep { exists $history_of{$_->{path}->basename}->{histories} } @models;
+    my @markers = map { path($_) }
+        File::Find::Rule->file
+        ->name( "marker-*.json" )
+        ->in( path(".") );
+    for my $m (@markers) {
+        if($m->basename =~ /^marker-(.+(\.obj))-((.+)(\.json))$/) {
+            my ($model_name, $marker_name) = ($1, $3);
+            if ( exists $data_for{$model_name} ) {
+                push @{ $data_for{$model_name}->{markers} }, $m;
+            }
+        }
+    };
+
+    @models = grep { exists $data_for{$_->{path}->basename}->{histories} } @models;
     for (@models) {
         $_->{histories} = [
             sort {$a cmp $b}
-            @{ $history_of{$_->{path}->basename}->{histories} }
+            @{ $data_for{$_->{path}->basename}->{histories} }
+        ];
+        $_->{markers} = [
+            sort {$a cmp $b}
+            @{ $data_for{$_->{path}->basename}->{markers} // [] }
         ];
         my @history_names = (
             "choose history",
@@ -366,8 +386,14 @@ sub _build_menu {
                     : $_
             } @{ $_->{histories} }
         );
+        my @marker_names = (
+            "choose marker",
+            map { $_->basename } @{ $_->{markers} },
+        );
         my $history_type = Type->new("history_for" . $_->{path}, \@history_names);
         $_->{history_type} = $history_type;
+        my $marker_type = Type->new("marker_for" . $_->{path}, \@marker_names);
+        $_->{marker_type} = $marker_type;
 
         (my $region_basename = $_->{path}->basename) =~ s/.obj//;
         my @regions =
@@ -415,6 +441,40 @@ sub _build_menu {
                 definition => " group='Model' ",
             );
             $history_index = 0;
+
+            my $marker_index = 0;
+            $bar->remove_variable('marker') if($prev_model_index);
+            $bar->add_variable(
+                mode       => 'rw',
+                name       => "marker",
+                type       => $model->{marker_type},
+                cb_read    => sub { $marker_index },
+                cb_write   => sub {
+                    $marker_index = shift;
+                    return if $marker_index== 0; # skip "choose marker" index;
+                    my $model = $models[ $model_index - 1];
+                    my $marker_path = $model->{markers}->[ $marker_index - 1];
+                    my $mc = MarkerContainer->new(
+                        shader => $self->shader_for->{object},
+                    );
+                    $mc->notifyer($self->_notifyer);
+                    my $markers_data = decode_json($marker_path->slurp_utf8);
+                    for (@{ $markers_data->{zones} } ) {
+                        push @{ $mc->zones }, Zone->new(
+                            xz     => $_->{xz},
+                            yz     => $_->{yz},
+                            spread => $_->{spread},
+                            active => 0,
+                        );
+                    }
+                    $mc->name($markers_data->{name});
+                    my $scale_to = $self->main_object->scale * $self->main_object->radius;
+                    $mc->scale($scale_to);
+                    $mc->clear_draw_function;
+                    $self->_marker_container($mc);
+                },
+                definition => " group='Model' ",
+            );
 
             my $region_index = 0;
             $bar->remove_variable('region_of_interest') if($prev_model_index);
