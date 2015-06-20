@@ -153,6 +153,12 @@ sub _load_object {
                 say $visibility_fh "$step, $colors";
             }
         }
+        if ($self->_marker_container) {
+            my $mc = $self->_marker_container;
+            my $result_path = path($analisys_dir, $mc->name . "-results.csv");
+            my $result_fh = $result_path->filehandle('>');
+            $mc->dump_analisys($result_fh, $observation_path);
+        }
         $history_path->copy(path($analisys_dir, 'history.csv'));
     };
     $self->_analysis_dumper($dumper);

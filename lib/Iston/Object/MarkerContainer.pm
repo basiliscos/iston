@@ -4,14 +4,18 @@ use 5.16.0;
 use warnings;
 
 use Function::Parameters qw(:strict);
+use Math::Trig;
 use Moo;
 use List::Util qw/all/;
 use OpenGL qw(:all);
 use Iston::Utils qw/as_oga maybe_zero/;
 
+use aliased qw/Iston::Vector/;
+
 has draw_function  => (is => 'lazy', clearer => 1);
-has name  => (is => 'rw', default => sub { "markers-1" });
-has zones => (is => 'ro', default => sub { [] });
+has name           => (is => 'rw', default => sub { "markers-1" });
+has zones          => (is => 'ro', default => sub { [] });
+has results        => (is => 'lazy');
 
 with('Iston::Drawable');
 
@@ -23,6 +27,57 @@ sub as_hash {
         name  => $self->name,
         zones =>  [ map { $_->as_hash }@{ $self->zones }],
     };
+}
+
+sub dump_analisys {
+    my ($self, $fh, $observation_path) = @_;
+    my $vectors = $observation_path->sphere_vectors->vectors;
+    my $results;
+    my $zones = $self->zones;
+    for my $z_index (0 .. @$zones-1) {
+        my $z = $zones->[$z_index];
+        my ($z_center, $z_right, $z_left) = $z->sphere_points(90, 1);
+        my $v_center = Vector->new(values => $z_center->values);
+        for my $v_index (0 .. @$vectors-1) {
+            my $v = $vectors->[$v_index];
+            my $n = $v->payload->{great_arc_normal};
+            my ($start, $end) = map { $v->payload->{$_} } qw/start_vertex end_vertex/;
+            my $distance = rad2deg $v_center->angle_with(Vector->new(values => $end->values));
+            $results->[$v_index][$z_index]{distance} = $distance;
+            my $start_angle = $v_center->angle_with(Vector->new(values => $start->values));
+            my $deviation;
+            if (!$start_angle) {
+                $deviation = 0;
+            } else {
+                my $n_zone = $z_right->vector_to($z_left) * $v_center;
+                $deviation = rad2deg $n_zone->angle_with($n);
+            }
+            $results->[$v_index][$z_index]{deviation} = $deviation;
+        }
+    }
+
+    # dump results
+    my $vertices = $observation_path->vertices;
+    my $v2s = $observation_path->vertex_to_sphere_index;
+    my $mapper = $observation_path->sphere_vectors->vertex_to_vector_function;
+    my $header = "vertex_index, " . join(", ", map { "distance_${_}, deviation_${_}" } (1 .. @$zones));
+    say $fh $header;
+    for my $idx (0 .. @$vertices -1) {
+        my $sphere_index = $v2s->[$idx];
+        my $vector_index = $mapper->($idx) // 0;
+        my @line_values = ($idx);
+        for my $z_index (0 .. @$zones-1) {
+            my $values = $results->[$vector_index][$z_index];
+            my @values = ($idx && $v2s->[$idx-1] != $sphere_index)
+                ? map { $values->{$_}} qw/distance deviation/
+                : (0, 0)
+                ;
+            push @line_values, map { sprintf('%0.2f', $_) } @values;
+        }
+        my $line = join(', ', @line_values);
+        say $fh $line;
+    }
+    return $results;
 }
 
 method _build_draw_function {

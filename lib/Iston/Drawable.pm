@@ -60,6 +60,7 @@ method reset_model {
 }
 
 method _trigger_shader($shader) {
+    return unless $shader;
     for (qw/mytexture has_texture has_multicolor has_lighting default_color view_model/) {
         my $id = $shader->Map($_);
         croak "cannot map '$_' uniform" unless defined $id;
