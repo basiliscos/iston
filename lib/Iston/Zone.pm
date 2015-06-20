@@ -19,9 +19,16 @@ has active => (is => 'rw', default => sub { 0 });
 
 has _transformation => (is => 'lazy');
 
+sub as_hash {
+    my ($self) = @_;
+    return {
+        map { $_ => $self->$_ } qw/xz yz spread/
+    };
+}
+
 sub _build__transformation {
     my ($self) = @_;
-    my $rotate_xz = rotation_matrix(0, 1, 0, deg2rad($self->xz));
+    my $rotate_xz = rotation_matrix(0, -1, 0, deg2rad($self->xz));
     my $rotate_yz = rotation_matrix(-1, 0, 0, deg2rad($self->yz));
     my $m = $rotate_xz * $rotate_yz;
     return $m;

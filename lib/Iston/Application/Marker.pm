@@ -4,6 +4,7 @@ use 5.12.0;
 
 use Iston::Matrix;
 use Iston::Utils qw/rotation_matrix/;
+use JSON::XS;
 use List::Util qw/reduce/;
 use Math::Trig;
 use Moo;
@@ -24,6 +25,7 @@ use aliased qw/Iston::Object::MarkerContainer/;
 with('Iston::Application');
 
 has models_path    => (is => 'ro', required => 1);
+has model_file     => (is => 'rw');
 has main_object    => (is => 'rw');
 has _commands      => (is => 'lazy');
 has _markers       => (is => 'lazy');
@@ -62,6 +64,7 @@ sub _load_model {
     # my $scale_to = $r1/$r2;
     # $object->scale($scale_to);
     # $object->clear_draw_function;
+    $self->model_file($model_path->basename);
     $self->main_object($object);
     $self->settings_bar->refresh;
 }
@@ -190,6 +193,18 @@ sub _build_menu {
         type       => 'number',
         cb_read    => sub { $self->_current_zone + 1 },
     );
+
+    my $name = "maker1";
+    $bar->add_variable(
+        mode       => 'rw',
+        name       => "name",
+        type       => 'string',
+        value      => \$name,
+    );
+    $bar->add_button(
+        name       => "save",
+        cb         => sub { $self->_save($name) },
+    );
 }
 
 around _drawGLScene => sub {
@@ -210,11 +225,28 @@ around _drawGLScene => sub {
     glFlush;
 };
 
+sub _save {
+    my ($self, $name) = @_;
+    return unless $name;
+    my $zones = $self->_markers->zones;
+    return unless @$zones;
+
+    my @items = map { $_->as_hash } @$zones;
+
+    my $data = JSON::XS->new->pretty->encode({
+        name  => $name,
+        zones => \@items,
+    });
+    my $basename = 'marker-' . $self->model_file . '-' . $name . '.json';
+    my $marker_file = path($self->models_path,  $basename);
+    $marker_file->spew_utf8($data);
+}
+
 sub _add_zone {
     my ($self) = @_;
     my $mc = $self->_markers;
     push @{ $mc->zones }, Zone->new(
-        xz => -1 * $self->xz_angle,
+        xz => $self->xz_angle,
         yz => $self->yz_angle,
         spread => 10,
         active => 1,
@@ -234,7 +266,10 @@ sub _remove_zone {
     my $mc = $self->_markers;
     splice @{ $mc->zones }, $idx, 1;
     $idx--;
-    $idx = 0 if ($idx < 0 && @{ $mc->zones });
+    if ($idx < 0 && @{ $mc->zones }) {
+        $idx = 0;
+        $mc->zones->[$idx]->active(1);
+    }
     $self->_current_zone($idx);
     $self->settings_bar->refresh;
     $mc->clear_draw_function;
@@ -320,7 +355,7 @@ sub process_event {
     if ($event->type == SDL_KEYUP) {
         my $dispatch_table = {
             SDLK_SPACE()     => 'add_zone',
-            SDLK_BACKSPACE() => 'remove_zone',
+            SDLK_F12()       => 'remove_zone',
             SDLK_LEFT()      => 'activate_prev',
             SDLK_RIGHT()     => 'activate_next',
             SDLK_UP()        => 'enlarge_zone',
