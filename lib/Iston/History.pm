@@ -50,7 +50,7 @@ method save {
         [map { $r->$_ } @fields];
     } @{ $self->records };
     my @data = map { $_ . "\n"}
-        ($header,  map { join(',', @$_ ) } @rows );
+        ($header,  map { join(',', map { sprintf( '%0.7f', $_ )} @$_ ) } @rows );
     Path::Tiny->new($path)->spew(@data);
 };
 
