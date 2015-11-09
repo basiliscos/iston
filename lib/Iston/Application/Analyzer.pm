@@ -159,6 +159,15 @@ sub _load_object {
             my $result_fh = $result_path->filehandle('>');
             $mc->dump_analisys($result_fh, $observation_path);
         }
+        if ($observation_path->sphere_vectors->spin_detection) {
+            my $spins_path = path($analisys_dir, "spins.csv");
+            my $spins_fh = $spins_path->filehandle('>');
+            my $idx = 1;
+            for my $v (@{ $observation_path->sphere_vectors->vectors }) {
+                my $spin_idx = $v->payload->{spin_index} // '?';
+                say $spins_fh "${idx}, ${spin_idx}";
+            }
+        }
         $history_path->copy(path($analisys_dir, 'history.csv'));
     };
     $self->_analysis_dumper($dumper);
