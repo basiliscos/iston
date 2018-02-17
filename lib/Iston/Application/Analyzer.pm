@@ -68,7 +68,7 @@ sub BUILD {
 sub _build_htm {
     my $self = shift;
     my $htm = HTM->new;
-    # $htm->mode('mesh');
+    #$htm->mode('mesh');
     my $r = Vector->new(values => $htm->triangles->[0]->vertices->[0]->values)->length;
     my $scale_to = 1/($r/$self->max_boundary);
     $htm->scale($scale_to);
@@ -323,7 +323,7 @@ sub _build_menu {
         cb_write   => sub { $self->_try_visualize_htm($_[0]) },
         definition => " group='HTM' label='mode' ",
     );
-    $bar->set_variable_params('HTM', opened => 'false');
+    # $bar->set_variable_params('HTM', opened => 'false');
 
     # models group
     my @models =
@@ -725,6 +725,7 @@ sub _build__htm_visualizers {
                 my $min_share_of = {};
                 $projections->walk( sub {
                     my ($vertex_index, $level, $path) = @_;
+                    print "projection $vertex_index at level $level, $path\n";
                     $max_share_of->{$level} //= 0;
                     $path->apply( sub {
                         my ($t, $path) = @_;
