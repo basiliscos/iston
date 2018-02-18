@@ -44,7 +44,7 @@ has htm                    => (is => 'lazy');
 has projections            => (is => 'rw');
 has aberrations            => (is => 'rw');
 has observation_path       => (is => 'rw');
-has active_record_idx      => (is => 'rw');
+has active_record_idx      => (is => 'rw', trigger => 1);
 has time_ratio             => (is => 'rw', default => sub { 1.0 });
 has timer                  => (is => 'rw');
 has step_function          => (is => 'rw');
@@ -56,6 +56,7 @@ has _analysis_dumper       => (is => 'rw', default => sub { sub{ } });
 has _source_sphere_vectors => (is => 'rw');
 has _region_path           => (is => 'rw');
 has _marker_container      => (is => 'rw');
+has _current_triangles     => (is => 'rw', default => sub { [] });
 
 sub _build_menu;
 
@@ -323,6 +324,31 @@ sub _build_menu {
         cb_write   => sub { $self->_try_visualize_htm($_[0]) },
         definition => " group='HTM' label='mode' ",
     );
+    $bar->add_variable(
+        mode       => 'ro',
+        name       => "current_triangles",
+        type       => 'string',
+        cb_read    => sub {
+            my $paths = $self->_current_triangles;
+            my $label = $paths ? join(", ", map { "$_" } @$paths) : 'n/a';
+            return $label;
+        },
+        definition => " group='HTM' label='triangle path' ",
+    );
+    $bar->add_variable(
+        mode       => 'ro',
+        name       => "current_triangles_timings",
+        type       => 'string',
+        cb_read    => sub {
+            my $paths = $self->_current_triangles;
+            my $label = $paths ? join(", ", map {
+                sprintf('%0.3f', $_->triangle->payload->{total_time} // 0)
+            } @$paths) : 'n/a';
+            return $label;
+        },
+        definition => " group='HTM' label='triangle time' ",
+    );
+
     # $bar->set_variable_params('HTM', opened => 'false');
 
     # models group
@@ -583,6 +609,16 @@ method _analyze_visibility($texture_path) {
     return \@colors_on_step;
 }
 
+sub _trigger_active_record_idx {
+    my ($self, $idx) = @_;
+    # fetch current triangles
+    my $vertex_idx = $self->active_record_idx // return;
+    my $level = $self->htm->level // return;
+    my $projections_map = $self->projections->projections_map;
+    my $paths = $projections_map->{$vertex_idx}->{$level};
+    $self->_current_triangles($paths);
+}
+
 sub _exit {
     my $self = shift;
     say "...exiting from analyzer";
@@ -725,7 +761,6 @@ sub _build__htm_visualizers {
                 my $min_share_of = {};
                 $projections->walk( sub {
                     my ($vertex_index, $level, $path) = @_;
-                    print "projection $vertex_index at level $level, $path\n";
                     $max_share_of->{$level} //= 0;
                     $path->apply( sub {
                         my ($t, $path) = @_;
