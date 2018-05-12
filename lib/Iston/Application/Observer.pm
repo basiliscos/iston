@@ -31,6 +31,9 @@ sub BUILD {
     my ($x, $y) = ($self->width/2, $self->height/2);
     SDL::Mouse::warp_mouse($x, $y);
     my $object = $self->load_object($self->object_path);
+    $object->rotate(0, $ENV{ISTON_ROTATE_Y} // 0);
+    $object->rotate(1, $ENV{ISTON_ROTATE_X} // 0);
+
     $self->main_object($object);
     push @{ $self->objects }, $object;
 
@@ -156,7 +159,7 @@ sub process_event {
             return SDL::Mouse::warp_mouse($self->width/2 , $self->height/2 );
         };
 
-        my ($dX, $dY) = map {$event->$_} qw/motion_xrel motion_yrel/;
+        my ($dX, $dY) = map {$event->$_ * 5 } qw/motion_xrel motion_yrel/;
         # say "x = $x, y = $y, dX = $dX, dY = $dY";
         $action = sub {
             my @rotations = ($dY, $dX);
