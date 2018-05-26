@@ -75,13 +75,8 @@ sub init_app {
     glEnable(GL_DEPTH_TEST);
     $self->_initGL;
     $self->_init_shaders(qw/object/);
-    #$self->object_shader->Enable;
-    $self->camera_position(Vector->new(values => [0, 0, -7]));
-    # $self->view( look_at(
-    #         Vector->new([0.0, 2.0, 0.0]),
-    #         $self->camera_position,
-    #         Vector->new([0.0, 1.0, 0.0]),
-    # ));
+    my $distance = $ENV{ISTON_CAMERA_Z} // -7;
+    $self->camera_position(Vector->new(values => [0, 0, $distance]));
     $self->projection(
         perspective(45.0, 1.0 * $self->width/$self->height, 0.1, 30.0)
     );
