@@ -149,24 +149,20 @@ sub process_event {
         my $warp_event = $x == $self->width/2 && $y == $self->height/2;
         return if $warp_event;
 
-        my $barrier = 30;
-        my $reset_position = 0;
-        ($reset_position, $x) = (1, $self->width/2)
-            if ($x < $barrier or $self->width - $x < $barrier);
-        ($reset_position, $y) = (1, $self->height/2)
-            if ($y < $barrier or $self->height -$y < $barrier);
-        if ($reset_position) {
-            return SDL::Mouse::warp_mouse($self->width/2 , $self->height/2 );
-        };
+        my $mouse_sense = $ENV{ISTON_MOUSE_SENSIVITY} // 5;
+        my $barrier = $ENV{ISTON_MOUSE_BARRIER} // 30;
+        if (abs($x  - $self->width/2) > 30 || abs($y - $self->height/2) > 30) {
+            return SDL::Mouse::warp_mouse($self->width/2 , $self->height/2);
+        }
 
-        my ($dX, $dY) = map {$event->$_ * 5 } qw/motion_xrel motion_yrel/;
-        # say "x = $x, y = $y, dX = $dX, dY = $dY";
+        my ($dX, $dY) = map {$event->$_ * $mouse_sense } qw/motion_xrel motion_yrel/;
         $action = sub {
             my @rotations = ($dY, $dX);
             for my $axis (0 .. @rotations-1) {
                 my $value = $self->main_object->rotate($axis);
                 $value += $rotations[$axis];
-                $value %= 360;
+                $value -= 360 if $value >= 360;
+                #$value %= 360;
                 $self->main_object->rotate($axis, $value);
             }
         };
