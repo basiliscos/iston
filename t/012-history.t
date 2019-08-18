@@ -13,12 +13,13 @@ subtest "simple-history" => sub {
     my $history_path = path($tmp_dir, "h.csv");
     my $h = History->new(path => $history_path);
     my $record = Record->new(
-        timestamp     => 0,
-        x_axis_degree => 1,
-        y_axis_degree => 2,
-        camera_x      => 3,
-        camera_y      => 4,
-        camera_z      => 5,
+        timestamp     => sprintf('%0.7f', 0),
+        x_axis_degree => sprintf('%0.7f', 1),
+        y_axis_degree => sprintf('%0.7f', 2),
+        camera_x      => sprintf('%0.7f', 3),
+        camera_y      => sprintf('%0.7f', 4),
+        camera_z      => sprintf('%0.7f', 5),
+        label         => '',
     );
     push @{ $h->records }, $record;
     $h->save;
@@ -29,9 +30,9 @@ subtest "simple-history" => sub {
 subtest "history load" => sub {
     my $tmp_dir = Path::Tiny->tempdir( CLEANUP => 1);
     my $data =<<DATA;
-timestamp,x_axis_degree,y_axis_degree,camera_x,camera_y,camera_z
-17.621475,16,262,0,0,-7.5
-17.722533,14,262,0,0,-7.5
+timestamp,x_axis_degree,y_axis_degree,camera_x,camera_y,camera_z,label
+17.621475,16,262,0,0,-7.5,
+17.722533,14,262,0,0,-7.5,
 
 DATA
     my $data_path = path($tmp_dir, "x.csv");
