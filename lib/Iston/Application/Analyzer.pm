@@ -132,6 +132,10 @@ sub _load_object {
         my $tpp_fh = $timings_projections_path->filehandle('>');
         $projections->dump_analisys($tpp_fh);
 
+        my $triangles_path = path($analisys_dir, "triangles.csv");
+        my $triangles_path_fh = $triangles_path->filehandle('>');
+        $projections->dump_paths($triangles_path_fh);
+
         my $aberrations_path = path($analisys_dir, "aberrations.csv");
         my $aberrations_fh = $aberrations_path->filehandle('>');
         $aberrations->dump_analisys($aberrations_fh, $observation_path);

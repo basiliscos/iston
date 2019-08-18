@@ -111,4 +111,14 @@ method dump_analisys ($output_fh) {
     }
 }
 
+method dump_paths ($output_fh) {
+    my $level = $self->htm->level;
+    my $projections_map = $self->projections_map;
+    my $vertices = $self->observation_path->vertices;
+    for (my $i = 0; $i < @$vertices; $i++) {
+        my $paths = $projections_map->{$i}->{$level};
+        say $output_fh join(',', map { "$_" } @$paths);
+    }
+}
+
 1;
