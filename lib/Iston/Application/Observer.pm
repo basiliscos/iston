@@ -46,7 +46,7 @@ sub objects {
 }
 
 sub _log_state {
-    my $self = shift;
+    my ($self, $label) = @_;
 
     return unless $self->history;
     my $camera_position = $self->camera_position->values;
@@ -57,6 +57,7 @@ sub _log_state {
         camera_x      => $camera_position->[0],
         camera_y      => $camera_position->[1],
         camera_z      => $camera_position->[2],
+        label         => $label,
     );
     push @{ $self->history->records }, $record;
 }
@@ -81,6 +82,7 @@ sub _build__commands {
                 $value %= 360;
                 $subject->rotate($axis, $value);
             }
+            return;
         }
     };
     my $camera_z_move = sub {
@@ -88,10 +90,22 @@ sub _build__commands {
         return sub {
             $self->camera_position->[2] += $value;
             $self->_update_view;
+            return;
         };
     };
+    my $press = sub { my $label = shift; return sub { $label }  };
     my $rotate_step = 2;
     my $commands = {
+        'press_1'     => $press->('1'),
+        'press_2'     => $press->('2'),
+        'press_3'     => $press->('3'),
+        'press_4'     => $press->('4'),
+        'press_5'     => $press->('5'),
+        'press_6'     => $press->('6'),
+        'press_7'     => $press->('7'),
+        'press_8'     => $press->('8'),
+        'press_9'     => $press->('9'),
+        'press_0'     => $press->('0'),
         'rotate_N'    => $rotation->(0, -$rotate_step),
         'rotate_S'    => $rotation->(0, $rotate_step),
         'rotate_W'    => $rotation->(1, -$rotate_step),
@@ -102,7 +116,7 @@ sub _build__commands {
         'rotate_SE'   => $rotation->(0, $rotate_step, 1, $rotate_step),
         'move_camera_forward'  => $camera_z_move->(0.1),
         'move_camera_backward' => $camera_z_move->(-0.1),
-        'terminate_program'    => sub { $self->_exit },
+        'terminate_program'    => sub { $self->_exit; return },
     };
     return $commands;
 }
@@ -112,7 +126,6 @@ sub process_event {
     # say "processing event...";
     my $action;
     if ($event->type == SDL_KEYUP) {
-        my $s1 = SDLK_F1;
         my $dispatch_table = {
             SDLK_w,     'rotate_N',
             SDLK_s,     'rotate_S',
@@ -132,6 +145,17 @@ sub process_event {
             SDLK_KP9,   'rotate_NE',
             SDLK_KP3,   'rotate_SE',
             SDLK_KP1,   'rotate_SW',
+
+            SDLK_1,     'press_1',
+            SDLK_2,     'press_2',
+            SDLK_3,     'press_3',
+            SDLK_4,     'press_4',
+            SDLK_5,     'press_5',
+            SDLK_6,     'press_6',
+            SDLK_7,     'press_7',
+            SDLK_8,     'press_8',
+            SDLK_9,     'press_9',
+            SDLK_0,     'press_0',
 
             SDLK_PLUS,  'move_camera_forward',
             SDLK_MINUS, 'move_camera_backward',
@@ -165,6 +189,7 @@ sub process_event {
                 #$value %= 360;
                 $self->main_object->rotate($axis, $value);
             }
+            return;
         };
     }
     elsif ($event->type == SDL_MOUSEBUTTONDOWN) {
@@ -177,8 +202,8 @@ sub process_event {
         }
     }
     if ($action) {
-        $action->();
-        $self->_log_state;
+        my $label = $action->();
+        $self->_log_state($label);
     }
 }
 

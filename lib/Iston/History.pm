@@ -43,14 +43,20 @@ method save {
     my $path = $self->path;
     croak("Path should be specified") unless defined($path);
 
-    my @fields = @Iston::History::Record::fields;
+    my @fields = (@Iston::History::Record::fields);
     my $header = join(',', @fields);
     my @rows = map {
         my $r = $_;
         [map { $r->$_ } @fields];
     } @{ $self->records };
-    my @data = map { $_ . "\n"}
-        ($header,  map { join(',', map { sprintf( '%0.7f', $_ )} @$_ ) } @rows );
+    my @lines = map {
+        my $cols = @$_;
+        my $label = pop @$_;
+        my @values = map { sprintf( '%0.7f', $_ )} @$_;
+        push @values, $label // '';
+        join(',', @values);
+    } @rows;
+    my @data = map { $_ . "\n"} ($header, @lines);
     Path::Tiny->new($path)->spew(@data);
 };
 
