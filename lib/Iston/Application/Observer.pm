@@ -88,7 +88,7 @@ sub _build__commands {
     my $camera_z_move = sub {
         my $value = shift;
         return sub {
-            $self->camera_position->[2] += $value;
+            $self->camera_position->values->[2] += $value;
             $self->_update_view;
             return;
         };
@@ -157,8 +157,11 @@ sub process_event {
             SDLK_9,     'press_9',
             SDLK_0,     'press_0',
 
-            SDLK_PLUS,  'move_camera_forward',
-            SDLK_MINUS, 'move_camera_backward',
+            SDLK_PLUS,      'move_camera_forward',
+            SDLK_MINUS,     'move_camera_backward',
+            SDLK_KP_PLUS,   'move_camera_forward',
+            SDLK_KP_MINUS,  'move_camera_backward',
+
             SDLK_F4,    'terminate_program',
         };
         my $key_sym = $event->key_sym;
@@ -201,6 +204,7 @@ sub process_event {
             $self->_update_view;
         }
     }
+
     if ($action) {
         my $label = $action->();
         $self->_log_state($label);
