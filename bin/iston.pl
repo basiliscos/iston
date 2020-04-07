@@ -15,7 +15,7 @@ use aliased qw/Iston::History/;
 GetOptions(
     'o|object=s'         => \my $object_path,
     'n|no_history'       => \my $no_history,
-    'N|no_full_screen'   => \my $no_fullscreen,
+    's|screen_mode=i'    => \my $screen_mode,
     'M|marker_mode'      => \my $marker_mode,
     'r|replay_history'   => \my $replay_history,
     'p|history_player'   => \my $history_player,
@@ -27,6 +27,7 @@ GetOptions(
 my $show_help = $help || (!$object_path && !$replay_history && !$marker_mode)
     || ($replay_history && !defined($models_path))
     || ($history_player && !defined($history_path))
+    || ($screen_mode    && (($screen_mode < 1) ||($screen_mode > 3)))
     ;
 
 die <<"EOF" if($show_help);
@@ -38,7 +39,7 @@ These options are available:
   -o, --object         Generates pair of private an public keys and stores them
                        in the current directory
   -n, --no_history     Do not record history
-  -N, --no_full_screen Do not enter into fullscreen mode
+  -s, --screen_mode    Screen mode to render (1 = fullscreen, 2 = halfscreen, 3 = default)
   -M, --marker_mode    Marker mode
   -m, --models_path    Path to directory with models
   -r  --replay_history Replay history mode
@@ -47,23 +48,24 @@ These options are available:
   -h, --help           Show this message.
 EOF
 
+$screen_mode //= Iston::SCREEN_DEFAULT;
 my $app;
 
 if ($replay_history) {
     $app = Analyzer->new(
         models_path => $models_path // '.',
-        full_screen => !$no_fullscreen,
+        screen_mode => $screen_mode,
     );
 } elsif ($marker_mode) {
     $app = Marker->new(
         models_path => $models_path // '.',
-        full_screen => !$no_fullscreen,
+        screen_mode => $screen_mode,
     );
 } elsif ($history_player) {
     $app = Player->new(
         object_path  => $object_path,
         history_path => $history_path,
-        full_screen  => !$no_fullscreen,
+        screen_mode => $screen_mode,
     );
     $app->start_replay;
 } else {
@@ -74,7 +76,7 @@ if ($replay_history) {
     $app = Observer->new(
         object_path => $object_path,
         history     => $history,
-        full_screen => !$no_fullscreen,
+        screen_mode => $screen_mode,
     );
 }
 

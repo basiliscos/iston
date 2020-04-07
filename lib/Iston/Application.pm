@@ -29,7 +29,7 @@ use aliased qw/Iston::EventDistributor/;
 has camera_position => (is => 'rw', trigger => 1);
 has shader_for      => (is => 'rw', default => sub { {} });
 has max_boundary    => (is => 'ro', default => sub { 3.0 });
-has full_screen     => (is => 'ro', default => sub { 1 });
+has screen_mode     => (is => 'ro', default => sub { Iston::SCREEN_DEFAULT });
 has sdl_event       => (is => 'ro', default => sub { SDL::Event->new } );
 has sdl_app         => (is => 'rw');
 has width           => (is => 'rw');
@@ -57,19 +57,21 @@ sub init_app {
     SDL::init(SDL_INIT_VIDEO);
 
     my $video_info = SDL::Video::get_video_info();
-    my %display_dimension = $self->full_screen
-        ? (width => $video_info->current_w, height => $video_info->current_h)
-        : (width => 1024, height => 600);
+    my $screen_mode = $self->screen_mode;
+    my %display_dimension
+        = $screen_mode == Iston::SCREEN_FULL ? ((width => $video_info->current_w,    height => $video_info->current_h))
+        : $screen_mode == Iston::SCREEN_HALF ? ((width => $video_info->current_w / 2, height => $video_info->current_h / 2))
+        :                                      ((width => 1024, height => 600));
 
     my $version = $Iston::VERSION;
     my %app_options = (
         title => "Iston v${version}",
         gl    => 1,
-        ($self->full_screen ? (fullscreen => 1) : ()),
         delay => 1000/60,
         %display_dimension,
 		depth  => 24,
     );
+    $app_options{fullscreen} = 1 if $screen_mode == Iston::SCREEN_FULL;
     $self->sdl_app( SDLx::App->new(%app_options) );
 
     glEnable(GL_DEPTH_TEST);
