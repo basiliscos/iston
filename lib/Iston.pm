@@ -1,7 +1,7 @@
 package Iston;
 #ABSTRACT: Phychology-enchanced 3D-objects viewer and view path analyzer
 
-our $VERSION  = '0.24';
+our $VERSION  = '0.25';
 
 use constant {
     SCREEN_FULL    => 1,

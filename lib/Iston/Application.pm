@@ -59,7 +59,7 @@ sub init_app {
     my $video_info = SDL::Video::get_video_info();
     my $screen_mode = $self->screen_mode;
     my %display_dimension
-        = $screen_mode == Iston::SCREEN_FULL ? ((width => $video_info->current_w,    height => $video_info->current_h))
+        = $screen_mode == Iston::SCREEN_FULL ? ((width => $video_info->current_w,     height => $video_info->current_h))
         : $screen_mode == Iston::SCREEN_HALF ? ((width => $video_info->current_w / 2, height => $video_info->current_h / 2))
         :                                      ((width => 1024, height => 600));
 

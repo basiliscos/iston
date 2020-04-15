@@ -8,6 +8,7 @@ use Path::Tiny;
 use SDL;
 use SDL::Events;
 use SDL::Mouse;
+use SDL::Surface;
 use Time::HiRes qw/gettimeofday tv_interval usleep sleep/;
 
 use aliased qw/Iston::History::Record/;
@@ -93,7 +94,28 @@ sub _build__commands {
             return;
         };
     };
-    my $press = sub { my $label = shift; return sub { $label }  };
+
+    my $object = $self->main_object;
+    my ($w, $h) = ($self->width, $self->height);
+    my $history_path = $self->history->path;
+    my $analisys_dir = path("${history_path}-analysis");
+    $analisys_dir->mkpath;
+
+    my $press = sub { my $label = shift;
+        return sub {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            $object->draw_function->();
+            my $image = SDL::Surface->new(
+                SDL_SWSURFACE, $w, $h, 32, 0xFF, 0xFF00, 0xFF0000, 0xFF000000,
+            );
+            my $pix_buffer = $image->get_pixels_ptr;
+            glReadPixels_s(0, 0, $w, $h, GL_RGBA, GL_UNSIGNED_BYTE, $pix_buffer);
+            SDL::Video::save_BMP( $image, "$analisys_dir/$label.bmp" );
+            $self->sdl_app->sync;
+            return $label;
+        }
+    };
+
     my $rotate_step = 2;
     my $commands = {
         'press_1'     => $press->('1'),
