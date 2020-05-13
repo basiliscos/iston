@@ -57,6 +57,7 @@ has _source_sphere_vectors => (is => 'rw');
 has _region_path           => (is => 'rw');
 has _marker_container      => (is => 'rw');
 has _current_triangles     => (is => 'rw', default => sub { [] });
+has _angular_distance      => (is => 'rw', default => sub { 0 });
 
 sub _build_menu;
 
@@ -136,7 +137,8 @@ sub _load_object {
         my $triangles_path_fh = $triangles_path->filehandle('>');
         $projections->dump_paths($triangles_path_fh);
 
-        my $aberrations_path = path($analisys_dir, "aberrations.csv");
+        my $distance = $self->_angular_distance;
+        my $aberrations_path = path($analisys_dir, "aberrations-${distance}.csv");
         my $aberrations_fh = $aberrations_path->filehandle('>');
         $aberrations->dump_analisys($aberrations_fh, $observation_path);
         $self->aberrations($aberrations);
@@ -520,19 +522,19 @@ sub _build_menu {
         definition => " group='Model' ",
     );
 
-    my $angular_distance = 0;
     $bar->add_variable(
         mode       => 'rw',
         name       => "generalization_distance",
         type       => "number",
-        cb_read    => sub { $angular_distance },
+        cb_read    => sub { $self->_angular_distance },
         cb_write   => sub {
-            $angular_distance = shift;
+            my $value = shift;
             return unless $self->observation_path;
 
-            my $sv = $angular_distance
+            $self->_angular_distance($value);
+            my $sv = $value
                 ? GeneralizedVectors->new(
-                    distance       => deg2rad($angular_distance),
+                    distance       => deg2rad($value),
                     source_vectors => $self->_source_sphere_vectors,
                     default_color  => [0.0, 0.0, 0.75, 0.0]
                 )
