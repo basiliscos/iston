@@ -21,6 +21,7 @@ has started_at     => (is => 'ro', default => sub { [gettimeofday]} );
 has object_path    => (is => 'ro', required => 1);
 has main_object    => (is => 'rw');
 has _commands      => (is => 'lazy');
+has mouse          => (is => 'rw', default => sub { 0; });
 
 sub BUILD {
     my $self = shift;
@@ -97,23 +98,39 @@ sub _build__commands {
 
     my $object = $self->main_object;
     my ($w, $h) = ($self->width, $self->height);
-    my $history_path = $self->history->path;
-    my $analisys_dir = path("${history_path}-analysis");
-    $analisys_dir->mkpath;
+
+    my $analisys_dir;
+    if ($self->history) {
+        my $history_path = $self->history->path;
+        $analisys_dir = path("${history_path}-analysis");
+        $analisys_dir->mkpath;
+    }
 
     my $press = sub { my $label = shift;
         return sub {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             $object->draw_function->();
-            my $image = SDL::Surface->new(
-                SDL_SWSURFACE, $w, $h, 32, 0xFF, 0xFF00, 0xFF0000, 0xFF000000,
-            );
-            my $pix_buffer = $image->get_pixels_ptr;
-            glReadPixels_s(0, 0, $w, $h, GL_RGBA, GL_UNSIGNED_BYTE, $pix_buffer);
-            SDL::Video::save_BMP( $image, "$analisys_dir/$label.bmp" );
+            if ($analisys_dir) {
+                my $image = SDL::Surface->new(
+                    SDL_SWSURFACE, $w, $h, 32, 0xFF, 0xFF00, 0xFF0000, 0xFF000000,
+                );
+                my $pix_buffer = $image->get_pixels_ptr;
+                glReadPixels_s(0, 0, $w, $h, GL_RGBA, GL_UNSIGNED_BYTE, $pix_buffer);
+                SDL::Video::save_BMP( $image, "$analisys_dir/$label.bmp" );
+            }
             $self->sdl_app->sync;
             return $label;
         }
+    };
+
+    my $toggle_mouse = sub {
+        my $val = !$self->mouse();
+        $self->mouse($val);
+        if (!$val) {
+            my ($x, $y) = ($self->width/2, $self->height/2);
+            SDL::Mouse::warp_mouse($x, $y);
+        }
+        SDL::Mouse::show_cursor($val ? SDL_ENABLE : SDL_DISABLE);
     };
 
     my $rotate_step = 2;
@@ -138,6 +155,7 @@ sub _build__commands {
         'rotate_SE'   => $rotation->(0, $rotate_step, 1, $rotate_step),
         'move_camera_forward'  => $camera_z_move->(0.1),
         'move_camera_backward' => $camera_z_move->(-0.1),
+        'toggle_mouse'         => $toggle_mouse,
         'terminate_program'    => sub { $self->_exit; return },
     };
     return $commands;
@@ -183,6 +201,7 @@ sub process_event {
             SDLK_MINUS,     'move_camera_backward',
             SDLK_KP_PLUS,   'move_camera_forward',
             SDLK_KP_MINUS,  'move_camera_backward',
+            SDLK_ESCAPE,    'toggle_mouse',
 
             SDLK_F4,    'terminate_program',
         };
@@ -198,30 +217,33 @@ sub process_event {
         my $warp_event = $x == $self->width/2 && $y == $self->height/2;
         return if $warp_event;
 
-        my $mouse_sense = $ENV{ISTON_MOUSE_SENSIVITY} // 5;
+        my $mouse_sense = $ENV{ISTON_MOUSE_SENSIVITY} // 0.08;
         my $barrier = $ENV{ISTON_MOUSE_BARRIER} // 30;
-        if (abs($x  - $self->width/2) > 30 || abs($y - $self->height/2) > 30) {
-            return SDL::Mouse::warp_mouse($self->width/2 , $self->height/2);
-        }
-
-        my ($dX, $dY) = map {$event->$_ * $mouse_sense } qw/motion_xrel motion_yrel/;
-        $action = sub {
-            my @rotations = ($dY, $dX);
-            for my $axis (0 .. @rotations-1) {
-                my $value = $self->main_object->rotate($axis);
-                $value += $rotations[$axis];
-                $value -= 360 if $value >= 360;
-                #$value %= 360;
-                $self->main_object->rotate($axis, $value);
+        if (!$self->mouse) {
+            if (abs($x  - $self->width/2) > 30 || abs($y - $self->height/2) > 30) {
+                return SDL::Mouse::warp_mouse($self->width/2 , $self->height/2);
             }
-            return;
-        };
+
+            my ($dX, $dY) = map {$event->$_ * $mouse_sense } qw/motion_xrel motion_yrel/;
+            $action = sub {
+                my @rotations = ($dY, $dX);
+                for my $axis (0 .. @rotations-1) {
+                    my $value = $self->main_object->rotate($axis);
+                    $value += $rotations[$axis];
+                    $value -= 360 if $value >= 360;
+                    #$value %= 360;
+                    $self->main_object->rotate($axis, $value);
+                }
+                return;
+            };
+        }
     }
     elsif ($event->type == SDL_MOUSEBUTTONDOWN) {
         my $button = $event->button_button;
         if ($button == SDL_BUTTON_WHEELDOWN || $button == SDL_BUTTON_WHEELUP) {
             # say "mouse wheel?";
-            my $step = 0.1 * ( ($button == SDL_BUTTON_WHEELUP) ? 1: -1);
+            my $z_sensivity = $ENV{ISTON_Z_SENTIVITY} // 0.1;
+            my $step = $z_sensivity * ( ($button == SDL_BUTTON_WHEELUP) ? 1: -1);
             $self->camera_position->values->[2] += $step;
             $self->_update_view;
         }

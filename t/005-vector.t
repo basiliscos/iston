@@ -2,6 +2,7 @@ use 5.12.0;
 
 use Test::More;
 use Test::Warnings;
+use Math::Trig;
 
 use Iston::Vector qw/normal/;
 
@@ -102,17 +103,18 @@ subtest "normal from vertices" => sub {
 
 subtest "angle with roundings" => sub {
     my $a = Vector->new(values => [
-        0.00242890552309209,
-        1.49619899803e-17,
-        0.0172825608175412
+        1,
+        0,
+        0
     ]);
     my $b = Vector->new(values => [
-        0.00242890552309215,
-        -7.58941520739853e-19,
-        0.0172825608175416,
+        0,
+        1,
+        0,
     ]);
     my $angle = $a->angle_with($b);
     my $str = sprintf('%0.2f', $angle);
+    note "val = ", rad2deg($angle);
     ok $str;
 };
 
