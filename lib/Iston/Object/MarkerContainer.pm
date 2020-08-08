@@ -11,15 +11,23 @@ use OpenGL qw(:all);
 use Iston::Utils qw/as_oga maybe_zero/;
 
 use aliased qw/Iston::Vector/;
+use aliased qw/Iston::Vertex/;
 
 has draw_function  => (is => 'lazy', clearer => 1);
 has name           => (is => 'rw', default => sub { "markers-1" });
 has zones          => (is => 'ro', default => sub { [] });
+has current_point  => (is => 'ro');
 has results        => (is => 'lazy');
+has last_distances => (is => 'rw');
 
 with('Iston::Drawable');
 
 method has_texture { return 0; };
+
+sub BUILD {
+    my $self = shift;
+    $self->notifyer->subscribe('view_change' => sub { $self->calc_distances($self->current_point->() ); });
+}
 
 sub as_hash {
     my ($self) = @_;
@@ -27,6 +35,22 @@ sub as_hash {
         name  => $self->name,
         zones =>  [ map { $_->as_hash }@{ $self->zones }],
     };
+}
+
+my $_center = Vertex->new(values => [0, 0, 0]);
+
+sub calc_distances {
+    my ($self, $point) = @_;
+    my $end = $_center->vector_to($point);
+    my @r;
+    my $zones = $self->zones;
+    for my $z_idx (0 .. @$zones - 1) {
+        my $start = $_center->vector_to($zones->[$z_idx]->center);
+        my $angle = $start->angle_with($end);
+        push @r, $angle;
+    }
+    $self->last_distances(\@r);
+    return \@r;
 }
 
 sub dump_analisys {

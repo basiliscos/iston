@@ -481,9 +481,15 @@ sub _build_menu {
                     my $model = $models[ $model_index - 1];
                     my $marker_path = $model->{markers}->[ $marker_index - 1];
                     my $mc = MarkerContainer->new(
-                        shader => $self->shader_for->{object},
+                        current_point => sub {
+                            my $idx = $self->active_record_idx;
+                            my $vertex = $self->observation_path->vertices->[$idx];
+                            return $vertex;
+                       },
+                        shader   => $self->shader_for->{object},
+                        notifyer => $self->_notifyer,
                     );
-                    $mc->notifyer($self->_notifyer);
+                    # $mc->notifyer($self->_notifyer);
                     my $markers_data = decode_json($marker_path->slurp_utf8);
                     for (@{ $markers_data->{zones} } ) {
                         push @{ $mc->zones }, Zone->new(
@@ -498,6 +504,19 @@ sub _build_menu {
                     $mc->scale($scale_to);
                     $mc->clear_draw_function;
                     $self->_marker_container($mc);
+                    $mc->calc_distances($self->observation_path->vertices->[$self->active_record_idx]);
+
+                    for my $idx (0 .. @{ $markers_data->{zones} } - 1) {
+                        $bar->add_variable(
+                            mode       => 'ro',
+                            name       => "zone_${idx}_distance",
+                            type       => 'number',
+                            cb_read    => sub {
+                                rad2deg $mc->last_distances->[$idx];
+                            },
+                            definition => " group='Zones' ",
+                        );
+                    }
                 },
                 definition => " group='Model' ",
             );

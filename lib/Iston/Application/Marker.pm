@@ -43,7 +43,8 @@ sub BUILD {
 sub _build__markers {
     my ($self) = @_;
     my $mc = MarkerContainer->new(
-        shader => $self->shader_for->{object},
+        notifyer => $self->_notifyer,
+        shader   => $self->shader_for->{object},
     );
     $mc->scale($self->max_boundary + 0.1);
     return $mc;

@@ -34,6 +34,18 @@ sub _build__transformation {
     return $m;
 };
 
+sub center {
+    my $self = shift;
+    my $center = Iston::Matrix->new_from_cols([ [0, 0, 1] ]);
+    my $center_m = $self->_transformation * $center;
+    return _as_vertex($center_m);
+}
+
+sub _as_vertex {
+    my $m = shift;
+    return Vertex->new(values => [map {$m->element($_, 1)} (1, 2, 3)]);
+}
+
 sub sphere_points {
     my ($self, $angle, $need_center) = @_;
     $need_center //= 1;
@@ -48,12 +60,7 @@ sub sphere_points {
     my $t = $self->_transformation;
     ($center, $v1, $v2) = map { $t * $_ } ($center, $v1, $v2);
 
-    my $as_vertex = sub {
-        my ($m) = @_;
-        my $v = Vertex->new(values => [map {$m->element($_, 1)} (1, 2, 3)]);
-        return $v;
-    };
-
+    my $as_vertex = \&_as_vertex;
     my $c_vx = $center->$as_vertex;
     my $pos_vx = $v1->$as_vertex;
     my $neg_vx = $v2->$as_vertex;

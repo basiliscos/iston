@@ -5,6 +5,7 @@ use IO::String;
 use Path::Tiny;
 use Test::More;
 use Test::Warnings;
+use Math::Trig;
 
 use aliased qw/Iston::History/;
 use aliased qw/Iston::History::Record/;
@@ -15,6 +16,7 @@ use aliased qw/Iston::Object::ObservationPath/;
 use aliased qw/Iston::Object::SphereVectors::VectorizedVertices/;
 use aliased qw/Iston::Object::MarkerContainer/;
 use aliased qw/Iston::Analysis::Aberrations/;
+use aliased qw/Iston::EventDistributor/;
 
 
 my $_a2r = sub {
@@ -33,13 +35,16 @@ my $_a2r = sub {
     } @$angles ] ;
 };
 
+my $notifyer = EventDistributor->new;
+$notifyer->declare('view_change');
+
 subtest "simple case" => sub {
     my $z = Zone->new(
         xz     => 0,
         yz     => 0,
         spread => 10,
     );
-    my $mc = MarkerContainer->new;
+    my $mc = MarkerContainer->new({ notifyer => $notifyer});
     push @{ $mc->zones }, $z;
 
     my $h = History->new;
@@ -56,7 +61,7 @@ subtest "simple case" => sub {
     my $out = IO::String->new;
     $mc->dump_analisys($out, $o);
     my $result = ${$out->string_ref};
-    is $result, <<RESULT
+    is ($result, <<RESULT);
 vertex_index, distance_1, deviation_1
 0, 0.00, 0.00
 1, 90.00, 0.00
@@ -65,6 +70,8 @@ vertex_index, distance_1, deviation_1
 4, 0.00, 0.00
 RESULT
 
+    is_deeply( $mc->calc_distances($o->vertices->[0]), [0] );
+    is_deeply( $mc->calc_distances($o->vertices->[1]), [deg2rad 90] );
 };
 
 
