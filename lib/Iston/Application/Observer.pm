@@ -2,6 +2,7 @@ package Iston::Application::Observer;
 
 use 5.12.0;
 
+use JSON::XS;
 use Moo;
 use OpenGL qw(:all);
 use Path::Tiny;
@@ -68,7 +69,18 @@ sub _exit {
     my $self = shift;
     say "...exiting from observer";
     $self->_log_state;
-    $self->history->save if($self->history);
+    if($self->history) {
+        my $history_path = $self->history->path;
+        my $analisys_dir = path("${history_path}-analysis");
+        my $config_path = path("$analisys_dir/meta.json");
+        my $config = {
+            ISTON_MOUSE_SENSIVITY => get_sensivity(),
+            ISTON_ROTATE_Y        => $ENV{ISTON_ROTATE_Y} // 0,
+            ISTON_ROTATE_X        => $ENV{ISTON_ROTATE_X} // 0,
+        };
+        $config_path->spew(JSON::XS->new->pretty->encode($config));
+        $self->history->save;
+    }
     $self->sdl_app->stop;
 }
 
@@ -217,7 +229,7 @@ sub process_event {
         my $warp_event = $x == $self->width/2 && $y == $self->height/2;
         return if $warp_event;
 
-        my $mouse_sense = $ENV{ISTON_MOUSE_SENSIVITY} // 0.08;
+        my $mouse_sense = $ENV{ISTON_MOUSE_SENSIVITY} // 5;
         my $barrier = $ENV{ISTON_MOUSE_BARRIER} // 30;
         if (!$self->mouse) {
             if (abs($x  - $self->width/2) > 30 || abs($y - $self->height/2) > 30) {
@@ -253,6 +265,10 @@ sub process_event {
         my $label = $action->();
         $self->_log_state($label);
     }
+}
+
+sub get_sensivity  {
+    $ENV{ISTON_MOUSE_SENSIVITY} // 5;
 }
 
 1;

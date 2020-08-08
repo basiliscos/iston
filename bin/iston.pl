@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-use 5.12.0;
+use 5.20.0;
 
 use Getopt::Long qw(GetOptions :config no_auto_abbrev no_ignore_case);
 use OpenGL qw(:all);
@@ -50,6 +50,19 @@ EOF
 
 $screen_mode //= Iston::SCREEN_DEFAULT;
 my $app;
+
+if (-e "iston.config") {
+    say "loading iston.config";
+    my $data =  path("iston.config")->slurp;
+    my $config = eval "$data";
+    if ($@ || ref($config) ne 'HASH') {
+        say "failed loading config...";
+    } else {
+        for my $k (keys %$config) {
+            $ENV{$k} = $config->{$k};
+        }
+    }
+}
 
 if ($replay_history) {
     $app = Analyzer->new(
