@@ -7,7 +7,7 @@ use Carp;
 use Iston::Utils qw/generate_list_id/;
 use Iston::Vector qw/normal/;
 use List::MoreUtils qw/first_index/;
-use List::Util qw/max min reduce/;
+use List::Util qw/max min reduce first/;
 use Math::Trig;
 use Moo;
 use Function::Parameters qw(:strict);
@@ -103,29 +103,12 @@ method _calculate_normals {
 
 method has_texture { return 1; };
 
-method _build_texture {
-    my @triangles = grep { $_->enabled } @{ $self->triangles };
-    my %share_for;
-    for my $t_idx (0 .. @triangles-1) {
-        my $t = $triangles[$t_idx];
-        my $share = $t->{payload}->{time_share} // '';
-        $share_for{$share} = 1;
-    }
-    my %mappings_for;
-    # united texture schema:
-    #
-    # 02
-    # 22
-    # 01
-    # 11
-    #
-    # 1 - even triangle texture share
-    # 2 - odd triangle texture share
-    my $square_size = 4;
-    my $height  = $square_size * 2;
-    my @shares = keys %share_for;
-    my $draw_all = @shares == 1 && exists $share_for{''};
-    my $squares = @shares / 2;
+my $square_size = 4;
+my $height  = $square_size * 2;
+
+sub _prepare_texture {
+    my ($self, $triangles) = @_; 
+    my $squares = $triangles / 2;
     $squares = 1 if $squares < 1;
     my $pow_of_2 = log($squares) / log(2);
     if ($pow_of_2 - int($pow_of_2)) {
@@ -136,37 +119,57 @@ method _build_texture {
         SDL_SWSURFACE, $width, $height, 32, 0xFF, 0xFF00, 0xFF0000, 0xFF000000,
     );
     $texture->set_pixels(0, 0xFF);
-    for my $idx (0 .. @shares -1 ) {
-        my $odd = $idx % 2;
-        my @texture_coords = !$odd
-            ? ([1, 1], [$square_size-1, 1], [$square_size-1, $square_size-1])
-            : ([1, $square_size+1], [$square_size-1, $square_size+1], [$square_size-1, $square_size*2-1]);
-        my $square_idx = int($idx/2);
-        $_->[0] += ($square_idx * $square_size) for(@texture_coords);
-        my $share = $shares[$idx];
-        my @color_values = map { int($_ * 255) }
-            ($draw_all ? 1.0 : $share, $draw_all ? 1.0 : $share, 0.0, 1.0);
-        my $x = $square_idx * $square_size;
-        my $y = !$odd ? 0 : $square_size;
-        my $rect = SDLx::Rect->new($x, $y, $square_size, $square_size);
-        my $mapped_color = SDL::Video::map_RGBA($texture->format, @color_values);
-        SDL::Video::fill_rect($texture, $rect, $mapped_color);
-        my @uv_mappings_tripplet = (
-            [$texture_coords[0]->[0] / $width, ($texture_coords[0]->[1]) / $height ],
-            [$texture_coords[1]->[0] / $width, ($texture_coords[1]->[1]) / $height ],
-            [$texture_coords[2]->[0] / $width, ($texture_coords[2]->[1]) / $height ],
-        );
-        $mappings_for{$share} = \@uv_mappings_tripplet;
-    }
-    my @uv_mappings = map {
-        my $share = $_->{payload}->{time_share} // '';
-        @{ $mappings_for{$share} };
-    } @triangles;
+    return ($texture, $width, $height);
+ }
 
+sub _draw_texture {
+    my ($self, $texture, $w, $h, $idx, $colors) = @_;
+    my $odd = $idx % 2;
+    my @texture_coords = !$odd
+        ? ([1, 1], [$square_size-1, 1], [$square_size-1, $square_size-1])
+        : ([1, $square_size+1], [$square_size-1, $square_size+1], [$square_size-1, $square_size*2-1]);
+
+    my $square_idx = int($idx/2);
+    $_->[0] += ($square_idx * $square_size) for(@texture_coords);
+    my $x = $square_idx * $square_size;
+    my $y = !$odd ? 0 : $square_size;
+    my $rect = SDLx::Rect->new($x, $y, $square_size, $square_size);
+    my $mapped_color = SDL::Video::map_RGBA($texture->format, @$colors);
+    SDL::Video::fill_rect($texture, $rect, $mapped_color);
+    my @uv_mappings_tripplet = (
+        [$texture_coords[0]->[0] / $w, ($texture_coords[0]->[1]) / $h],
+        [$texture_coords[1]->[0] / $w, ($texture_coords[1]->[1]) / $h],
+        [$texture_coords[2]->[0] / $w, ($texture_coords[2]->[1]) / $h],
+    );
+    return \@uv_mappings_tripplet;
+}
+
+method _build_texture {
+    my @triangles = grep { $_->enabled } @{ $self->triangles };
+    # united texture schema:
+    #
+    # 02
+    # 22
+    # 01
+    # 11
+    #
+    # 1 - even triangle texture share
+    # 2 - odd triangle texture share    my @triangles = grep { $_->enabled } @{ $self->triangles };
+    my ($texture, $w, $h) = $self->_prepare_texture(scalar(@triangles));
+    my $has_shares = first { defined } map { $_->{payload}->{time_share} } @triangles;
+    my $get_share = $has_shares ? sub { $_[0]->{payload}->{time_share} // 0 } : sub { 1 };
+    my @triangle_colors;
+    my @uv_mappings = map {
+        my $t = $triangles[$_];
+        my @colors = map { int($_ * $get_share->($t) ) } qw/255 255 0 255/;
+        my $uv_tripplet = $self->_draw_texture($texture, $w, $h, $_, \@colors);
+        push @triangle_colors, \@colors;
+        @$uv_tripplet;
+    } (0 .. @triangles-1);
     $self->uv_mappings(\@uv_mappings);
-    #SDL::Video::save_BMP( $texture, "/tmp/1.bmp" );
+    # SDL::Video::save_BMP( $texture, "/tmp/1.bmp" );
     return $texture;
-};
+}
 
 method _prepare_data {
     my @triangles = grep { $_->enabled } @{ $self->triangles };
