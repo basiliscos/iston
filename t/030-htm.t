@@ -22,6 +22,17 @@ subtest "simple creation" => sub {
         "normal for bottom of octachedron has bottom direction";
     $o->level($o->level+1);
     is scalar( @{$o->triangles} ), 8*4, "correct number of triangles after subdivision";
+    
+    subtest "triangle colors" => sub {
+        $o->triangles->[0]->{payload}->{time_share} = 0.9;
+        $o->triangles->[1]->{payload}->{time_share} = 0.1;
+        my $colors = $o->triangle_colors;
+        is_deeply $colors, [
+            [229, 229, 0, 229],
+            [25, 25, 0, 25],
+            (([0, 0, 0, 0]) x 30),
+        ];
+    };
 };
 
 subtest "check triangles count directly at 4-th level" => sub {

@@ -66,6 +66,8 @@ has triangles    => (is => 'rw', default =>
     } );
 has texture => (is => 'lazy', clearer => 1);
 
+has triangle_colors => (is => 'lazy');
+
 with('Iston::Drawable');
 
 method BUILD {
@@ -144,6 +146,18 @@ sub _draw_texture {
     return \@uv_mappings_tripplet;
 }
 
+method _build_triangle_colors {
+    my @triangles = grep { $_->enabled } @{ $self->triangles };
+    my $has_shares = first { defined } map { $_->{payload}->{time_share} } @triangles;
+    my $get_share = $has_shares ? sub { $_[0]->{payload}->{time_share} // 0 } : sub { 1 };
+    my @triangle_colors = map {
+        my $t = $triangles[$_];
+        my @colors = map { int($_ * $get_share->($t) ) } qw/255 255 0 255/;
+        \@colors
+    } (0 .. @triangles-1);
+    return \@triangle_colors;
+ } 
+
 method _build_texture {
     my @triangles = grep { $_->enabled } @{ $self->triangles };
     # united texture schema:
@@ -156,14 +170,9 @@ method _build_texture {
     # 1 - even triangle texture share
     # 2 - odd triangle texture share    my @triangles = grep { $_->enabled } @{ $self->triangles };
     my ($texture, $w, $h) = $self->_prepare_texture(scalar(@triangles));
-    my $has_shares = first { defined } map { $_->{payload}->{time_share} } @triangles;
-    my $get_share = $has_shares ? sub { $_[0]->{payload}->{time_share} // 0 } : sub { 1 };
-    my @triangle_colors;
+    my $triangle_colors = $self->triangle_colors;
     my @uv_mappings = map {
-        my $t = $triangles[$_];
-        my @colors = map { int($_ * $get_share->($t) ) } qw/255 255 0 255/;
-        my $uv_tripplet = $self->_draw_texture($texture, $w, $h, $_, \@colors);
-        push @triangle_colors, \@colors;
+        my $uv_tripplet = $self->_draw_texture($texture, $w, $h, $_, $triangle_colors->[$_]);
         @$uv_tripplet;
     } (0 .. @triangles-1);
     $self->uv_mappings(\@uv_mappings);
