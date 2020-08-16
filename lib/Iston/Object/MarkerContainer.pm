@@ -22,7 +22,7 @@ has last_distances => (is => 'rw');
 
 with('Iston::Drawable');
 
-method has_texture { return 0; };
+method has_texture() { return 0; };
 
 sub BUILD {
     my $self = shift;
@@ -104,7 +104,7 @@ sub dump_analisys {
     return $results;
 }
 
-method _build_draw_function {
+method _build_draw_function() {
     my $default_color = [102.0/255, 0.0, 204.0/255, 0.0];
     my $active_color = [1.0, 1.0, 1.0, 0.0];
 

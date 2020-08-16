@@ -15,7 +15,7 @@ has 'observation_path' => (is => 'ro', required => 1);
 has 'sphere_vectors'   => (is => 'ro', required => 1);
 has 'values'           => (is => 'lazy');
 
-method _build_values {
+method _build_values() {
     my $observation_path = $self->observation_path;
     my $vectors = $self->sphere_vectors->vectors;
     my @angles = map {

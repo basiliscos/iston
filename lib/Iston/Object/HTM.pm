@@ -70,7 +70,7 @@ has triangle_colors => (is => 'lazy');
 
 with('Iston::Drawable');
 
-method BUILD {
+method BUILD(@) {
     $self->lighting(0);
     $self->levels_cache->{$self->level} = $self->triangles;
     $self->_calculate_normals;
@@ -78,7 +78,7 @@ method BUILD {
 };
 
 
-method _calculate_normals {
+method _calculate_normals() {
     my $triangles = $self->triangles;
     my %triangles_of;
     my %index_of_vertex;
@@ -103,7 +103,7 @@ method _calculate_normals {
     }
 };
 
-method has_texture { return 1; };
+method has_texture() { return 1; };
 
 my $square_size = 4;
 my $height  = $square_size * 2;
@@ -146,7 +146,7 @@ sub _draw_texture {
     return \@uv_mappings_tripplet;
 }
 
-method _build_triangle_colors {
+method _build_triangle_colors() {
     my @triangles = grep { $_->enabled } @{ $self->triangles };
     my $has_shares = first { defined } map { $_->{payload}->{time_share} } @triangles;
     my $get_share = $has_shares ? sub { $_[0]->{payload}->{time_share} // 0 } : sub { 1 };
@@ -158,7 +158,7 @@ method _build_triangle_colors {
     return \@triangle_colors;
  } 
 
-method _build_texture {
+method _build_texture() {
     my @triangles = grep { $_->enabled } @{ $self->triangles };
     # united texture schema:
     #
@@ -180,7 +180,7 @@ method _build_texture {
     return $texture;
 }
 
-method _prepare_data {
+method _prepare_data() {
     my @triangles = grep { $_->enabled } @{ $self->triangles };
     my @vertices;
     my @normals;
@@ -215,7 +215,7 @@ method _trigger_level($level) {
     $self->_prepare_data;
 }
 
-method radius {
+method radius() {
     return 1;
 };
 

@@ -98,7 +98,7 @@ sub init_app {
     $self->sdl_app->add_move_handler( sub { EV::run(EV::RUN_ONCE); } );
 }
 
-method redraw_world {
+method redraw_world() {
     $self->_drawGLScene;
     $self->sdl_app->sync;
     $self->sdl_app->update;
@@ -132,11 +132,11 @@ method _trigger_view($matrix) {
     $self->_update_view;
 }
 
-method _trigger_camera_position {
+method _trigger_camera_position(@) {
     $self->_update_view;
 }
 
-method _update_view {
+method _update_view() {
     my $camera = $self->camera_position;
     my $translate = translate($camera);
     my $view = $self->view;

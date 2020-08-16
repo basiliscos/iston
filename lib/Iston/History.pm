@@ -12,7 +12,7 @@ use aliased qw/Iston::History::Record/;
 has path => (is => 'rw', required => 0);
 has records => (is => 'rw', default => sub{ [] } );
 
-method load {
+method load() {
     my $path = $self->path;
     croak("Path should be specified") unless defined($path);
 
@@ -39,7 +39,7 @@ method load {
     $self;
 };
 
-method save {
+method save() {
     my $path = $self->path;
     croak("Path should be specified") unless defined($path);
 
@@ -64,7 +64,7 @@ method log_state($record) {
     push @{ $self->records }, [@$record];
 }
 
-method elements {
+method elements() {
     scalar(@{ $self->records });
 }
 

@@ -15,7 +15,7 @@ has 'htm'              => (is => 'ro', required => 1);
 
 has 'projections_map'  => (is => 'lazy');
 
-method _build_projections_map {
+method _build_projections_map() {
     my $max_level = max keys %{ $self->htm->levels_cache };
     my $sphere_vertices = $self->observation_path->vertices;
     my %examined_triangles_at;
@@ -66,7 +66,7 @@ method walk ($action) {
     }
 }
 
-method distribute_observation_timings {
+method distribute_observation_timings() {
     my $records = $self->observation_path->history->records;
     my $last_index = @$records-1;
     $self->walk( sub {
