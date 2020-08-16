@@ -19,17 +19,17 @@ has lighting     => (is => 'rw', default => sub { $ENV{ISTON_LIGHTING} // 1 }, t
 
 with('Iston::Drawable');
 
-method has_texture { return $self->has_texture_file; };
+method has_texture() { return $self->has_texture_file; };
 
-method _trigger_lighting { $self->clear_draw_function }
+method _trigger_lighting(@) { $self->clear_draw_function }
 
-method _trigger_texture_file {
+method _trigger_texture_file(@) {
     $self->clear_texture;
     $self->clear_texture_id;
     $self->clear_draw_function;
 }
 
-method _build_texture {
+method _build_texture() {
     my $file = $self->texture_file;
     my $texture = SDL::Image::load( $file );
     croak "Error loading $file : " . SDL::get_error()
@@ -43,7 +43,7 @@ method _build_texture {
     return $texture;
 }
 
-method _build_center {
+method _build_center() {
     my ($v_size, $n_size) = map { scalar(@{ $self->$_ }) }
         qw/vertices normals/;
     croak "Count of vertices must match count of normals"
@@ -54,7 +54,7 @@ method _build_center {
     return Vertex->new(values => \@avgs);
 };
 
-method radius {
+method radius() {
     my $c = $self->center;
     my $r = max(
         map { $_->length }

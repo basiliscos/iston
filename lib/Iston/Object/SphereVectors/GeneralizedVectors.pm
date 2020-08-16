@@ -33,7 +33,7 @@ my $_halfpi = pi/2;
 my $_vizualization_step = deg2rad(0.5);
 
 
-method _build_vectors {
+method _build_vectors() {
     # Ramer-Douglas-Peucker algorithm applied to the sphere's great arc
     my $source_vectors = $self->source_vectors->vectors;
     my @vectors;
@@ -102,7 +102,7 @@ fun _max_distance($vectors, $start_idx, $end_idx) {
     return ($distance, $angular_length);
 }
 
-method _build_vertex_to_vector_function {
+method _build_vertex_to_vector_function() {
     my $s2g = $self->_source_to_generalized;
     my $source_mapper = $self->source_vectors->vertex_to_vector_function();
     my $mapper = sub {
@@ -114,7 +114,7 @@ method _build_vertex_to_vector_function {
     return $mapper;
 }
 
-method _build_vertices {
+method _build_vertices() {
     my $vectors = $self->vectors;
     my @result = (
         $vectors->[0]->payload->{start_vertex},
@@ -123,7 +123,7 @@ method _build_vertices {
     return \@result;
 };
 
-method _build_vertex_indices {
+method _build_vertex_indices() {
     my $vertices = $self->vertices;
     my @indices = (0 .. @$vertices-1);
     return \@indices;
@@ -161,7 +161,7 @@ method arrow_vertices($index) {
     return @results;
 }
 
-method _build_draw_function {
+method _build_draw_function() {
     my $default_color = $self->default_color;
 
     # main sphere vector drawing

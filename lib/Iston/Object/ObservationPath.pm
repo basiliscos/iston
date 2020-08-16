@@ -40,14 +40,14 @@ has draw_function          => (is => 'lazy', clearer => 1);
 
 with('Iston::Drawable');
 
-method BUILD {
+method BUILD(@) {
     $self->_build_vertices_and_indices;
     $self->_build_vertices_on_sphere;
 }
 
-method has_texture { return 0; }
+method has_texture() { return 0; }
 
-method _build_vertices_and_indices {
+method _build_vertices_and_indices() {
     my $history = $self->history;
     my $current_point =  Iston::Matrix->new_from_cols([ [0, 0, 1] ]);
     my @vertices;
@@ -64,7 +64,7 @@ method _build_vertices_and_indices {
 };
 
 
-method _build_vertices_on_sphere {
+method _build_vertices_on_sphere() {
     my @indices;
     my %visited;
     my $vertices = $self->vertices;
@@ -116,7 +116,7 @@ method arrow_vertices($index_to, $index_from) {
     return @results;
 }
 
-method _build_current_sphere_vector {
+method _build_current_sphere_vector() {
     my $active_time = $self->active_time;
     return unless defined $active_time;
     my $vertex_index = $self->index_at->{$active_time};
@@ -135,7 +135,7 @@ method _build_current_sphere_vector {
     }
 }
 
-method _trigger_active_time {
+method _trigger_active_time(@) {
     $self->clear_current_sphere_vector;
 };
 
@@ -144,7 +144,7 @@ method _trigger_sphere_vectors($vectors) {
     $self->clear_draw_function;
 }
 
-method _build_draw_function {
+method _build_draw_function() {
     my $model_oga = $self->model_oga;
     my $current = $self->current_sphere_vector;
     my $sphere_vectors = $self->sphere_vectors;

@@ -54,7 +54,7 @@ has _contexts => (is => 'rw', default => sub { {} });
 
 requires 'has_texture';
 
-method reset_model {
+method reset_model() {
     $self->clear_model_oga;
     $self->clear_model_view_oga;
 }
@@ -106,7 +106,7 @@ sub _build_model_oga {
     return OpenGL::Array->new_list(GL_FLOAT, $matrix->as_list);
 }
 
-method _build_model_view_oga {
+method _build_model_view_oga() {
     my $scale    = $self->model_scale;
     my $translate = $self->model_translate;
     my $rotation = $self->model_rotation;
@@ -129,7 +129,7 @@ sub rotate {
     }
 }
 
-method reset_texture {
+method reset_texture() {
     $self->clear_texture;
     $self->clear_texture_id;
     $self->_clear_text_coords_oga;
@@ -137,7 +137,7 @@ method reset_texture {
     $self->clear_uv_mappings;
 }
 
-method _trigger_mode {
+method _trigger_mode(@) {
     my $mode = $self->mode;
     if ($mode eq 'mesh') {
         $self->_contexts->{normal} = {
@@ -153,7 +153,7 @@ method _trigger_mode {
     $self->clear_draw_function;
 };
 
-method _triangle_2_lines_indices {
+method _triangle_2_lines_indices() {
     my $source = $self->indices;
     my $components = 3;
     my @result = map {
@@ -165,7 +165,7 @@ method _triangle_2_lines_indices {
     return \@result;
 };
 
-method _build_boundaries {
+method _build_boundaries() {
     my $first_vertex = $self->vertices->[0];
     my ($mins, $maxs) = map { [@{ $first_vertex->values }] } (0 .. 1);
     my $vertices_count = scalar(@{$self->vertices});
@@ -179,7 +179,7 @@ method _build_boundaries {
     return [map {Vertex->new(values => $_)} $mins, $maxs];
 };
 
-method _build__text_coords_oga {
+method _build__text_coords_oga() {
     my ($vbo_texcoords) = glGenBuffersARB_p(1);
     my $texcoords_oga = OpenGL::Array->new_list(
         GL_FLOAT, map { @$_ } @{ $self->uv_mappings }
@@ -189,7 +189,7 @@ method _build__text_coords_oga {
     return $texcoords_oga;
 }
 
-method _build_texture_id {
+method _build_texture_id() {
     croak("Generating texture for textureless object")
         unless $self->has_texture;
 
@@ -219,7 +219,7 @@ method _build_texture_id {
     return $texture_id;
 }
 
-method _build_draw_function {
+method _build_draw_function() {
     my ($p_vertices, $p_normals) =
         map {
             my $v = $self->$_;

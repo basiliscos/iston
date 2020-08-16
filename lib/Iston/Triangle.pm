@@ -34,15 +34,15 @@ has subtriangles => (is => 'lazy');
 has tesselation  => (is => 'ro', default => sub { 0  });
 has enabled      => (is => 'rw', default => sub { 1 });
 
-method BUILD {
+method BUILD(@) {
     $self->path->triangle($self);
 }
 
-method _build_normal {
+method _build_normal() {
     return Iston::Vector::normal($self->vertices, [0 .. 2]);
 };
 
-method _build_subtriangles {
+method _build_subtriangles() {
     my @vertex_pairs = (
         [ [0, 1], [0, 2] ],
         [ [1, 0], [1, 2] ],

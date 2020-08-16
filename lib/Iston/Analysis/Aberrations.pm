@@ -16,7 +16,7 @@ use aliased qw/Iston::Vertex/;
 has 'sphere_vectors' => (is => 'ro', required => 1);
 has 'values'         => (is => 'lazy');
 
-method _build_values {
+method _build_values() {
     my $sphere_vectors = $self->sphere_vectors->vectors;
     my @normal_degrees = map {
         my ($v1, $v2) = map { $sphere_vectors->[$_] } $_, $_+1;

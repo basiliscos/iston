@@ -40,7 +40,7 @@ fun rotation_matrix($x, $y, $z, $f) {
     return $rotation;
 };
 
-fun generate_list_id {
+fun generate_list_id() {
     my $id = glGenLists(1);
     my $cleaner = guard {
         say "deleting list $id";
@@ -121,7 +121,7 @@ my $_identity = Iston::Matrix->new_from_rows([
     [0, 0, 0, 1],
 ]);
 
-fun identity {
+fun identity() {
     return $_identity;
 };
 

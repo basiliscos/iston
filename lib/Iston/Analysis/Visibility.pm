@@ -11,7 +11,7 @@ use Moo;
 has pattern        => (is => 'ro', required => 1);
 has pattern_colors => (is => 'lazy');
 
-method _build_pattern_colors {
+method _build_pattern_colors() {
     my $pattern = $self->pattern;
     my $bpp = $pattern->format->BytesPerPixel;
     croak "bytes per pixel != 4 for pattern" unless $bpp == 4;

@@ -17,7 +17,7 @@ use aliased qw/Iston::Vertex/;
 
 has 'file' => (is => 'ro', required => 1);
 
-method load {
+method load() {
     my @lines = path($self->file)->lines;
 
     my @vertices;

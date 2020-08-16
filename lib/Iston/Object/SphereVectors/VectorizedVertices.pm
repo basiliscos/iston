@@ -21,7 +21,7 @@ has 'vertex_to_vector_function' => (is => 'lazy');
 
 with('Iston::Object::SphereVectors');
 
-method _build_vectors {
+method _build_vectors() {
     my $vertices = $self->vertices;
     my $indices = $self->vertex_indices;
     my @vectors = map {
@@ -39,7 +39,7 @@ method _build_vectors {
     return \@vectors;
 };
 
-method _build_vertex_to_vector_function {
+method _build_vertex_to_vector_function() {
     my $vectors = $self->vectors;
     my @values = map {
             my $vector_idx = $_;
@@ -93,7 +93,7 @@ method arrow_vertices($start, $end) {
     return @results;
 }
 
-method _build_draw_function {
+method _build_draw_function() {
     my $default_color = $self->default_color;
     my $vertices = $self->vertices;
     my $spin_detection = $self->spin_detection;

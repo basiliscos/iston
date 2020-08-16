@@ -25,7 +25,7 @@ requires('vertex_to_vector_function');
 
 with('Iston::Drawable');
 
-method has_texture { return 0; };
+method has_texture() { return 0; };
 
 method _trigger_spin_detection($value) {
     my $vectors = $self->vectors;
