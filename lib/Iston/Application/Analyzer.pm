@@ -178,6 +178,9 @@ sub _load_object {
         $history_path->copy(path($analisys_dir, 'history.csv'));
         my $heat_map = path($analisys_dir, 'heatmap.bmp');
         SDL::Video::save_BMP( $self->htm->texture, $heat_map);
+        my $htm_texture_path = path($analisys_dir, 'htm_texture.json');
+        my $htm_texture_fh = $htm_texture_path->filehandle('>');
+        $self->htm->dump($htm_texture_fh);
     };
     $self->_analysis_dumper($dumper);
 

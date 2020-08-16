@@ -6,6 +6,7 @@ use 5.12.0;
 use Carp;
 use Iston::Utils qw/generate_list_id/;
 use Iston::Vector qw/normal/;
+use JSON::XS;
 use List::MoreUtils qw/first_index/;
 use List::Util qw/max min reduce first/;
 use Math::Trig;
@@ -225,6 +226,17 @@ method walk_triangles($callback) {
         my $triangles = $self->levels_cache->{$level};
         $callback->($_) for (@$triangles);
     }
+}
+
+method dump($fh) {
+    my $colors = $self->triangle_colors;
+    my @triangles = grep { $_->enabled } @{ $self->triangles };
+    my %path_2_color = map {
+        my $c = $colors->[$_];
+        my $t = $triangles[$_];
+        $t->path => $c;
+    } (0 .. @triangles-1);
+    say $fh JSON::XS->new->pretty->encode(\%path_2_color);
 }
 
 1;
