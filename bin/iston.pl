@@ -7,6 +7,7 @@ use OpenGL qw(:all);
 use Path::Tiny;
 
 use aliased qw/Iston::Application::Analyzer/;
+use aliased qw/Iston::Application::HTMViewer/;
 use aliased qw/Iston::Application::Observer/;
 use aliased qw/Iston::Application::Marker/;
 use aliased qw/Iston::Application::Player/;
@@ -17,6 +18,7 @@ GetOptions(
     'n|no_history'       => \my $no_history,
     's|screen_mode=i'    => \my $screen_mode,
     'M|marker_mode'      => \my $marker_mode,
+    'T|htm_mode'         => \my $htm_mode,
     'r|replay_history'   => \my $replay_history,
     'p|history_player'   => \my $history_player,
     'm|models_path=s'    => \my $models_path,
@@ -24,7 +26,7 @@ GetOptions(
     'h|help'             => \my $help,
 );
 
-my $show_help = $help || (!$object_path && !$replay_history && !$marker_mode)
+my $show_help = $help || (!$object_path && (!$replay_history && !$marker_mode && !$htm_mode))
     || ($replay_history && !defined($models_path))
     || ($history_player && !defined($history_path))
     || ($screen_mode    && (($screen_mode < 1) ||($screen_mode > 3)))
@@ -41,6 +43,7 @@ These options are available:
   -n, --no_history     Do not record history
   -s, --screen_mode    Screen mode to render (1 = fullscreen, 2 = halfscreen, 3 = default)
   -M, --marker_mode    Marker mode
+  -T, --htm_mode       HTM mode
   -m, --models_path    Path to directory with models
   -r  --replay_history Replay history mode
   -p, --history_player Dedicated app to play history and exit
@@ -71,6 +74,11 @@ if ($replay_history) {
     );
 } elsif ($marker_mode) {
     $app = Marker->new(
+        models_path => $models_path // '.',
+        screen_mode => $screen_mode,
+    );
+} elsif ($htm_mode) {
+    $app = HTMViewer->new(
         models_path => $models_path // '.',
         screen_mode => $screen_mode,
     );
