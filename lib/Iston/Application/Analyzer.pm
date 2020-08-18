@@ -70,7 +70,7 @@ sub BUILD {
 sub _build_htm {
     my $self = shift;
     my $htm = HTM->new;
-    #$htm->mode('mesh');
+    # $htm->mode('mesh');
     my $r = Vector->new(values => $htm->triangles->[0]->vertices->[0]->values)->length;
     my $scale_to = 1/($r/$self->max_boundary);
     $htm->scale($scale_to);
@@ -78,6 +78,7 @@ sub _build_htm {
     $htm->shader($self->shader_for->{object});
     $htm->notifyer($self->_notifyer);
     $htm->enabled(0);
+    $htm->lighting(1);
     return $htm;
 }
 
@@ -320,7 +321,6 @@ sub _build_menu {
         definition => " group='HTM' label='triangles' ",
     );
     my $htm = $self->htm;
-    $htm->lighting(1);
     my $htm_visualizers = $self->_htm_visualizers;
     my $htm_visualization = Type->new(
         "htm_visualization", [
