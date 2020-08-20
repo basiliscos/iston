@@ -51,7 +51,7 @@ sub _build_htm {
     $htm->shader($self->shader_for->{object});
     $htm->notifyer($self->_notifyer);
     $htm->enabled(1);
-    $htm->lighting(1);
+    $htm->lighting(0);
     return $htm;
 }
 

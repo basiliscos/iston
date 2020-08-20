@@ -150,20 +150,19 @@ sub _draw_texture {
 }
 
 method _build_triangle_colors() {
-    my @triangles = grep { $_->enabled } @{ $self->triangles };
-    print "triangles: ", scalar(@triangles), " \n";
-    my $has_shares = first { defined } map { $_->{payload}->{time_share} } @triangles;
+    my $triangles = $self->triangles;
+    my $has_shares = first { defined } map { $_->{payload}->{time_share} } @$triangles;
     my $get_share = $has_shares ? sub { $_[0]->{payload}->{time_share} // 0 } : sub { 1 };
     my @triangle_colors = map {
-        my $t = $triangles[$_];
+        my $t = $triangles->[$_];
         my @colors = map { int($_ * $get_share->($t) ) } qw/255 255 0 255/;
         \@colors
-    } (0 .. @triangles-1);
+    } (0 .. @$triangles-1);
     return \@triangle_colors;
  } 
 
 method _build_texture() {
-    my @triangles = grep { $_->enabled } @{ $self->triangles };
+    my $triangles = $self->triangles;
     # united texture schema:
     #
     # 02
@@ -172,14 +171,21 @@ method _build_texture() {
     # 11
     #
     # 1 - even triangle texture share
-    # 2 - odd triangle texture share    my @triangles = grep { $_->enabled } @{ $self->triangles };
+    # 2 - odd triangle texture share
+    my @triangles = grep { $_->enabled } @{ $self->triangles };
     my ($texture, $w, $h) = $self->_prepare_texture(scalar(@triangles));
-    my $triangle_colors = $self->triangle_colors // $self->_build_triangle_colors;
-    $DB::single = 1 if (@triangles != @$triangle_colors);
+    my $triangle_colors = $self->triangle_colors;
+    if (!$triangle_colors) {
+        $triangle_colors = $self->_build_triangle_colors;
+        $self->triangle_colors($triangle_colors);
+    }
+    my %c4t = map { $triangles->[$_]->path => $triangle_colors->[$_] } (0 .. @$triangles-1);
     my @uv_mappings = map {
-        my $uv_tripplet = $self->_draw_texture($texture, $w, $h, $_, $triangle_colors->[$_]);
-        @$uv_tripplet;
-    } (0 .. @triangles-1);
+        my $t = $triangles->[$_];
+        my $color = $c4t{$t->path};
+        my $uv_tripplet = $t->enabled ? $self->_draw_texture($texture, $w, $h, $_, $color) : undef;
+        $uv_tripplet ? @$uv_tripplet : ();
+    } (0 .. @$triangles-1);
     $self->uv_mappings(\@uv_mappings);
     # SDL::Video::save_BMP( $texture, "/tmp/1.bmp" );
     return $texture;
@@ -187,6 +193,8 @@ method _build_texture() {
 
 method _prepare_data() {
     my @triangles = grep { $_->enabled } @{ $self->triangles };
+    my $triangles = $self->triangles;
+    print "_prepare_data triangles: ", scalar(@$triangles), ", enabled: ", scalar(@triangles), "\n";
     my @vertices;
     my @normals;
     my @indices;
@@ -204,7 +212,7 @@ method _prepare_data() {
     $self->reset_texture;
 }
 
-method _trigger_level($level) {
+method _recalc_triangles($level) {
     my $current_triangles = $self->triangles;
     for my $l (0 .. $level) {
         $self->levels_cache->{$l} //= do {
@@ -216,6 +224,10 @@ method _trigger_level($level) {
         $current_triangles = $self->levels_cache->{$l};
     }
     $self->triangles($current_triangles);
+}
+
+method _trigger_level($level) {
+    $self->_recalc_triangles($level);
     $self->_calculate_normals;
     $self->_prepare_data;
 }
@@ -234,12 +246,12 @@ method walk_triangles($callback) {
 
 method dump($fh) {
     my $colors = $self->triangle_colors;
-    my @triangles = grep { $_->enabled } @{ $self->triangles };
+    my $triangles = $self->triangles;
     my %path_2_color = map {
         my $c = $colors->[$_];
-        my $t = $triangles[$_];
-        $t->path => $c;
-    } (0 .. @triangles-1);
+        my $t = $triangles->[$_];
+        $t->enabled? ($t->path => $c) : ();
+    } (0 .. @$triangles-1);
     my $data = {
         level  => $self->level,
         colors => \%path_2_color,
@@ -249,19 +261,19 @@ method dump($fh) {
 
 method load($path) {
     my $data = decode_json(path($path)->slurp);
-    $self->level($data->{level});
+    my $level = $data->{level};
     my $colors = $data->{colors};
+    $self->_recalc_triangles($level);
     my $triangles = $self->triangles;
     my %triangles = map { $_->path => $_ } @{ $self->triangles };
     my @colors = map {
         my $t = $triangles->[$_];
         my $c = $colors->{$t->path};
-        #$t->enabled(defined $c);
-        $c ? ($c) : ();
+        $t->enabled(defined $c);
+        $c ? ($c) : ([0,0,0,0]);
     } (0 .. @$triangles- 1);
-    $self->reset_texture;
-    # $self->triangle_colors(\@colors);
-
+    $self->triangle_colors(\@colors);
+    $self->level($level);
 }
 
 1;

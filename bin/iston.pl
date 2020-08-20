@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-use 5.20.0;
+use 5.18.0;
 
 use Getopt::Long qw(GetOptions :config no_auto_abbrev no_ignore_case);
 use OpenGL qw(:all);
