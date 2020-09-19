@@ -12,6 +12,8 @@ use SDL::Mouse;
 use SDL::Surface;
 use Time::HiRes qw/gettimeofday tv_interval usleep sleep/;
 
+use Iston::Utils qw/as_cartesian/;
+
 use aliased qw/Iston::History::Record/;
 use aliased qw/Iston::Triangle/;
 use aliased qw/Iston::Vertex/;
@@ -23,6 +25,8 @@ has object_path    => (is => 'ro', required => 1);
 has main_object    => (is => 'rw');
 has _commands      => (is => 'lazy');
 has mouse          => (is => 'rw', default => sub { 0; });
+has plugins        => (is => 'lazy');
+has objects        => (is => 'ro', default => sub { [] });
 
 sub BUILD {
     my $self = shift;
@@ -39,13 +43,16 @@ sub BUILD {
 
     $self->main_object($object);
     push @{ $self->objects }, $object;
+    $self->plugins;
 
     $self->_log_state;
 };
 
-sub objects {
+sub current_vertex {
     my $self = shift;
-    return [$self->main_object];
+    my $obj = $self->main_object;
+    my ($dx, $dy) = map { $obj->rotate($_) } (0, 1);
+    return Vertex->new(values => as_cartesian($dx, $dy));
 }
 
 sub _log_state {
@@ -80,22 +87,42 @@ sub _exit {
         };
         $config_path->spew(JSON::XS->new->pretty->encode($config));
         $self->history->save;
+        $_->on_exit($analisys_dir) for (@{ $self->plugins });
     }
     $self->sdl_app->stop;
+}
+
+sub _build_plugins {
+    my $self = shift;
+    my @plugins;
+    my $plugins_cfg = $ENV{ISTON_PLUGINS} // '';
+    for my $plugin_info (split ';', $plugins_cfg) {
+        next unless $plugin_info;
+        my @opts = split ',', $plugin_info, 2;
+        my $class = 'Iston::Plugin::' . (shift @opts);
+        my %cfg   = (app => $self, map { split '=', $_ } @opts);
+        require ($class =~ s{::}{/}gr. '.pm');
+        my $plugin = $class->new(\%cfg);
+        push @plugins, $plugin;
+    }
+
+    return \@plugins;
 }
 
 sub _build__commands {
     my $self = shift;
     my $rotation = sub {
         my (%step_for) = @_; # key: axis, value: degree
-        my $subject = $self->main_object;
         return sub {
             while(my ($axis, $step) = each(%step_for)){
-                my $value = $subject->rotate($axis);
-                $value += $step;
-                $value %= 360;
-                $subject->rotate($axis, $value);
+                for my $obj (@{ $self->objects }) {
+                    my $value = $obj->rotate($axis);
+                    $value += $step;
+                    $value %= 360;
+                    $obj->rotate($axis, $value);
+                }
             }
+            $self->_update_view;
             return;
         }
     };
@@ -175,7 +202,6 @@ sub _build__commands {
 
 sub process_event {
     my ($self, $event) = @_;
-    # say "processing event...";
     my $action;
     if ($event->type == SDL_KEYUP) {
         my $dispatch_table = {
@@ -237,17 +263,7 @@ sub process_event {
             }
 
             my ($dX, $dY) = map {$event->$_ * $mouse_sense } qw/motion_xrel motion_yrel/;
-            $action = sub {
-                my @rotations = ($dY, $dX);
-                for my $axis (0 .. @rotations-1) {
-                    my $value = $self->main_object->rotate($axis);
-                    $value += $rotations[$axis];
-                    $value -= 360 if $value >= 360;
-                    #$value %= 360;
-                    $self->main_object->rotate($axis, $value);
-                }
-                return;
-            };
+            $action = sub { $self->rotate_objects($dX, $dY); };
         }
     }
     elsif ($event->type == SDL_MOUSEBUTTONDOWN) {
@@ -261,10 +277,32 @@ sub process_event {
         }
     }
 
+    if (!$action) {
+        for my $plugin (@{ $self->plugins }) {
+            $action = $plugin->process_event($event);
+            last if $action;
+        }
+    }
+
+
     if ($action) {
         my $label = $action->();
         $self->_log_state($label);
     }
+}
+
+sub rotate_objects {
+    my ($self, $dX, $dY) = @_;
+    my @rotations = ($dY, $dX);
+    for my $axis (0 .. @rotations-1) {
+        for my $obj (@{ $self->objects }) {
+            my $value = $obj->rotate($axis);
+            $value += $rotations[$axis];
+            $value -= 360 if $value >= 360;
+            $obj->rotate($axis, $value);
+        }
+    }
+    $self->_update_view;
 }
 
 sub get_sensivity  {

@@ -162,6 +162,7 @@ sub _load_object {
             }
         }
         if ($self->_marker_container) {
+#requires qw/objects/;
             my $mc = $self->_marker_container;
             my $result_path = path($analisys_dir, $mc->name . "-results.csv");
             my $result_fh = $result_path->filehandle('>');

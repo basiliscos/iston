@@ -26,6 +26,7 @@ method has_texture() { return 0; };
 
 sub BUILD {
     my $self = shift;
+    $self->notifyer->declare('zone_distances_change');
     $self->notifyer->subscribe('view_change' => sub { $self->calc_distances($self->current_point->() ); });
 }
 
@@ -50,6 +51,7 @@ sub calc_distances {
         push @r, $angle;
     }
     $self->last_distances(\@r);
+    $self->notifyer->publish('zone_distances_change' => \@r);
     return \@r;
 }
 

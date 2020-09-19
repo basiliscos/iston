@@ -48,7 +48,6 @@ has view_oga        => (is => 'rw');
 has projection_oga  => (is => 'rw');
 
 requires qw/process_event/;
-requires qw/objects/;
 
 sub init_app {
     my $self = shift;
