@@ -250,13 +250,26 @@ around _drawGLScene => sub {
 
 sub _build__commands {
     my ($self) = @_;
+    my $rotation = sub {
+        my (%step_for) = @_; # key: axis, value: degree
+        return sub {
+            while(my ($axis, $step) = each(%step_for)){
+                for my $subject (@{ $self->objects }) {
+                    my $value = $subject->rotate($axis);
+                    $value += $step;
+                    $value %= 360;
+                    $subject->rotate($axis, $value);
+                }
+            }
+            return;
+        }
+    };
+    my $rotate_step = 15;
     my $commands = {
-        'add_zone'          => sub { $self->_add_zone;      },
-        'remove_zone'       => sub { $self->_remove_zone;   },
-        'activate_next'     => sub { $self->_activate_next; },
-        'activate_prev'     => sub { $self->_activate_prev; },
-        'enlarge_zone'      => sub { $self->_enlarge_zone;  },
-        'shrink_zone'       => sub { $self->_shrink_zone;   },
+        'rotate_N'    => $rotation->(0, -$rotate_step),
+        'rotate_S'    => $rotation->(0, $rotate_step),
+        'rotate_W'    => $rotation->(1, -$rotate_step),
+        'rotate_E'    => $rotation->(1, $rotate_step),
         'terminate_program' => sub { $self->sdl_app->stop   },
     };
     return $commands;
@@ -269,11 +282,16 @@ sub process_event {
     AntTweakBar::eventSDL($event);
     if ($event->type == SDL_KEYUP) {
         my $dispatch_table = {
-            SDLK_SPACE()     => 'add_zone',
-            SDLK_F12()       => 'remove_zone',
-            SDLK_LEFT()      => 'activate_prev',
-            SDLK_RIGHT()     => 'activate_next',
-            SDLK_UP()        => 'enlarge_zone',
+            SDLK_UP,    'rotate_N',
+            SDLK_DOWN,  'rotate_S',
+            SDLK_LEFT,  'rotate_W',
+            SDLK_RIGHT, 'rotate_E',
+
+            SDLK_KP8,   'rotate_N',
+            SDLK_KP2,   'rotate_S',
+            SDLK_KP4,   'rotate_W',
+            SDLK_KP6,   'rotate_E',
+ 
             SDLK_DOWN()      => 'shrink_zone',
         };
         my $key = $event->key_sym;
