@@ -97,10 +97,11 @@ sub _build_plugins {
     my @plugins;
     my $plugins_cfg = $ENV{ISTON_PLUGINS} // '';
     for my $plugin_info (split ';', $plugins_cfg) {
+        $plugin_info =~ s/\s*(.?+)\s*/$1/gs;
         next unless $plugin_info;
         my @opts = split ',', $plugin_info, 2;
         my $class = 'Iston::Plugin::' . (shift @opts);
-        my %cfg   = (app => $self, map { split '=', $_ } @opts);
+        my %cfg   = (app => $self, map { split '=', $_ } map { split ',', $_ } @opts);
         require ($class =~ s{::}{/}gr. '.pm');
         my $plugin = $class->new(\%cfg);
         push @plugins, $plugin;
@@ -288,6 +289,9 @@ sub process_event {
     if ($action) {
         my $label = $action->();
         $self->_log_state($label);
+        for my $plugin (@{ $self->plugins }) {
+            $plugin->postprocess_event($event);
+        }
     }
 }
 

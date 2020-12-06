@@ -51,7 +51,6 @@ These options are available:
   -h, --help           Show this message.
 EOF
 
-$screen_mode //= Iston::SCREEN_DEFAULT;
 my $app;
 
 if (-e "iston.config") {
@@ -66,6 +65,8 @@ if (-e "iston.config") {
         }
     }
 }
+
+$screen_mode //= $ENV{ISTON_SCREEN_MODE} // Iston::SCREEN_DEFAULT;
 
 if ($replay_history) {
     $app = Analyzer->new(
