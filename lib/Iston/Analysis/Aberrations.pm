@@ -39,12 +39,11 @@ method _build_values() {
     return \@normal_degrees;
 }
 
-method dump_analisys ($output_fh, $observation_path) {
+method iterate($observation_path, $cb) {
     my $vertices = $observation_path->vertices;
     my $v2s = $observation_path->vertex_to_sphere_index;
     my $values = $self->values;
     my $mapper = $self->sphere_vectors->vertex_to_vector_function;
-    say $output_fh "vertex_index, aberration";
     for my $idx (0 .. @$vertices -1) {
         my $sphere_index = $v2s->[$idx];
         my $vector_index = $mapper->($idx) // 0; # $sphere_index - 1;
@@ -53,9 +52,16 @@ method dump_analisys ($output_fh, $observation_path) {
         if ($vector_index > 0 && $v2s->[$idx-1] != $sphere_index) {
             $value = $values->[$value_index];
         }
-        $value = sprintf('%0.2f', rad2deg($value));
-        say $output_fh "$idx, $value";
+        $cb->($idx, $value);
     }
+}
+
+method dump_analisys ($output_fh, $observation_path) {
+    say $output_fh "vertex_index, aberration";
+    $self->iterate($observation_path, sub {
+        my ($idx, $value) = @_;
+        say $output_fh $idx, ', ', sprintf('%0.2f', rad2deg($value));
+    });
 }
 
 1;

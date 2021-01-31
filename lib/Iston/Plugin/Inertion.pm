@@ -63,6 +63,7 @@ sub spawn_timer {
         $self->app->rotate_objects($uy, $ux);
         ($uy, $ux) = map { $_ * (1 - $friction) } ($uy, $ux);
         $self->app->_log_state('S');
+        $self->timer(undef) if ((abs($uy) < 0.01) && (abs($ux) < 0.01))
     };
     $self->timer($t);
 }

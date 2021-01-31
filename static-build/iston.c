@@ -1,6 +1,7 @@
 #include <EXTERN.h>
 #include <perl.h>
 #include <stdlib.h>
+#include <string.h>
 
 
 EXTERN_C void xs_init (pTHX);
@@ -9,11 +10,15 @@ static PerlInterpreter *my_perl;
 
 int main (int argc, char **argv, char **env)
  {
-   char *my_argv[] = { "", "-Ilib", "lib/iston.pl" };
+   char *my_argv[] = { "", "-Ilib", "lib/script/iston.pl" };
    char *my_env[] = {"ISTON_PORTABLE=1", NULL};
    int my_argc = 3;
    int i;
-   fprintf( stderr, "initializing perl...\n");
+   int custom_script = 0;
+   if (argc > 1 && strstr(".pl", argv[1])) {
+        my_argv[2] = argv[1];
+   }
+   fprintf( stderr, "initializing perl with %s ...\n", my_argv[2]);
    PERL_SYS_INIT3(&argc,&argv,&env);
    my_perl = perl_alloc();
    perl_construct( my_perl );
