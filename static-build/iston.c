@@ -15,7 +15,7 @@ int main (int argc, char **argv, char **env)
    int my_argc = 3;
    int i;
    int custom_script = 0;
-   if (argc > 1 && strstr(".pl", argv[1])) {
+   if (argc > 1 && strstr(argv[1], ".pl")) {
         my_argv[2] = argv[1];
    }
    fprintf( stderr, "initializing perl with %s ...\n", my_argv[2]);

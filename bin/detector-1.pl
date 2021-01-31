@@ -46,9 +46,6 @@ if ($@ || ref($settings) ne 'HASH') {
     say "failed loading settings...";
 }
 
-say "loading history...";
-my $history = History->new( path => $history_path)->load;
-
 say "loading markers...";
 my $notifier = EventDistributor->new;
 $notifier->declare('view_change');
@@ -64,6 +61,7 @@ for (@{ $markers_data->{zones} } ) {
 }
 $mc->name($markers_data->{name});
 
+say "loading history...";
 my $history = History->new( path => $history_path )->load;
 
 say "calculating observation path...";
